@@ -15,6 +15,7 @@ public class ChecksumService : IChecksumService
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
+    
 
     /// <summary>
     /// Calculates MD5 checksum for a file
