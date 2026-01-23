@@ -1,0 +1,57 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using MySqlBackupTool.Shared.DependencyInjection;
+
+namespace MySqlBackupTool.Server;
+
+internal class Program
+{
+    static async Task Main(string[] args)
+    {
+        Console.WriteLine("MySQL Backup Tool - File Receiver Server");
+        Console.WriteLine("========================================");
+
+        // Create host builder for dependency injection
+        var hostBuilder = Host.CreateDefaultBuilder(args)
+            .ConfigureServices((context, services) =>
+            {
+                // Add shared services
+                var connectionString = ServiceCollectionExtensions.CreateDefaultConnectionString("server_backup_tool.db");
+                services.AddSharedServices(connectionString);
+                
+                // Add server-specific services
+                var storagePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "MySqlBackupTool", "Backups");
+                services.AddServerServices(storagePath);
+                
+                // Add hosted service for the file receiver
+                services.AddHostedService<FileReceiverService>();
+            });
+
+        var host = hostBuilder.Build();
+
+        try
+        {
+            // Initialize database
+            await host.Services.InitializeDatabaseAsync();
+
+            var logger = host.Services.GetRequiredService<ILogger<Program>>();
+            logger.LogInformation("MySQL Backup Tool Server starting...");
+
+            Console.WriteLine("Server is starting...");
+            Console.WriteLine("Press Ctrl+C to stop the server");
+
+            // Run the host
+            await host.RunAsync();
+        }
+        catch (Exception ex)
+        {
+            var logger = host.Services.GetService<ILogger<Program>>();
+            logger?.LogCritical(ex, "Fatal error occurred during server startup");
+            
+            Console.WriteLine($"Fatal error: {ex.Message}");
+            Console.WriteLine("Press any key to exit...");
+            Console.ReadKey();
+        }
+    }
+}
