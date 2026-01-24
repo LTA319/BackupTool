@@ -31,6 +31,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IBackupLogRepository, BackupLogRepository>();
         services.AddScoped<IRetentionPolicyRepository, RetentionPolicyRepository>();
         services.AddScoped<IResumeTokenRepository, ResumeTokenRepository>();
+        services.AddScoped<IScheduleConfigurationRepository, ScheduleConfigurationRepository>();
 
         // Add database migration service
         services.AddScoped<DatabaseMigrationService>();
@@ -143,6 +144,23 @@ public static class ServiceCollectionExtensions
             var logger = provider.GetRequiredService<ILogger<StorageManager>>();
             return new StorageManager(logger, baseStoragePath ?? "");
         });
+        
+        return services;
+    }
+
+    /// <summary>
+    /// Adds backup scheduling services to the dependency injection container
+    /// </summary>
+    public static IServiceCollection AddBackupSchedulingServices(this IServiceCollection services)
+    {
+        // Add backup scheduler service
+        services.AddScoped<IBackupScheduler, BackupSchedulerService>();
+        
+        // Add the scheduler as a hosted service for background execution
+        services.AddHostedService<BackupSchedulerService>();
+        
+        // Add auto-startup service
+        services.AddHostedService<AutoStartupService>();
         
         return services;
     }

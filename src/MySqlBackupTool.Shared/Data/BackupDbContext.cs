@@ -14,6 +14,7 @@ public class BackupDbContext : DbContext
     }
 
     public DbSet<BackupConfiguration> BackupConfigurations { get; set; }
+    public DbSet<ScheduleConfiguration> ScheduleConfigurations { get; set; }
     public DbSet<BackupLog> BackupLogs { get; set; }
     public DbSet<TransferLog> TransferLogs { get; set; }
     public DbSet<RetentionPolicy> RetentionPolicies { get; set; }
@@ -52,6 +53,21 @@ public class BackupDbContext : DbContext
                     v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
                     v => JsonSerializer.Deserialize<FileNamingStrategy>(v, (JsonSerializerOptions?)null) ?? new FileNamingStrategy()
                 );
+        });
+
+        // Configure ScheduleConfiguration
+        modelBuilder.Entity<ScheduleConfiguration>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ScheduleType).HasConversion<string>();
+            entity.Property(e => e.ScheduleTime).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("datetime('now')");
+
+            // Configure relationship with BackupConfiguration
+            entity.HasOne(e => e.BackupConfiguration)
+                .WithMany()
+                .HasForeignKey(e => e.BackupConfigId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Configure BackupLog
@@ -162,6 +178,19 @@ public class BackupDbContext : DbContext
         modelBuilder.Entity<ResumeToken>()
             .HasIndex(e => e.LastActivity)
             .HasDatabaseName("IX_ResumeToken_LastActivity");
+
+        // Create indexes for schedule configurations
+        modelBuilder.Entity<ScheduleConfiguration>()
+            .HasIndex(e => e.BackupConfigId)
+            .HasDatabaseName("IX_ScheduleConfiguration_BackupConfigId");
+
+        modelBuilder.Entity<ScheduleConfiguration>()
+            .HasIndex(e => e.IsEnabled)
+            .HasDatabaseName("IX_ScheduleConfiguration_IsEnabled");
+
+        modelBuilder.Entity<ScheduleConfiguration>()
+            .HasIndex(e => e.NextExecution)
+            .HasDatabaseName("IX_ScheduleConfiguration_NextExecution");
     }
 
     /// <summary>
