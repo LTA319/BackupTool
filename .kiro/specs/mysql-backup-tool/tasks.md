@@ -17,8 +17,13 @@
 **Subtasks**:
 - [x] Create `IBackupService` interface for `MySQLManager`
 - [x] Create `ICompressionService` interface for `CompressionService`
+<<<<<<< HEAD
 - [x] Create `IFileTransferService` interface for `FileTransferClient`
 - [x] Create `ILoggingService` interface for `LoggingService`
+=======
+- [ ] Create `IFileTransferService` interface for `FileTransferClient`
+- [ ] Create `ILoggingService` interface for `LoggingService`
+>>>>>>> 405bf92a456de467e711c868873ae681202d9f6c
 - [ ] Update existing services to implement interfaces
 - [ ] Configure dependency injection container
 
