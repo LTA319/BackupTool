@@ -397,21 +397,7 @@ public class SecureCredentialStorage : ICredentialStorage
 
         var encryptedData = msEncrypt.ToArray();
         
-        // Apply additional Windows DPAPI encryption if configured and available
-        // Note: DPAPI is disabled in this implementation for cross-platform compatibility
-        // if (_config.UseWindowsDPAPI && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        // {
-        //     try
-        //     {
-        //         encryptedData = System.Security.Cryptography.ProtectedData.Protect(encryptedData, null, System.Security.Cryptography.DataProtectionScope.CurrentUser);
-        //         _logger.LogDebug("Applied Windows DPAPI protection to encrypted data");
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //         _logger.LogWarning(ex, "Failed to apply Windows DPAPI protection, using AES only");
-        //     }
-        // }
-
+        // Note: Windows DPAPI is disabled for cross-platform compatibility
         return encryptedData;
     }
 
@@ -420,14 +406,7 @@ public class SecureCredentialStorage : ICredentialStorage
     /// </summary>
     private byte[] DecryptData(byte[] encryptedData)
     {
-        // Remove Windows DPAPI protection if it was applied
-        // Note: DPAPI is disabled in this implementation for cross-platform compatibility
-        // if (_config.UseWindowsDPAPI && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        // {
-        //     try
-        //     {
-        //         encryptedData = System.Security.Cryptography.ProtectedData.Unprotect(encryptedData, null, System.Security.Cryptography.DataProtectionScope.CurrentUser);
-        //         _logger.LogDebug("Removed Windows DPAPI protection from encrypted data");
+        // Note: Windows DPAPI is disabled for cross-platform compatibility
         //     }
         //     catch (Exception ex)
         //     {

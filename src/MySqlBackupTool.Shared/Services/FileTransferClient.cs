@@ -23,8 +23,17 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     private const long LargeFileThreshold = 10 * 1024 * 1024; // 10MB
     private const long HugeFileThreshold = 100 * 1024 * 1024; // 100MB
     
+    // Network configuration constants
     private const int MaxRetryAttempts = 3;
     private const int BaseRetryDelayMs = 1000; // 1 second base delay
+    private const int MaxChunkRetries = 3;
+    private const int ChunkRetryDelayMs = 100;
+    private const int NetworkTimeoutSeconds = 30;
+    private const int MinSocketBufferSize = 65536; // 64KB minimum
+    private const int SocketBufferMultiplier = 2;
+    private const int TcpClientBufferSize = 1024 * 1024; // 1MB
+    private const int ProgressReportingDivisor = 20; // Report progress every 1/20th of chunks
+    private const int PeriodicFlushMultiplier = 10; // Flush every 10 buffer sizes
 
     public FileTransferClient(ILogger<FileTransferClient> logger, IChecksumService checksumService, IMemoryProfiler? memoryProfiler = null)
     {
@@ -543,7 +552,7 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
             totalBytes += bytesRead;
             
             // Log progress and flush periodically for better performance
-            if (totalBytes % (bufferSize * 10) == 0 || totalBytes == fileSize)
+            if (totalBytes % (bufferSize * PeriodicFlushMultiplier) == 0 || totalBytes == fileSize)
             {
                 var progress = (double)totalBytes / fileSize * 100;
                 _logger.LogDebug("Transfer progress for {TransferId}: {Progress:F1}% ({Bytes}/{Total} bytes)", 
@@ -630,7 +639,7 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
             
             // Log progress and record memory snapshots with adaptive frequency
             var progress = (double)totalBytes / fileSize * 100;
-            var shouldLogProgress = chunkIndex % Math.Max(1, chunkCount / 20) == 0 || chunkIndex == chunkCount - 1;
+            var shouldLogProgress = chunkIndex % Math.Max(1, chunkCount / ProgressReportingDivisor) == 0 || chunkIndex == chunkCount - 1;
             
             if (shouldLogProgress)
             {
@@ -653,30 +662,29 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     /// </summary>
     private async Task SendChunkWithRetryAsync(NetworkStream stream, ChunkData chunk, CancellationToken cancellationToken)
     {
-        const int maxChunkRetries = 3;
         Exception? lastException = null;
         
-        for (int attempt = 1; attempt <= maxChunkRetries; attempt++)
+        for (int attempt = 1; attempt <= MaxChunkRetries; attempt++)
         {
             try
             {
                 await SendChunkAsync(stream, chunk, cancellationToken);
                 return; // Success
             }
-            catch (Exception ex) when (attempt < maxChunkRetries)
+            catch (Exception ex) when (attempt < MaxChunkRetries)
             {
                 lastException = ex;
                 _logger.LogWarning(ex, "Chunk {ChunkIndex} send attempt {Attempt} failed, retrying...", 
                     chunk.ChunkIndex, attempt);
                 
                 // Brief delay before retry
-                await Task.Delay(100 * attempt, cancellationToken);
+                await Task.Delay(ChunkRetryDelayMs * attempt, cancellationToken);
             }
         }
         
         // All retries failed
         throw new InvalidOperationException(
-            $"Failed to send chunk {chunk.ChunkIndex} after {maxChunkRetries} attempts: {lastException?.Message}", 
+            $"Failed to send chunk {chunk.ChunkIndex} after {MaxChunkRetries} attempts: {lastException?.Message}", 
             lastException);
     }
 
@@ -801,15 +809,15 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
             var socket = stream.Socket;
             
             // Increase send and receive buffer sizes
-            socket.SendBufferSize = Math.Max(bufferSize * 2, 65536); // At least 64KB
-            socket.ReceiveBufferSize = Math.Max(bufferSize * 2, 65536);
+            socket.SendBufferSize = Math.Max(bufferSize * SocketBufferMultiplier, MinSocketBufferSize); // At least 64KB
+            socket.ReceiveBufferSize = Math.Max(bufferSize * SocketBufferMultiplier, MinSocketBufferSize);
             
             // Disable Nagle's algorithm for better throughput with large buffers
             socket.NoDelay = true;
             
             // Set socket timeout to prevent hanging
-            socket.SendTimeout = 30000; // 30 seconds
-            socket.ReceiveTimeout = 30000;
+            socket.SendTimeout = NetworkTimeoutSeconds * 1000; // 30 seconds
+            socket.ReceiveTimeout = NetworkTimeoutSeconds * 1000;
             
             _logger.LogDebug("Configured network stream: SendBuffer={SendBuffer}, ReceiveBuffer={ReceiveBuffer}, NoDelay={NoDelay}",
                 socket.SendBufferSize, socket.ReceiveBufferSize, socket.NoDelay);
@@ -828,12 +836,12 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
         try
         {
             // Set client buffer sizes before connection
-            tcpClient.SendBufferSize = 1024 * 1024; // 1MB send buffer
-            tcpClient.ReceiveBufferSize = 1024 * 1024; // 1MB receive buffer
+            tcpClient.SendBufferSize = TcpClientBufferSize; // 1MB send buffer
+            tcpClient.ReceiveBufferSize = TcpClientBufferSize; // 1MB receive buffer
             
             // Set connection timeout
-            tcpClient.SendTimeout = 30000; // 30 seconds
-            tcpClient.ReceiveTimeout = 30000;
+            tcpClient.SendTimeout = NetworkTimeoutSeconds * 1000; // 30 seconds
+            tcpClient.ReceiveTimeout = NetworkTimeoutSeconds * 1000;
             
             _logger.LogDebug("Configured TCP client: SendBuffer={SendBuffer}, ReceiveBuffer={ReceiveBuffer}",
                 tcpClient.SendBufferSize, tcpClient.ReceiveBufferSize);

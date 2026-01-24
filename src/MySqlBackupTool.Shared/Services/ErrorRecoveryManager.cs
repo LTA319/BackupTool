@@ -102,7 +102,7 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
             if (_configuration.AutoRestartMySQLOnFailure)
             {
                 _logger.LogInformation("Attempting to restart MySQL after compression failure");
-                // Note: We would need the service name from context, for now we'll log the intent
+                // MySQL restart requires service name from context - this should be provided by the caller
                 _logger.LogWarning("MySQL restart required but service name not available in compression error context");
             }
 
@@ -163,7 +163,7 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
             if (_configuration.AutoRestartMySQLOnFailure)
             {
                 _logger.LogInformation("Attempting to restart MySQL after transfer failure");
-                // Note: We would need the service name from context
+                // MySQL restart requires service name from context - this should be provided by the caller
                 _logger.LogWarning("MySQL restart required but service name not available in transfer error context");
             }
 

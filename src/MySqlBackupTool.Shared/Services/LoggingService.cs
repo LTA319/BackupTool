@@ -4,7 +4,8 @@ using MySqlBackupTool.Shared.Interfaces;
 namespace MySqlBackupTool.Shared.Services;
 
 /// <summary>
-/// Application-specific logging service implementation
+/// Application-specific logging service implementation that provides structured logging
+/// with backup-specific methods for common operations
 /// </summary>
 public class LoggingService : ILoggingService
 {
@@ -65,6 +66,11 @@ public class LoggingService : ILoggingService
         _logger.Log(logLevel, eventId, state, exception, formatter);
     }
 
+    /// <summary>
+    /// Logs the start of a backup operation
+    /// </summary>
+    /// <param name="configurationId">The ID of the backup configuration being executed</param>
+    /// <param name="resumeToken">Optional resume token if this is a resumed backup operation</param>
     public void LogBackupStart(int configurationId, string? resumeToken = null)
     {
         if (string.IsNullOrEmpty(resumeToken))
@@ -78,6 +84,14 @@ public class LoggingService : ILoggingService
         }
     }
 
+    /// <summary>
+    /// Logs the completion of a backup operation
+    /// </summary>
+    /// <param name="backupLogId">The ID of the backup log entry</param>
+    /// <param name="success">Whether the backup completed successfully</param>
+    /// <param name="filePath">Path to the backup file (if successful)</param>
+    /// <param name="fileSize">Size of the backup file in bytes (if successful)</param>
+    /// <param name="errorMessage">Error message (if failed)</param>
     public void LogBackupComplete(int backupLogId, bool success, string? filePath = null, long? fileSize = null, string? errorMessage = null)
     {
         if (success)

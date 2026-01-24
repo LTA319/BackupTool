@@ -4,12 +4,20 @@ using MySqlBackupTool.Shared.DependencyInjection;
 using MySqlBackupTool.Shared.Interfaces;
 using MySqlBackupTool.Shared.Models;
 using System.IO.Compression;
-using System.Text;
 
 namespace MySqlBackupTool.Tests.Services
 {
     public class ValidationServiceTests : IDisposable
     {
+        // Test constants
+        private const int Sha256HexLength = 64;
+        private const int Md5HexLength = 32;
+        private const int Sha1HexLength = 40;
+        private const int Sha512HexLength = 128;
+        private const int LargeFileSize = 1024 * 1024; // 1MB
+        private const int MaxValidationTimeSeconds = 10;
+        private const int MaxConfidenceScore = 100;
+        
         private readonly IValidationService _validationService;
         private readonly IEncryptionService _encryptionService;
         private readonly string _testDirectory;
@@ -51,7 +59,7 @@ namespace MySqlBackupTool.Tests.Services
             // Assert
             Assert.NotNull(checksum);
             Assert.NotEmpty(checksum);
-            Assert.Equal(64, checksum.Length); // SHA256 produces 64 hex characters
+            Assert.Equal(Sha256HexLength, checksum.Length); // SHA256 produces 64 hex characters
             
             // Verify consistency
             var checksum2 = await _validationService.CalculateChecksumAsync(filePath, ChecksumAlgorithm.SHA256);
@@ -73,10 +81,10 @@ namespace MySqlBackupTool.Tests.Services
             var sha512 = await _validationService.CalculateChecksumAsync(filePath, ChecksumAlgorithm.SHA512);
             
             // Assert
-            Assert.Equal(32, md5.Length);   // MD5: 32 hex chars
-            Assert.Equal(40, sha1.Length);  // SHA1: 40 hex chars
-            Assert.Equal(64, sha256.Length); // SHA256: 64 hex chars
-            Assert.Equal(128, sha512.Length); // SHA512: 128 hex chars
+            Assert.Equal(Md5HexLength, md5.Length);   // MD5: 32 hex chars
+            Assert.Equal(Sha1HexLength, sha1.Length);  // SHA1: 40 hex chars
+            Assert.Equal(Sha256HexLength, sha256.Length); // SHA256: 64 hex chars
+            Assert.Equal(Sha512HexLength, sha512.Length); // SHA512: 128 hex chars
             
             // All should be different
             Assert.NotEqual(md5, sha1);
@@ -444,7 +452,7 @@ namespace MySqlBackupTool.Tests.Services
         public async Task CalculateChecksumAsync_WithLargeFile_ShouldHandleEfficiently()
         {
             // Arrange
-            var largeContent = new string('A', 1024 * 1024); // 1MB of data
+            var largeContent = new string('A', LargeFileSize); // 1MB of data
             var filePath = Path.Combine(_testDirectory, "large_test.txt");
             await File.WriteAllTextAsync(filePath, largeContent);
             
@@ -455,8 +463,8 @@ namespace MySqlBackupTool.Tests.Services
             
             // Assert
             Assert.NotNull(checksum);
-            Assert.Equal(64, checksum.Length);
-            Assert.True(duration.TotalSeconds < 10); // Should complete within 10 seconds for 1MB file
+            Assert.Equal(Sha256HexLength, checksum.Length);
+            Assert.True(duration.TotalSeconds < MaxValidationTimeSeconds); // Should complete within 10 seconds for 1MB file
         }
         
         [Fact]
@@ -493,7 +501,7 @@ namespace MySqlBackupTool.Tests.Services
             // Assert
             Assert.NotNull(report.Summary);
             Assert.True(report.Summary.ConfidenceScore >= 0);
-            Assert.True(report.Summary.ConfidenceScore <= 100);
+            Assert.True(report.Summary.ConfidenceScore <= MaxConfidenceScore);
             Assert.NotEmpty(report.Summary.Message);
             
             // Should have some status

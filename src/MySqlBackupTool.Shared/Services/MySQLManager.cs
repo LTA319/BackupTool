@@ -13,8 +13,17 @@ public class MySQLManager : IMySQLManager, IBackupService
 {
     private readonly ILogger<MySQLManager> _logger;
     private readonly IMemoryProfiler? _memoryProfiler;
-    private readonly TimeSpan _defaultTimeout = TimeSpan.FromSeconds(30);
-    private readonly TimeSpan _serviceOperationTimeout = TimeSpan.FromSeconds(60);
+    // Service operation timeouts
+    private const int DefaultTimeoutSeconds = 30;
+    private const int ServiceOperationTimeoutSeconds = 60;
+    
+    // Connection retry configuration
+    private const int MaxConnectionRetries = 3;
+    private const int BaseRetryDelayMs = 1000;
+    private const int StatusCheckIntervalMs = 500;
+    
+    private readonly TimeSpan _defaultTimeout = TimeSpan.FromSeconds(DefaultTimeoutSeconds);
+    private readonly TimeSpan _serviceOperationTimeout = TimeSpan.FromSeconds(ServiceOperationTimeoutSeconds);
 
     public MySQLManager(ILogger<MySQLManager> logger, IMemoryProfiler? memoryProfiler = null)
     {
@@ -247,15 +256,12 @@ public class MySQLManager : IMySQLManager, IBackupService
             }
 
             // Test the connection with retry logic and configurable timeout
-            const int maxRetries = 3;
-            const int baseDelayMs = 1000;
-
-            for (int attempt = 1; attempt <= maxRetries; attempt++)
+            for (int attempt = 1; attempt <= MaxConnectionRetries; attempt++)
             {
                 try
                 {
                     _logger.LogDebug("Connection attempt {Attempt}/{MaxRetries} with {Timeout}s timeout", 
-                        attempt, maxRetries, timeoutSeconds);
+                        attempt, MaxConnectionRetries, timeoutSeconds);
                     
                     var (isValid, errors) = await connection.ValidateConnectionAsync(timeoutSeconds);
                     
@@ -269,9 +275,9 @@ public class MySQLManager : IMySQLManager, IBackupService
                         _logger.LogWarning("Connection validation failed on attempt {Attempt}: {Errors}", 
                             attempt, string.Join(", ", errors));
                         
-                        if (attempt < maxRetries)
+                        if (attempt < MaxConnectionRetries)
                         {
-                            var delay = TimeSpan.FromMilliseconds(baseDelayMs * Math.Pow(2, attempt - 1));
+                            var delay = TimeSpan.FromMilliseconds(BaseRetryDelayMs * Math.Pow(2, attempt - 1));
                             _logger.LogDebug("Waiting {Delay}ms before retry", delay.TotalMilliseconds);
                             await Task.Delay(delay);
                         }
@@ -281,15 +287,15 @@ public class MySQLManager : IMySQLManager, IBackupService
                 {
                     _logger.LogWarning(ex, "Connection attempt {Attempt} failed with exception", attempt);
                     
-                    if (attempt < maxRetries)
+                    if (attempt < MaxConnectionRetries)
                     {
-                        var delay = TimeSpan.FromMilliseconds(baseDelayMs * Math.Pow(2, attempt - 1));
+                        var delay = TimeSpan.FromMilliseconds(BaseRetryDelayMs * Math.Pow(2, attempt - 1));
                         await Task.Delay(delay);
                     }
                 }
             }
 
-            _logger.LogError("Failed to verify MySQL instance availability after {MaxRetries} attempts", maxRetries);
+            _logger.LogError("Failed to verify MySQL instance availability after {MaxRetries} attempts", MaxConnectionRetries);
             return false;
         }
         catch (Exception ex)
@@ -316,7 +322,7 @@ public class MySQLManager : IMySQLManager, IBackupService
                     return;
                 }
                 
-                await Task.Delay(500); // Check every 500ms
+                await Task.Delay(StatusCheckIntervalMs); // Check every 500ms
             }
             catch (Exception ex)
             {

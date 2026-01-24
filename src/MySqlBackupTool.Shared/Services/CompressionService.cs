@@ -17,7 +17,14 @@ public class CompressionService : ICompressionService
     private const int DefaultBufferSize = 1024 * 1024; // 1MB buffer for better I/O performance
     private const int LargeFileBufferSize = 4 * 1024 * 1024; // 4MB buffer for files > 100MB
     private const long LargeFileThreshold = 100 * 1024 * 1024; // 100MB threshold
+    // Memory management configuration
     private const int MemoryPressureThreshold = 100; // Files processed before GC check
+    private const int LargeFileGCInterval = 10; // GC check interval for large files
+    private const int SmallFileGCInterval = 200; // GC check interval for small files (MemoryPressureThreshold * 2)
+    private const int ProgressReportingDivisor = 20; // Report progress every 1/20th of total chunks
+    private const int PeriodicFlushMultiplier = 10; // Flush every 10 buffer sizes
+    private const int ChunkRetryDelayBaseMs = 100; // Base delay for chunk retry
+    private const long PeriodicMemoryCheckInterval = 50 * 1024 * 1024; // Every 50MB for large files
     private static readonly int MaxConcurrentFiles = Environment.ProcessorCount; // Parallel processing limit
 
     public CompressionService(ILogger<CompressionService> logger, IMemoryProfiler? memoryProfiler = null)
@@ -107,7 +114,7 @@ public class CompressionService : ICompressionService
                 progress?.Report(compressionProgress);
 
                 // Memory management for large files
-                if (processedFiles % 10 == 0) // More frequent GC for large files
+                if (processedFiles % LargeFileGCInterval == 0) // More frequent GC for large files
                 {
                     _memoryProfiler?.RecordSnapshot(operationId, "LargeFileProgress", 
                         $"Processed {processedFiles} large files, {processedBytes} bytes");
@@ -236,7 +243,7 @@ public class CompressionService : ICompressionService
             totalBytesRead += bytesRead;
             
             // Periodic memory pressure check for very large files
-            if (totalBytesRead % (50 * 1024 * 1024) == 0) // Every 50MB
+            if (totalBytesRead % PeriodicMemoryCheckInterval == 0) // Every 50MB
             {
                 _memoryProfiler?.RecordSnapshot(operationId, "LargeFileProgress", 
                     $"Processed {totalBytesRead}/{fileInfo.Length} bytes of {relativePath}");
@@ -305,7 +312,7 @@ public class CompressionService : ICompressionService
                     $"Processed {processedFiles} files, {processedBytes} bytes");
                 
                 // Periodic GC to prevent memory buildup
-                if (processedFiles % (MemoryPressureThreshold * 2) == 0)
+                if (processedFiles % SmallFileGCInterval == 0)
                 {
                     _memoryProfiler?.ForceGarbageCollection(operationId);
                 }
