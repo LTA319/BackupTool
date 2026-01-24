@@ -173,19 +173,29 @@ public class ChunkManager : IChunkManager
                 session.Metadata.FileName);
 
             // Reassemble chunks
-            using var outputStream = new FileStream(finalPath, FileMode.Create, FileAccess.Write);
-            
-            var chunkFiles = Directory.GetFiles(session.TempDirectory, "chunk_*.dat")
-                .OrderBy(f => f)
-                .ToList();
-
-            foreach (var chunkFile in chunkFiles)
+            using (var outputStream = new FileStream(finalPath, FileMode.Create, FileAccess.Write))
             {
-                var chunkData = await File.ReadAllBytesAsync(chunkFile);
-                await outputStream.WriteAsync(chunkData);
-            }
+                var chunkFiles = Directory.GetFiles(session.TempDirectory, "chunk_*.dat")
+                    .Select(f => new { 
+                        FilePath = f, 
+                        ChunkIndex = ExtractChunkIndex(Path.GetFileName(f)) 
+                    })
+                    .OrderBy(x => x.ChunkIndex)
+                    .Select(x => x.FilePath)
+                    .ToList();
 
-            await outputStream.FlushAsync();
+                foreach (var chunkFile in chunkFiles)
+                {
+                    var chunkData = await File.ReadAllBytesAsync(chunkFile);
+                    await outputStream.WriteAsync(chunkData);
+                }
+
+                await outputStream.FlushAsync();
+            } // Ensure FileStream is disposed before validation
+
+            // Force garbage collection to ensure file handle is released
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
 
             // Validate final file
             var fileInfo = new FileInfo(finalPath);
@@ -205,7 +215,11 @@ public class ChunkManager : IChunkManager
                 
                 if (!isValid)
                 {
-                    throw new InvalidOperationException("Final file checksum validation failed");
+                    // Log detailed checksum information for debugging
+                    var actualChecksum = await _checksumService.CalculateFileMD5Async(finalPath);
+                    _logger.LogError("Checksum validation failed. Expected: {Expected}, Actual: {Actual}, File: {FilePath}", 
+                        session.Metadata.ChecksumMD5, actualChecksum, finalPath);
+                    throw new InvalidOperationException($"Final file checksum validation failed. Expected: {session.Metadata.ChecksumMD5}, Actual: {actualChecksum}");
                 }
             }
 
@@ -461,6 +475,20 @@ public class ChunkManager : IChunkManager
         }
         var randomHex = Convert.ToHexString(randomBytes);
         return $"RT_{timestamp}_{randomHex}";
+    }
+
+    /// <summary>
+    /// Extracts chunk index from chunk filename
+    /// </summary>
+    private static int ExtractChunkIndex(string fileName)
+    {
+        // Expected format: chunk_000001.dat
+        var match = System.Text.RegularExpressions.Regex.Match(fileName, @"chunk_(\d+)\.dat");
+        if (match.Success && int.TryParse(match.Groups[1].Value, out int index))
+        {
+            return index;
+        }
+        throw new InvalidOperationException($"Invalid chunk filename format: {fileName}");
     }
 
     /// <summary>

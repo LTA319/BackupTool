@@ -51,6 +51,9 @@ public class FileChunkingPropertyTests : IDisposable
     [Property(MaxTest = 15)]
     public bool FileChunkingForLargeFilesProperty()
     {
+        string originalFile = string.Empty;
+        string reassembledFile = string.Empty;
+        
         try
         {
             // Generate test parameters
@@ -62,7 +65,7 @@ public class FileChunkingPropertyTests : IDisposable
                 return true; // Skip this test case
             
             // Arrange - Create test file
-            var originalFile = CreateTestFile(fileSize);
+            originalFile = CreateTestFile(fileSize);
             string originalChecksum;
             
             // Calculate checksum and ensure file is closed
@@ -73,9 +76,11 @@ public class FileChunkingPropertyTests : IDisposable
                 originalChecksum = Convert.ToHexString(hash).ToLowerInvariant();
             }
             
+            Console.WriteLine($"Original file: {originalFile}, Size: {fileSize}, Checksum: {originalChecksum}");
+            
             var metadata = new FileMetadata
             {
-                FileName = Path.GetFileName(originalFile),
+                FileName = $"reassembled_{Path.GetFileName(originalFile)}",
                 FileSize = fileSize,
                 ChecksumMD5 = originalChecksum,
                 CreatedAt = DateTime.UtcNow
@@ -104,7 +109,7 @@ public class FileChunkingPropertyTests : IDisposable
             }
 
             // Finalize transfer
-            var reassembledFile = _chunkManager.FinalizeTransferAsync(transferId).Result;
+            reassembledFile = _chunkManager.FinalizeTransferAsync(transferId).Result;
             _tempFiles.Add(reassembledFile);
 
             // Assert - Verify reassembled file matches original
@@ -127,7 +132,27 @@ public class FileChunkingPropertyTests : IDisposable
         catch (Exception ex)
         {
             Console.WriteLine($"File chunking property test failed: {ex.Message}");
+            if (ex.InnerException != null)
+            {
+                Console.WriteLine($"Inner exception: {ex.InnerException.Message}");
+            }
             return false;
+        }
+        finally
+        {
+            // Ensure cleanup happens even if test fails
+            if (!string.IsNullOrEmpty(originalFile) && File.Exists(originalFile))
+            {
+                DeleteFileWithRetry(originalFile);
+            }
+            if (!string.IsNullOrEmpty(reassembledFile) && File.Exists(reassembledFile))
+            {
+                DeleteFileWithRetry(reassembledFile);
+            }
+            
+            // Force garbage collection to release any remaining file handles
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
         }
     }
 
@@ -139,6 +164,9 @@ public class FileChunkingPropertyTests : IDisposable
     [Property(MaxTest = 10)]
     public bool ChunkOrderingAndIntegrityProperty()
     {
+        string originalFile = string.Empty;
+        string reassembledFile = string.Empty;
+        
         try
         {
             // Generate test parameters
@@ -150,7 +178,7 @@ public class FileChunkingPropertyTests : IDisposable
                 return true; // Skip this test case
             
             // Arrange - Create test file with known pattern
-            var originalFile = CreatePatternedTestFile(fileSize);
+            originalFile = CreatePatternedTestFile(fileSize);
             string originalChecksum;
             
             // Calculate checksum and ensure file is closed
@@ -163,7 +191,7 @@ public class FileChunkingPropertyTests : IDisposable
             
             var metadata = new FileMetadata
             {
-                FileName = Path.GetFileName(originalFile),
+                FileName = $"reassembled_{Path.GetFileName(originalFile)}",
                 FileSize = fileSize,
                 ChecksumMD5 = originalChecksum,
                 CreatedAt = DateTime.UtcNow
@@ -201,7 +229,7 @@ public class FileChunkingPropertyTests : IDisposable
             }
 
             // Finalize and verify
-            var reassembledFile = _chunkManager.FinalizeTransferAsync(transferId).Result;
+            reassembledFile = _chunkManager.FinalizeTransferAsync(transferId).Result;
             _tempFiles.Add(reassembledFile);
             
             string reassembledChecksum;
@@ -220,6 +248,22 @@ public class FileChunkingPropertyTests : IDisposable
         {
             Console.WriteLine($"Chunk ordering and integrity test failed: {ex.Message}");
             return false;
+        }
+        finally
+        {
+            // Ensure cleanup happens even if test fails
+            if (!string.IsNullOrEmpty(originalFile) && File.Exists(originalFile))
+            {
+                DeleteFileWithRetry(originalFile);
+            }
+            if (!string.IsNullOrEmpty(reassembledFile) && File.Exists(reassembledFile))
+            {
+                DeleteFileWithRetry(reassembledFile);
+            }
+            
+            // Force garbage collection to release any remaining file handles
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
         }
     }
 
@@ -269,21 +313,34 @@ public class FileChunkingPropertyTests : IDisposable
     /// </summary>
     private string CreateTestFile(long size)
     {
-        var tempFile = Path.Combine(Path.GetTempPath(), $"ChunkTest_{Guid.NewGuid():N}.dat");
+        var tempFile = Path.Combine(Path.GetTempPath(), "MySqlBackup", $"ChunkTest_{Guid.NewGuid():N}.dat");
+        
+        // Ensure directory exists
+        var directory = Path.GetDirectoryName(tempFile);
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+            _tempDirectories.Add(directory);
+        }
+        
         _tempFiles.Add(tempFile);
 
-        using var fileStream = new FileStream(tempFile, FileMode.Create, FileAccess.Write);
-        var random = new System.Random(42); // Fixed seed for reproducibility
-        var buffer = new byte[Math.Min(8192, size)];
-        long written = 0;
-
-        while (written < size)
+        using (var fileStream = new FileStream(tempFile, FileMode.Create, FileAccess.Write))
         {
-            var bytesToWrite = (int)Math.Min(buffer.Length, size - written);
-            random.NextBytes(buffer);
-            fileStream.Write(buffer, 0, bytesToWrite);
-            written += bytesToWrite;
-        }
+            var random = new System.Random(42); // Fixed seed for reproducibility
+            var buffer = new byte[Math.Min(8192, size)];
+            long written = 0;
+
+            while (written < size)
+            {
+                var bytesToWrite = (int)Math.Min(buffer.Length, size - written);
+                random.NextBytes(buffer);
+                fileStream.Write(buffer, 0, bytesToWrite);
+                written += bytesToWrite;
+            }
+            
+            fileStream.Flush();
+        } // Explicit disposal via using statement
 
         return tempFile;
     }
@@ -293,21 +350,33 @@ public class FileChunkingPropertyTests : IDisposable
     /// </summary>
     private string CreatePatternedTestFile(long size)
     {
-        var tempFile = Path.Combine(Path.GetTempPath(), $"PatternTest_{Guid.NewGuid():N}.dat");
+        var tempFile = Path.Combine(Path.GetTempPath(), "MySqlBackup", $"PatternTest_{Guid.NewGuid():N}.dat");
+        
+        // Ensure directory exists
+        var directory = Path.GetDirectoryName(tempFile);
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+            _tempDirectories.Add(directory);
+        }
+        
         _tempFiles.Add(tempFile);
 
-        using var fileStream = new FileStream(tempFile, FileMode.Create, FileAccess.Write);
-        
-        // Create a repeating pattern
-        var pattern = Encoding.UTF8.GetBytes("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789");
-        long written = 0;
-
-        while (written < size)
+        using (var fileStream = new FileStream(tempFile, FileMode.Create, FileAccess.Write))
         {
-            var bytesToWrite = (int)Math.Min(pattern.Length, size - written);
-            fileStream.Write(pattern, 0, bytesToWrite);
-            written += bytesToWrite;
-        }
+            // Create a repeating pattern
+            var pattern = Encoding.UTF8.GetBytes("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789");
+            long written = 0;
+
+            while (written < size)
+            {
+                var bytesToWrite = (int)Math.Min(pattern.Length, size - written);
+                fileStream.Write(pattern, 0, bytesToWrite);
+                written += bytesToWrite;
+            }
+            
+            fileStream.Flush();
+        } // Explicit disposal via using statement
 
         return tempFile;
     }
@@ -321,33 +390,38 @@ public class FileChunkingPropertyTests : IDisposable
         var fileInfo = new FileInfo(filePath);
         var chunkCount = strategy.CalculateChunkCount(fileInfo.Length);
 
-        using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
-        
-        for (int i = 0; i < chunkCount; i++)
+        using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
         {
-            var remainingBytes = fileInfo.Length - (i * strategy.ChunkSize);
-            var chunkSize = (int)Math.Min(strategy.ChunkSize, remainingBytes);
-            
-            var chunkData = new byte[chunkSize];
-            var bytesRead = fileStream.Read(chunkData, 0, chunkSize);
-            
-            if (bytesRead != chunkSize)
+            for (int i = 0; i < chunkCount; i++)
             {
-                throw new InvalidOperationException($"Expected to read {chunkSize} bytes but read {bytesRead}");
+                var remainingBytes = fileInfo.Length - (i * strategy.ChunkSize);
+                var chunkSize = (int)Math.Min(strategy.ChunkSize, remainingBytes);
+                
+                var chunkData = new byte[chunkSize];
+                var bytesRead = fileStream.Read(chunkData, 0, chunkSize);
+                
+                if (bytesRead != chunkSize)
+                {
+                    throw new InvalidOperationException($"Expected to read {chunkSize} bytes but read {bytesRead}");
+                }
+
+                var chunk = new ChunkData
+                {
+                    TransferId = transferId,
+                    ChunkIndex = i,
+                    Data = chunkData,
+                    ChunkChecksum = CalculateMD5(chunkData),
+                    IsLastChunk = i == chunkCount - 1
+                };
+
+                chunks.Add(chunk);
             }
+        } // File stream is disposed here
 
-            var chunk = new ChunkData
-            {
-                TransferId = transferId,
-                ChunkIndex = i,
-                Data = chunkData,
-                ChunkChecksum = CalculateMD5(chunkData),
-                IsLastChunk = i == chunkCount - 1
-            };
-
-            chunks.Add(chunk);
-        }
-
+        // Force garbage collection to ensure file handle is released
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        
         return chunks;
     }
 
@@ -363,31 +437,76 @@ public class FileChunkingPropertyTests : IDisposable
 
     public void Dispose()
     {
-        // Clean up temporary files
+        // Force garbage collection to release file handles
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        // Clean up temporary files with retry logic
         foreach (var file in _tempFiles)
         {
-            try
-            {
-                if (File.Exists(file))
-                    File.Delete(file);
-            }
-            catch
-            {
-                // Ignore cleanup errors
-            }
+            DeleteFileWithRetry(file);
         }
 
-        // Clean up temporary directories
+        // Clean up temporary directories with retry logic
         foreach (var dir in _tempDirectories)
+        {
+            DeleteDirectoryWithRetry(dir);
+        }
+    }
+
+    /// <summary>
+    /// Attempts to delete a file with retry logic to handle file locking issues
+    /// </summary>
+    private static void DeleteFileWithRetry(string filePath, int maxRetries = 5)
+    {
+        if (!File.Exists(filePath))
+            return;
+
+        for (int i = 0; i < maxRetries; i++)
         {
             try
             {
-                if (Directory.Exists(dir))
-                    Directory.Delete(dir, true);
+                File.Delete(filePath);
+                return; // Success
+            }
+            catch (IOException) when (i < maxRetries - 1)
+            {
+                // File is locked, wait and retry
+                Thread.Sleep(100 * (i + 1)); // Exponential backoff
             }
             catch
             {
-                // Ignore cleanup errors
+                // Other errors, give up
+                return;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Attempts to delete a directory with retry logic to handle file locking issues
+    /// </summary>
+    private static void DeleteDirectoryWithRetry(string dirPath, int maxRetries = 5)
+    {
+        if (!Directory.Exists(dirPath))
+            return;
+
+        for (int i = 0; i < maxRetries; i++)
+        {
+            try
+            {
+                Directory.Delete(dirPath, true);
+                return; // Success
+            }
+            catch (IOException) when (i < maxRetries - 1)
+            {
+                // Directory or files are locked, wait and retry
+                Thread.Sleep(100 * (i + 1)); // Exponential backoff
+            }
+            catch
+            {
+                // Other errors, give up
+                return;
             }
         }
     }
