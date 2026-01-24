@@ -342,6 +342,7 @@ public class ChunkManager : IChunkManager
             };
 
             await _resumeTokenRepository.AddAsync(tokenEntity);
+            await _resumeTokenRepository.SaveChangesAsync();
 
             // Add completed chunks
             foreach (var chunkIndex in session.CompletedChunks)
