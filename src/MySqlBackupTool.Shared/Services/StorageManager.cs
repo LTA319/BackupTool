@@ -199,9 +199,9 @@ public class StorageManager : IStorageManager
     /// <summary>
     /// Gets all backup files in the storage directory
     /// </summary>
-    private List<FileInfo> GetAllBackupFiles()
+    private List<System.IO.FileInfo> GetAllBackupFiles()
     {
-        var backupFiles = new List<FileInfo>();
+        var backupFiles = new List<System.IO.FileInfo>();
 
         if (!Directory.Exists(_baseStoragePath))
         {

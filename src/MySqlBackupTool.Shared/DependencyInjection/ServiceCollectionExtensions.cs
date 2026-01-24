@@ -58,6 +58,21 @@ public static class ServiceCollectionExtensions
         
         // Add application-specific logging service
         services.AddScoped<ILoggingService, LoggingService>();
+        
+        // Add encryption service
+        services.AddScoped<IEncryptionService, EncryptionService>();
+        
+        // Add compression service (needed by validation service)
+        // Use basic compression service in shared services to avoid circular dependency
+        services.AddScoped<CompressionService>();
+        services.AddScoped<ICompressionService>(provider => provider.GetRequiredService<CompressionService>());
+        
+        // Add basic MySQL manager (needed by error recovery manager)
+        services.AddScoped<MySQLManager>();
+        services.AddScoped<IMySQLManager>(provider => provider.GetRequiredService<MySQLManager>());
+        
+        // Add validation service
+        services.AddScoped<IValidationService, ValidationService>();
 
         return services;
     }
