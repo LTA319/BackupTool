@@ -37,6 +37,7 @@ public static class ServiceCollectionExtensions
         // Add business services
         services.AddScoped<IBackupLogService, BackupLogService>();
         services.AddScoped<BackupReportingService>();
+        services.AddScoped<IRetentionPolicyService, RetentionManagementService>();
         services.AddScoped<RetentionManagementService>();
 
         // Add error handling services
@@ -152,6 +153,39 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IErrorRecoveryManager, ErrorRecoveryManager>();
 
         return services;
+    }
+
+    /// <summary>
+    /// Adds retention policy background service for automatic cleanup
+    /// </summary>
+    public static IServiceCollection AddRetentionPolicyBackgroundService(
+        this IServiceCollection services, 
+        Action<RetentionPolicyBackgroundServiceOptions>? configureOptions = null)
+    {
+        var options = new RetentionPolicyBackgroundServiceOptions();
+        configureOptions?.Invoke(options);
+
+        if (options.IsEnabled)
+        {
+            services.AddSingleton(options);
+            services.AddHostedService<RetentionPolicyBackgroundService>();
+        }
+
+        return services;
+    }
+
+    /// <summary>
+    /// Adds retention policy background service with specific interval
+    /// </summary>
+    public static IServiceCollection AddRetentionPolicyBackgroundService(
+        this IServiceCollection services, 
+        TimeSpan executionInterval)
+    {
+        return services.AddRetentionPolicyBackgroundService(options =>
+        {
+            options.ExecutionInterval = executionInterval;
+            options.IsEnabled = true;
+        });
     }
 
     /// <summary>

@@ -205,13 +205,13 @@ This implementation plan breaks down the MySQL Full-File Backup Tool into discre
     - **Validates: Requirements 8.3, 8.6, 9.4, 9.6**
 
 - [ ] 13. Implement file retention policies
-  - [ ] 13.1 Create retention policy management
+  - [x] 13.1 Create retention policy management
     - Implement configurable retention policies (age, count, space)
     - Add automatic file cleanup based on policies
     - Include policy validation and enforcement
     - _Requirements: 10.5_
   
-  - [ ] 13.2 Write property test for file retention policies
+  - [x] 13.2 Write property test for file retention policies
     - **Property 25: File Retention Policy Application**
     - **Validates: Requirements 10.5**
 

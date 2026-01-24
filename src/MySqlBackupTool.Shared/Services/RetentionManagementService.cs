@@ -7,11 +7,12 @@ namespace MySqlBackupTool.Shared.Services;
 /// <summary>
 /// Service for managing retention policies and automatic cleanup
 /// </summary>
-public class RetentionManagementService
+public class RetentionManagementService : IRetentionPolicyService
 {
     private readonly IRetentionPolicyRepository _retentionPolicyRepository;
     private readonly IBackupLogRepository _backupLogRepository;
     private readonly ILogger<RetentionManagementService> _logger;
+    private readonly RetentionPolicyValidator _validator;
 
     public RetentionManagementService(
         IRetentionPolicyRepository retentionPolicyRepository,
@@ -21,6 +22,7 @@ public class RetentionManagementService
         _retentionPolicyRepository = retentionPolicyRepository ?? throw new ArgumentNullException(nameof(retentionPolicyRepository));
         _backupLogRepository = backupLogRepository ?? throw new ArgumentNullException(nameof(backupLogRepository));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _validator = new RetentionPolicyValidator();
     }
 
     /// <summary>
@@ -263,7 +265,7 @@ public class RetentionManagementService
         _logger.LogInformation("Creating new retention policy: {PolicyName}", policy.Name);
 
         // Validate policy
-        await ValidateRetentionPolicyAsync(policy);
+        await ValidateRetentionPolicyInternalAsync(policy);
 
         // Check name uniqueness
         var isUnique = await _retentionPolicyRepository.IsNameUniqueAsync(policy.Name);
@@ -296,7 +298,7 @@ public class RetentionManagementService
             policy.Name, policy.Id);
 
         // Validate policy
-        await ValidateRetentionPolicyAsync(policy);
+        await ValidateRetentionPolicyInternalAsync(policy);
 
         // Check name uniqueness (excluding current policy)
         var isUnique = await _retentionPolicyRepository.IsNameUniqueAsync(policy.Name, policy.Id);
@@ -315,52 +317,189 @@ public class RetentionManagementService
     }
 
     /// <summary>
-    /// Validates a retention policy
+    /// Deletes a retention policy
     /// </summary>
-    private async Task ValidateRetentionPolicyAsync(RetentionPolicy policy)
+    public async Task<bool> DeleteRetentionPolicyAsync(int policyId)
     {
-        var errors = new List<string>();
+        _logger.LogInformation("Deleting retention policy with ID: {PolicyId}", policyId);
 
-        if (string.IsNullOrWhiteSpace(policy.Name))
+        try
         {
-            errors.Add("Policy name is required");
+            var policy = await _retentionPolicyRepository.GetByIdAsync(policyId);
+            if (policy == null)
+            {
+                _logger.LogWarning("Retention policy with ID {PolicyId} not found", policyId);
+                return false;
+            }
+
+            await _retentionPolicyRepository.DeleteAsync(policyId);
+            await _retentionPolicyRepository.SaveChangesAsync();
+
+            _logger.LogInformation("Deleted retention policy: {PolicyName} (ID: {PolicyId})", 
+                policy.Name, policyId);
+
+            return true;
         }
-
-        if (policy.Name?.Length > 100)
+        catch (Exception ex)
         {
-            errors.Add("Policy name cannot exceed 100 characters");
+            _logger.LogError(ex, "Error deleting retention policy with ID {PolicyId}", policyId);
+            return false;
         }
+    }
 
-        if (policy.Description?.Length > 500)
+    /// <summary>
+    /// Gets all retention policies
+    /// </summary>
+    public async Task<IEnumerable<RetentionPolicy>> GetAllRetentionPoliciesAsync()
+    {
+        return await _retentionPolicyRepository.GetAllAsync();
+    }
+
+    /// <summary>
+    /// Gets all enabled retention policies
+    /// </summary>
+    public async Task<IEnumerable<RetentionPolicy>> GetEnabledRetentionPoliciesAsync()
+    {
+        return await _retentionPolicyRepository.GetEnabledPoliciesAsync();
+    }
+
+    /// <summary>
+    /// Gets a retention policy by ID
+    /// </summary>
+    public async Task<RetentionPolicy?> GetRetentionPolicyByIdAsync(int policyId)
+    {
+        return await _retentionPolicyRepository.GetByIdAsync(policyId);
+    }
+
+    /// <summary>
+    /// Gets a retention policy by name
+    /// </summary>
+    public async Task<RetentionPolicy?> GetRetentionPolicyByNameAsync(string name)
+    {
+        return await _retentionPolicyRepository.GetByNameAsync(name);
+    }
+
+    /// <summary>
+    /// Enables a retention policy
+    /// </summary>
+    public async Task<bool> EnableRetentionPolicyAsync(int policyId)
+    {
+        _logger.LogInformation("Enabling retention policy with ID: {PolicyId}", policyId);
+        return await _retentionPolicyRepository.EnablePolicyAsync(policyId);
+    }
+
+    /// <summary>
+    /// Disables a retention policy
+    /// </summary>
+    public async Task<bool> DisableRetentionPolicyAsync(int policyId)
+    {
+        _logger.LogInformation("Disabling retention policy with ID: {PolicyId}", policyId);
+        return await _retentionPolicyRepository.DisablePolicyAsync(policyId);
+    }
+
+    /// <summary>
+    /// Validates a retention policy configuration
+    /// </summary>
+    public async Task<(bool IsValid, List<string> Errors)> ValidateRetentionPolicyAsync(RetentionPolicy policy)
+    {
+        var validationResult = _validator.ValidatePolicy(policy);
+        
+        // Add warnings to errors for backward compatibility
+        var allErrors = new List<string>();
+        allErrors.AddRange(validationResult.Errors);
+        allErrors.AddRange(validationResult.Warnings.Select(w => $"Warning: {w}"));
+        
+        return (validationResult.IsValid, allErrors);
+    }
+
+    /// <summary>
+    /// Estimates the impact of applying a retention policy
+    /// </summary>
+    public async Task<RetentionImpactEstimate> EstimateRetentionImpactAsync(RetentionPolicy policy)
+    {
+        var estimate = new RetentionImpactEstimate();
+
+        try
         {
-            errors.Add("Policy description cannot exceed 500 characters");
+            // Get all backup logs with file information
+            var allBackupLogs = await _backupLogRepository.GetAllAsync();
+            var backupLogsWithFiles = allBackupLogs
+                .Where(bl => !string.IsNullOrEmpty(bl.FilePath) && bl.FileSize.HasValue)
+                .OrderByDescending(bl => bl.StartTime)
+                .ToList();
+
+            if (!backupLogsWithFiles.Any())
+            {
+                return estimate;
+            }
+
+            var filesToDelete = new List<BackupLog>();
+            var currentBackupCount = backupLogsWithFiles.Count;
+            var currentStorageUsed = backupLogsWithFiles.Sum(bl => bl.FileSize ?? 0);
+
+            // Apply retention logic to estimate impact
+            foreach (var backupLog in backupLogsWithFiles)
+            {
+                var shouldRetain = policy.ShouldRetainBackup(
+                    backupLog.StartTime,
+                    currentBackupCount,
+                    currentStorageUsed,
+                    backupLog.FileSize ?? 0);
+
+                if (!shouldRetain)
+                {
+                    filesToDelete.Add(backupLog);
+                    currentBackupCount--;
+                    currentStorageUsed -= backupLog.FileSize ?? 0;
+                }
+            }
+
+            estimate.EstimatedFilesToDelete = filesToDelete.Count;
+            estimate.EstimatedLogsToDelete = filesToDelete.Count;
+            estimate.EstimatedBytesToFree = filesToDelete.Sum(bl => bl.FileSize ?? 0);
+            estimate.FilesToDelete = filesToDelete
+                .Where(bl => !string.IsNullOrEmpty(bl.FilePath))
+                .Select(bl => bl.FilePath!)
+                .ToList();
+
+            // Add warnings for large deletions
+            if (estimate.EstimatedFilesToDelete > 10)
+            {
+                estimate.Warnings.Add($"This policy will delete {estimate.EstimatedFilesToDelete} backup files");
+            }
+
+            if (estimate.EstimatedBytesToFree > 10L * 1024 * 1024 * 1024) // 10GB
+            {
+                var sizeStr = FormatBytes(estimate.EstimatedBytesToFree);
+                estimate.Warnings.Add($"This policy will free {sizeStr} of storage space");
+            }
+
+            return estimate;
         }
-
-        // At least one retention criteria must be specified
-        if (!policy.MaxAgeDays.HasValue && !policy.MaxCount.HasValue && !policy.MaxStorageBytes.HasValue)
+        catch (Exception ex)
         {
-            errors.Add("At least one retention criteria (MaxAgeDays, MaxCount, or MaxStorageBytes) must be specified");
+            _logger.LogError(ex, "Error estimating retention policy impact");
+            estimate.Warnings.Add($"Error estimating impact: {ex.Message}");
+            return estimate;
         }
+    }
 
-        // Validate ranges
-        if (policy.MaxAgeDays.HasValue && policy.MaxAgeDays.Value < 1)
+    /// <summary>
+    /// Internal validation method for retention policies
+    /// </summary>
+    private async Task ValidateRetentionPolicyInternalAsync(RetentionPolicy policy)
+    {
+        var validationResult = _validator.ValidatePolicy(policy);
+        
+        if (!validationResult.IsValid)
         {
-            errors.Add("MaxAgeDays must be at least 1");
+            throw new ArgumentException($"Retention policy validation failed: {string.Join(", ", validationResult.Errors)}");
         }
-
-        if (policy.MaxCount.HasValue && policy.MaxCount.Value < 1)
+        
+        // Log warnings
+        foreach (var warning in validationResult.Warnings)
         {
-            errors.Add("MaxCount must be at least 1");
-        }
-
-        if (policy.MaxStorageBytes.HasValue && policy.MaxStorageBytes.Value < 1)
-        {
-            errors.Add("MaxStorageBytes must be at least 1");
-        }
-
-        if (errors.Any())
-        {
-            throw new ArgumentException($"Retention policy validation failed: {string.Join(", ", errors)}");
+            _logger.LogWarning("Retention policy validation warning: {Warning}", warning);
         }
     }
 
