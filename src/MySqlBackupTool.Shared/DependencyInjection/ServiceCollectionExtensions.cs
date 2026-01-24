@@ -42,6 +42,14 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRetentionPolicyService, RetentionManagementService>();
         services.AddScoped<RetentionManagementService>();
 
+        // Add network and alerting services
+        services.AddScoped<INetworkRetryService, NetworkRetryService>();
+        services.AddScoped<IAlertingService, AlertingService>();
+
+        // Add authentication services
+        services.AddScoped<IAuthenticationService, AuthenticationService>();
+        services.AddScoped<IAuthorizationService, AuthorizationService>();
+
         // Add error handling services
         services.AddErrorHandlingServices();
 
@@ -61,6 +69,14 @@ public static class ServiceCollectionExtensions
         
         // Add certificate manager
         services.AddScoped<CertificateManager>();
+        
+        // Configure SSL services
+        services.ConfigureSslServices(ssl =>
+        {
+            ssl.UseSSL = useSecureTransfer;
+            ssl.AllowSelfSignedCertificates = true; // For development
+            ssl.ValidateServerCertificate = false; // For development
+        });
         
         // Add core services (without timeout protection)
         services.AddScoped<MySQLManager>();
@@ -106,6 +122,12 @@ public static class ServiceCollectionExtensions
                 return new TimeoutProtectedFileTransferClient(innerClient, errorRecoveryManager, logger);
             });
         }
+
+        // Add backup orchestrator
+        services.AddScoped<IBackupOrchestrator, BackupOrchestrator>();
+
+        // Add background task manager
+        services.AddScoped<IBackgroundTaskManager, BackgroundTaskManager>();
         
         return services;
     }
@@ -120,6 +142,20 @@ public static class ServiceCollectionExtensions
         
         // Add certificate manager
         services.AddScoped<CertificateManager>();
+        
+        // Configure SSL services
+        services.ConfigureSslServices(ssl =>
+        {
+            ssl.UseSSL = useSecureReceiver;
+            ssl.AllowSelfSignedCertificates = true; // For development
+            ssl.ValidateServerCertificate = false; // For development
+        });
+        
+        // Add development certificate for testing
+        if (useSecureReceiver)
+        {
+            services.AddDevelopmentCertificate();
+        }
         
         // Add file receiver services
         services.AddScoped<FileReceiver>();

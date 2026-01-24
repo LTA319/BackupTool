@@ -24,6 +24,9 @@ internal class Program
                 var storagePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "MySqlBackupTool", "Backups");
                 services.AddServerServices(storagePath);
                 
+                // Add retention policy background service (runs every 24 hours)
+                services.AddRetentionPolicyBackgroundService(TimeSpan.FromHours(24));
+                
                 // Add hosted service for the file receiver
                 services.AddHostedService<FileReceiverService>();
             });
@@ -41,6 +44,14 @@ internal class Program
             Console.WriteLine("Server is starting...");
             Console.WriteLine("Press Ctrl+C to stop the server");
 
+            // Set up graceful shutdown
+            Console.CancelKeyPress += (sender, e) =>
+            {
+                e.Cancel = true;
+                logger.LogInformation("Shutdown requested by user");
+                host.StopAsync().Wait(TimeSpan.FromSeconds(30));
+            };
+
             // Run the host
             await host.RunAsync();
         }
@@ -52,6 +63,10 @@ internal class Program
             Console.WriteLine($"Fatal error: {ex.Message}");
             Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
+        }
+        finally
+        {
+            Console.WriteLine("Server is shutting down...");
         }
     }
 }

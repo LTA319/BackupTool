@@ -26,6 +26,9 @@ internal static class Program
                 
                 // Add client-specific services
                 services.AddClientServices();
+                
+                // Add backup scheduling services
+                services.AddBackupSchedulingServices();
             });
 
         var host = hostBuilder.Build();
@@ -38,6 +41,9 @@ internal static class Program
             // Get logger
             var logger = host.Services.GetRequiredService<ILogger<FormMain>>();
             logger.LogInformation("MySQL Backup Tool Client starting...");
+
+            // Start the host services (background services, etc.)
+            await host.StartAsync();
 
             // Run the Windows Forms application
             Application.Run(new FormMain(host.Services));
@@ -54,8 +60,20 @@ internal static class Program
         }
         finally
         {
-            await host.StopAsync();
-            host.Dispose();
+            // Gracefully shutdown all services
+            try
+            {
+                await host.StopAsync(TimeSpan.FromSeconds(30));
+            }
+            catch (Exception ex)
+            {
+                var logger = host.Services.GetService<ILogger<FormMain>>();
+                logger?.LogWarning(ex, "Error occurred during application shutdown");
+            }
+            finally
+            {
+                host.Dispose();
+            }
         }
     }
 }
