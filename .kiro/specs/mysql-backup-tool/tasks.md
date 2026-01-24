@@ -199,7 +199,7 @@ This implementation plan breaks down the MySQL Full-File Backup Tool into discre
     - Include notification delivery mechanisms
     - _Requirements: 8.3, 8.6, 9.4, 9.6_
   
-  - [-] 12.4 Write property test for network retry and alerting
+  - [x] 12.4 Write property test for network retry and alerting
     - **Property 19: Network Transfer Retry with Backoff**
     - **Property 21: Critical Error Alerting**
     - **Validates: Requirements 8.3, 8.6, 9.4, 9.6**
