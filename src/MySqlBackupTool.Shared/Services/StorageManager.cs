@@ -99,47 +99,47 @@ public class StorageManager : IStorageManager
     /// <summary>
     /// Applies retention policies to manage old backup files
     /// </summary>
-    public async Task ApplyRetentionPolicyAsync(RetentionPolicy policy)
+    public async Task<int> ApplyRetentionPolicyAsync(RetentionPolicy retentionPolicy, string backupDirectory)
     {
         try
         {
-            if (!policy.IsEnabled)
+            if (!retentionPolicy.IsEnabled)
             {
-                _logger.LogDebug("Retention policy {PolicyName} is disabled", policy.Name);
-                return;
+                _logger.LogDebug("Retention policy {PolicyName} is disabled", retentionPolicy.Name);
+                return 0;
             }
 
-            _logger.LogInformation("Applying retention policy: {PolicyName}", policy.Name);
+            _logger.LogInformation("Applying retention policy: {PolicyName} to directory: {Directory}", retentionPolicy.Name, backupDirectory);
 
-            var backupFiles = GetAllBackupFiles();
+            var backupFiles = GetBackupFilesInDirectory(backupDirectory);
             var filesToDelete = new List<FileInfo>();
 
             // Apply age-based retention
-            if (policy.MaxAgeDays.HasValue)
+            if (retentionPolicy.MaxAgeDays.HasValue)
             {
-                var cutoffDate = DateTime.UtcNow.AddDays(-policy.MaxAgeDays.Value);
+                var cutoffDate = DateTime.UtcNow.AddDays(-retentionPolicy.MaxAgeDays.Value);
                 var oldFiles = backupFiles.Where(f => f.CreationTimeUtc < cutoffDate).ToList();
                 filesToDelete.AddRange(oldFiles);
                 
-                _logger.LogInformation("Found {Count} files older than {Days} days", oldFiles.Count, policy.MaxAgeDays.Value);
+                _logger.LogInformation("Found {Count} files older than {Days} days", oldFiles.Count, retentionPolicy.MaxAgeDays.Value);
             }
 
             // Apply count-based retention
-            if (policy.MaxCount.HasValue)
+            if (retentionPolicy.MaxCount.HasValue)
             {
                 var sortedFiles = backupFiles.OrderByDescending(f => f.CreationTimeUtc).ToList();
-                if (sortedFiles.Count > policy.MaxCount.Value)
+                if (sortedFiles.Count > retentionPolicy.MaxCount.Value)
                 {
-                    var excessFiles = sortedFiles.Skip(policy.MaxCount.Value).ToList();
+                    var excessFiles = sortedFiles.Skip(retentionPolicy.MaxCount.Value).ToList();
                     filesToDelete.AddRange(excessFiles);
                     
                     _logger.LogInformation("Found {Count} excess files beyond max count of {MaxCount}", 
-                        excessFiles.Count, policy.MaxCount.Value);
+                        excessFiles.Count, retentionPolicy.MaxCount.Value);
                 }
             }
 
             // Apply storage-based retention
-            if (policy.MaxStorageBytes.HasValue)
+            if (retentionPolicy.MaxStorageBytes.HasValue)
             {
                 var sortedFiles = backupFiles.OrderByDescending(f => f.CreationTimeUtc).ToList();
                 long totalSize = 0;
@@ -147,7 +147,7 @@ public class StorageManager : IStorageManager
 
                 foreach (var file in sortedFiles)
                 {
-                    if (totalSize + file.Length <= policy.MaxStorageBytes.Value)
+                    if (totalSize + file.Length <= retentionPolicy.MaxStorageBytes.Value)
                     {
                         filesToKeep.Add(file);
                         totalSize += file.Length;
@@ -184,15 +184,61 @@ public class StorageManager : IStorageManager
             }
 
             // Clean up empty directories
-            await CleanupEmptyDirectoriesAsync(_baseStoragePath);
+            await CleanupEmptyDirectoriesAsync(backupDirectory);
 
             _logger.LogInformation("Retention policy {PolicyName} completed: deleted {Count} files ({SizeGB:F2} GB)",
-                policy.Name, deletedCount, deletedSize / (1024.0 * 1024.0 * 1024.0));
+                retentionPolicy.Name, deletedCount, deletedSize / (1024.0 * 1024.0 * 1024.0));
+
+            return deletedCount;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error applying retention policy {PolicyName}", policy.Name);
+            _logger.LogError(ex, "Error applying retention policy {PolicyName}", retentionPolicy.Name);
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets available storage space in bytes
+    /// </summary>
+    public async Task<long> GetAvailableSpaceAsync(string path)
+    {
+        try
+        {
+            var driveInfo = new DriveInfo(Path.GetPathRoot(path) ?? "C:");
+            return driveInfo.AvailableFreeSpace;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting available space for path: {Path}", path);
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// Ensures the storage directory exists and is accessible
+    /// </summary>
+    public async Task<bool> EnsureDirectoryAsync(string path)
+    {
+        try
+        {
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+                _logger.LogInformation("Created directory: {Path}", path);
+            }
+
+            // Test write access
+            var testFile = Path.Combine(path, $"test_{Guid.NewGuid()}.tmp");
+            await File.WriteAllTextAsync(testFile, "test");
+            File.Delete(testFile);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error ensuring directory: {Path}", path);
+            return false;
         }
     }
 
@@ -201,21 +247,29 @@ public class StorageManager : IStorageManager
     /// </summary>
     private List<System.IO.FileInfo> GetAllBackupFiles()
     {
+        return GetBackupFilesInDirectory(_baseStoragePath);
+    }
+
+    /// <summary>
+    /// Gets all backup files in a specific directory
+    /// </summary>
+    private List<System.IO.FileInfo> GetBackupFilesInDirectory(string directory)
+    {
         var backupFiles = new List<System.IO.FileInfo>();
 
-        if (!Directory.Exists(_baseStoragePath))
+        if (!Directory.Exists(directory))
         {
             return backupFiles;
         }
 
         try
         {
-            var files = Directory.GetFiles(_baseStoragePath, "*.zip", SearchOption.AllDirectories);
+            var files = Directory.GetFiles(directory, "*.zip", SearchOption.AllDirectories);
             backupFiles.AddRange(files.Select(f => new FileInfo(f)));
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error enumerating backup files in {Path}", _baseStoragePath);
+            _logger.LogWarning(ex, "Error enumerating backup files in {Path}", directory);
         }
 
         return backupFiles;
