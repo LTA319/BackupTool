@@ -91,6 +91,8 @@ public class TransferLog
 /// </summary>
 public class BackupProgress
 {
+    public Guid OperationId { get; set; } = Guid.NewGuid();
+
     public BackupStatus CurrentStatus { get; set; } = BackupStatus.Queued;
 
     [Range(0.0, 1.0)]

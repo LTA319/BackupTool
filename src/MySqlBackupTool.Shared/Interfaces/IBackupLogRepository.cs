@@ -62,19 +62,3 @@ public interface IBackupLogRepository : IRepository<BackupLog>
     /// </summary>
     Task<bool> CompleteBackupAsync(int id, BackupStatus finalStatus, string? filePath = null, long? fileSize = null, string? errorMessage = null);
 }
-
-/// <summary>
-/// Statistics for backup operations
-/// </summary>
-public class BackupStatistics
-{
-    public int TotalBackups { get; set; }
-    public int SuccessfulBackups { get; set; }
-    public int FailedBackups { get; set; }
-    public int CancelledBackups { get; set; }
-    public long TotalBytesTransferred { get; set; }
-    public TimeSpan TotalDuration { get; set; }
-    public double AverageBackupSize { get; set; }
-    public double SuccessRate { get; set; }
-    public TimeSpan AverageDuration { get; set; }
-}

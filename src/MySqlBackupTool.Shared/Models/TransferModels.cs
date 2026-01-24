@@ -123,7 +123,21 @@ public class TransferResult
 
     public string? ResumeToken { get; set; }
 
+    public string? ChecksumHash { get; set; }
+
     public double TransferRate => Duration.TotalSeconds > 0 ? BytesTransferred / Duration.TotalSeconds : 0;
+}
+
+/// <summary>
+/// Response from server for transfer operations
+/// </summary>
+public class TransferResponse
+{
+    public bool Success { get; set; }
+
+    public string? ErrorMessage { get; set; }
+
+    public string? AdditionalInfo { get; set; }
 }
 
 /// <summary>

@@ -33,6 +33,11 @@ public static class ServiceCollectionExtensions
         // Add database migration service
         services.AddScoped<DatabaseMigrationService>();
 
+        // Add business services
+        services.AddScoped<IBackupLogService, BackupLogService>();
+        services.AddScoped<BackupReportingService>();
+        services.AddScoped<RetentionManagementService>();
+
         // Add logging
         services.AddBackupToolLogging();
 
