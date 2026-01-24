@@ -15,8 +15,8 @@
 **描述**: 为现有服务创建适当的接口以启用依赖注入和测试
 
 **子任务**:
-- [-] 为 `MySQLManager` 创建 `IBackupService` 接口
-- [ ] 为 `CompressionService` 创建 `ICompressionService` 接口
+- [x] 为 `MySQLManager` 创建 `IBackupService` 接口
+- [x] 为 `CompressionService` 创建 `ICompressionService` 接口
 - [ ] 为 `FileTransferClient` 创建 `IFileTransferService` 接口
 - [ ] 为 `LoggingService` 创建 `ILoggingService` 接口
 - [ ] 更新现有服务以实现接口

@@ -9,7 +9,7 @@ namespace MySqlBackupTool.Shared.Services;
 /// <summary>
 /// Windows service-based MySQL instance manager
 /// </summary>
-public class MySQLManager : IMySQLManager
+public class MySQLManager : IMySQLManager, IBackupService
 {
     private readonly ILogger<MySQLManager> _logger;
     private readonly TimeSpan _defaultTimeout = TimeSpan.FromSeconds(30);

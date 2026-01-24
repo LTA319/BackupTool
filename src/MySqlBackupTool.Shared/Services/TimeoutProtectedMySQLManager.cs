@@ -7,7 +7,7 @@ namespace MySqlBackupTool.Shared.Services;
 /// <summary>
 /// Decorator for IMySQLManager that adds timeout protection to all operations
 /// </summary>
-public class TimeoutProtectedMySQLManager : IMySQLManager
+public class TimeoutProtectedMySQLManager : IMySQLManager, IBackupService
 {
     private readonly IMySQLManager _innerManager;
     private readonly IErrorRecoveryManager _errorRecoveryManager;

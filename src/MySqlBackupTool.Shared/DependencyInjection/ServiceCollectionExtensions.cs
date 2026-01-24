@@ -93,6 +93,15 @@ public static class ServiceCollectionExtensions
             return new TimeoutProtectedMySQLManager(innerManager, errorRecoveryManager, logger);
         });
         
+        // Register IBackupService as an alias for IMySQLManager for test compatibility
+        services.AddScoped<IBackupService>(provider =>
+        {
+            var innerManager = provider.GetRequiredService<MySQLManager>();
+            var errorRecoveryManager = provider.GetRequiredService<IErrorRecoveryManager>();
+            var logger = provider.GetRequiredService<ILogger<TimeoutProtectedMySQLManager>>();
+            return new TimeoutProtectedMySQLManager(innerManager, errorRecoveryManager, logger);
+        });
+        
         services.AddScoped<ICompressionService>(provider =>
         {
             var innerService = provider.GetRequiredService<CompressionService>();
