@@ -337,3 +337,316 @@ public class EnhancedCriticalErrorAlert : CriticalErrorAlert
     /// </summary>
     public TimeSpan NotificationDuration { get; set; }
 }
+
+/// <summary>
+/// Email message for notification service
+/// </summary>
+public class EmailMessage
+{
+    /// <summary>
+    /// Unique identifier for tracking
+    /// </summary>
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+    
+    /// <summary>
+    /// Recipient email address
+    /// </summary>
+    [Required]
+    [EmailAddress]
+    [StringLength(255)]
+    public string To { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Email subject
+    /// </summary>
+    [Required]
+    [StringLength(200)]
+    public string Subject { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Email body content
+    /// </summary>
+    [Required]
+    [StringLength(10000)]
+    public string Body { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Whether the body is HTML formatted
+    /// </summary>
+    public bool IsHtml { get; set; } = true;
+    
+    /// <summary>
+    /// List of attachment file paths
+    /// </summary>
+    public List<string> Attachments { get; set; } = new();
+    
+    /// <summary>
+    /// Custom email headers
+    /// </summary>
+    public Dictionary<string, string> Headers { get; set; } = new();
+    
+    /// <summary>
+    /// Priority level of the email
+    /// </summary>
+    public EmailPriority Priority { get; set; } = EmailPriority.Normal;
+    
+    /// <summary>
+    /// When the email was created
+    /// </summary>
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// SMTP server configuration
+/// </summary>
+public class SmtpConfig
+{
+    /// <summary>
+    /// SMTP server hostname
+    /// </summary>
+    [Required]
+    [StringLength(255)]
+    public string Host { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// SMTP server port
+    /// </summary>
+    [Range(1, 65535)]
+    public int Port { get; set; } = 587;
+    
+    /// <summary>
+    /// Whether to use SSL/TLS encryption
+    /// </summary>
+    public bool EnableSsl { get; set; } = true;
+    
+    /// <summary>
+    /// SMTP username for authentication
+    /// </summary>
+    [StringLength(255)]
+    public string Username { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// SMTP password for authentication
+    /// </summary>
+    [StringLength(255)]
+    public string Password { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// From email address
+    /// </summary>
+    [Required]
+    [EmailAddress]
+    [StringLength(255)]
+    public string FromAddress { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// From display name
+    /// </summary>
+    [StringLength(255)]
+    public string FromName { get; set; } = "MySQL Backup Tool";
+    
+    /// <summary>
+    /// Connection timeout in seconds
+    /// </summary>
+    [Range(5, 300)]
+    public int TimeoutSeconds { get; set; } = 30;
+}
+
+/// <summary>
+/// Email template for notifications
+/// </summary>
+public class EmailTemplate
+{
+    /// <summary>
+    /// Unique template identifier
+    /// </summary>
+    [Required]
+    [StringLength(100)]
+    public string Name { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Template description
+    /// </summary>
+    [StringLength(500)]
+    public string Description { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Email subject template
+    /// </summary>
+    [Required]
+    [StringLength(200)]
+    public string Subject { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// HTML body template
+    /// </summary>
+    [StringLength(10000)]
+    public string HtmlBody { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Plain text body template
+    /// </summary>
+    [StringLength(10000)]
+    public string TextBody { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// List of required template variables
+    /// </summary>
+    public List<string> RequiredVariables { get; set; } = new();
+    
+    /// <summary>
+    /// Template category for organization
+    /// </summary>
+    [StringLength(50)]
+    public string Category { get; set; } = "General";
+    
+    /// <summary>
+    /// Whether the template is active
+    /// </summary>
+    public bool IsActive { get; set; } = true;
+    
+    /// <summary>
+    /// When the template was created
+    /// </summary>
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    
+    /// <summary>
+    /// When the template was last modified
+    /// </summary>
+    public DateTime ModifiedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// Status of a notification delivery
+/// </summary>
+public class NotificationStatus
+{
+    /// <summary>
+    /// Unique notification identifier
+    /// </summary>
+    public string NotificationId { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Current delivery status
+    /// </summary>
+    public NotificationDeliveryStatus Status { get; set; } = NotificationDeliveryStatus.Pending;
+    
+    /// <summary>
+    /// When the notification was created
+    /// </summary>
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    
+    /// <summary>
+    /// When the notification was sent (if successful)
+    /// </summary>
+    public DateTime? SentAt { get; set; }
+    
+    /// <summary>
+    /// Number of delivery attempts
+    /// </summary>
+    public int AttemptCount { get; set; } = 0;
+    
+    /// <summary>
+    /// Last error message (if failed)
+    /// </summary>
+    public string? LastError { get; set; }
+    
+    /// <summary>
+    /// Recipient email address
+    /// </summary>
+    public string Recipient { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Email subject
+    /// </summary>
+    public string Subject { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Next retry attempt time (if applicable)
+    /// </summary>
+    public DateTime? NextRetryAt { get; set; }
+}
+
+/// <summary>
+/// Email priority levels
+/// </summary>
+public enum EmailPriority
+{
+    Low = 1,
+    Normal = 2,
+    High = 3,
+    Critical = 4
+}
+
+/// <summary>
+/// Notification delivery status
+/// </summary>
+public enum NotificationDeliveryStatus
+{
+    Pending = 1,
+    Sending = 2,
+    Sent = 3,
+    Failed = 4,
+    Cancelled = 5
+}
+
+/// <summary>
+/// Statistics about notification delivery
+/// </summary>
+public class NotificationStatistics
+{
+    /// <summary>
+    /// Date range start for these statistics
+    /// </summary>
+    public DateTime FromDate { get; set; }
+    
+    /// <summary>
+    /// Date range end for these statistics
+    /// </summary>
+    public DateTime ToDate { get; set; }
+    
+    /// <summary>
+    /// Total number of notifications sent
+    /// </summary>
+    public int TotalSent { get; set; }
+    
+    /// <summary>
+    /// Number of successfully delivered notifications
+    /// </summary>
+    public int SuccessfulDeliveries { get; set; }
+    
+    /// <summary>
+    /// Number of failed delivery attempts
+    /// </summary>
+    public int FailedDeliveries { get; set; }
+    
+    /// <summary>
+    /// Number of notifications currently pending
+    /// </summary>
+    public int PendingDeliveries { get; set; }
+    
+    /// <summary>
+    /// Average delivery time for successful notifications
+    /// </summary>
+    public TimeSpan AverageDeliveryTime { get; set; }
+    
+    /// <summary>
+    /// Success rate as a percentage (0-100)
+    /// </summary>
+    public double SuccessRate => TotalSent > 0 ? (double)SuccessfulDeliveries / TotalSent * 100 : 0;
+    
+    /// <summary>
+    /// Most common failure reasons
+    /// </summary>
+    public Dictionary<string, int> FailureReasons { get; set; } = new();
+    
+    /// <summary>
+    /// Delivery statistics by hour of day
+    /// </summary>
+    public Dictionary<int, int> DeliveriesByHour { get; set; } = new();
+    
+    /// <summary>
+    /// When these statistics were generated
+    /// </summary>
+    public DateTime GeneratedAt { get; set; } = DateTime.UtcNow;
+}

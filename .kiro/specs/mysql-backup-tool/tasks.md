@@ -125,7 +125,7 @@
 **Description**: Implement email notification system for backup status alerts
 
 **Subtasks**:
-- [ ] Create `INotificationService` interface
+- [x] Create `INotificationService` interface
 - [ ] Implement SMTP email sending
 - [ ] Add email template support
 - [ ] Implement HTML and plain text formats
