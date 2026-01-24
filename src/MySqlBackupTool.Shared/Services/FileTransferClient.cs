@@ -15,14 +15,16 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
 {
     private readonly ILogger<FileTransferClient> _logger;
     private readonly IChecksumService _checksumService;
+    private readonly IMemoryProfiler? _memoryProfiler;
     private const int BufferSize = 8192; // 8KB buffer for file reading
     private const int MaxRetryAttempts = 3;
     private const int BaseRetryDelayMs = 1000; // 1 second base delay
 
-    public FileTransferClient(ILogger<FileTransferClient> logger, IChecksumService checksumService)
+    public FileTransferClient(ILogger<FileTransferClient> logger, IChecksumService checksumService, IMemoryProfiler? memoryProfiler = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _checksumService = checksumService ?? throw new ArgumentNullException(nameof(checksumService));
+        _memoryProfiler = memoryProfiler;
     }
 
     /// <summary>
@@ -32,6 +34,10 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     {
         var startTime = DateTime.UtcNow;
         var transferId = Guid.NewGuid().ToString();
+        var operationId = $"transfer-{Path.GetFileName(filePath)}-{transferId[..8]}";
+        
+        _memoryProfiler?.StartProfiling(operationId, "FileTransfer");
+        _memoryProfiler?.RecordSnapshot(operationId, "Start", $"Starting file transfer: {filePath} -> {config.TargetServer.IPAddress}:{config.TargetServer.Port}");
         
         try
         {
@@ -42,8 +48,11 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
                 filePath, config.TargetServer.IPAddress, config.TargetServer.Port);
 
             // Validate inputs
+            _memoryProfiler?.RecordSnapshot(operationId, "Validation", "Validating inputs");
             if (!File.Exists(filePath))
             {
+                _memoryProfiler?.RecordSnapshot(operationId, "ValidationFailed", "File not found");
+                _memoryProfiler?.StopProfiling(operationId);
                 return new TransferResult
                 {
                     Success = false,
@@ -55,6 +64,8 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
             var (isValid, errors) = config.TargetServer.ValidateEndpoint();
             if (!isValid)
             {
+                _memoryProfiler?.RecordSnapshot(operationId, "ValidationFailed", "Invalid server endpoint");
+                _memoryProfiler?.StopProfiling(operationId);
                 return new TransferResult
                 {
                     Success = false,
@@ -64,6 +75,7 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
             }
 
             // Get file info and create metadata
+            _memoryProfiler?.RecordSnapshot(operationId, "CreateMetadata", "Creating file metadata");
             var fileInfo = new FileInfo(filePath);
             var metadata = await CreateFileMetadataAsync(filePath, config.FileName);
 
@@ -76,18 +88,40 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
                 ResumeTransfer = false
             };
 
+            _memoryProfiler?.RecordSnapshot(operationId, "StartTransfer", $"Starting transfer with retry logic, file size: {fileInfo.Length} bytes");
+
             // Perform transfer with retry logic
-            var result = await TransferWithRetryAsync(filePath, transferRequest, config, cancellationToken);
+            var result = await TransferWithRetryAsync(filePath, transferRequest, config, cancellationToken, operationId);
             result.Duration = DateTime.UtcNow - startTime;
 
             _logger.LogInformation("File transfer completed. Success: {Success}, Bytes: {Bytes}, Duration: {Duration}",
                 result.Success, result.BytesTransferred, result.Duration);
+
+            _memoryProfiler?.RecordSnapshot(operationId, "Complete", $"Transfer completed: Success={result.Success}, Bytes={result.BytesTransferred}");
+            
+            // Get memory profile and recommendations
+            var profile = _memoryProfiler?.StopProfiling(operationId);
+            if (profile != null)
+            {
+                var recommendations = _memoryProfiler?.GetRecommendations(profile);
+                if (recommendations?.Any() == true)
+                {
+                    _logger.LogInformation("Memory profiling recommendations for file transfer:");
+                    foreach (var rec in recommendations)
+                    {
+                        _logger.LogInformation("- {Priority}: {Title} - {Description}", 
+                            rec.Priority, rec.Title, rec.Description);
+                    }
+                }
+            }
 
             return result;
         }
         catch (OperationCanceledException)
         {
             _logger.LogWarning("File transfer was cancelled for {FilePath}", filePath);
+            _memoryProfiler?.RecordSnapshot(operationId, "Cancelled", "Transfer was cancelled");
+            _memoryProfiler?.StopProfiling(operationId);
             return new TransferResult
             {
                 Success = false,
@@ -98,6 +132,8 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error during file transfer for {FilePath}", filePath);
+            _memoryProfiler?.RecordSnapshot(operationId, "Exception", $"Unexpected error: {ex.Message}");
+            _memoryProfiler?.StopProfiling(operationId);
             return new TransferResult
             {
                 Success = false,
@@ -147,14 +183,21 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     public async Task<TransferResult> ResumeTransferAsync(string resumeToken, string filePath, TransferConfig config, CancellationToken cancellationToken = default)
     {
         var startTime = DateTime.UtcNow;
+        var operationId = $"resume-{Path.GetFileName(filePath)}-{resumeToken[..Math.Min(8, resumeToken.Length)]}";
+        
+        _memoryProfiler?.StartProfiling(operationId, "FileTransferResume");
+        _memoryProfiler?.RecordSnapshot(operationId, "Start", $"Starting resume transfer: {filePath} with token {resumeToken}");
         
         try
         {
             _logger.LogInformation("Resuming file transfer with token {ResumeToken} for file {FilePath}", resumeToken, filePath);
 
             // Validate inputs
+            _memoryProfiler?.RecordSnapshot(operationId, "Validation", "Validating inputs for resume");
             if (!File.Exists(filePath))
             {
+                _memoryProfiler?.RecordSnapshot(operationId, "ValidationFailed", "File not found");
+                _memoryProfiler?.StopProfiling(operationId);
                 return new TransferResult
                 {
                     Success = false,
@@ -166,6 +209,8 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
             var (isValid, errors) = config.TargetServer.ValidateEndpoint();
             if (!isValid)
             {
+                _memoryProfiler?.RecordSnapshot(operationId, "ValidationFailed", "Invalid server endpoint");
+                _memoryProfiler?.StopProfiling(operationId);
                 return new TransferResult
                 {
                     Success = false,
@@ -175,6 +220,7 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
             }
 
             // Create file metadata
+            _memoryProfiler?.RecordSnapshot(operationId, "CreateMetadata", "Creating file metadata for resume");
             var metadata = await CreateFileMetadataAsync(filePath, config.FileName);
 
             // Create resume transfer request
@@ -187,18 +233,40 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
                 ResumeToken = resumeToken
             };
 
+            _memoryProfiler?.RecordSnapshot(operationId, "StartResume", "Starting resume transfer with retry logic");
+
             // Perform transfer with retry logic
-            var result = await TransferWithRetryAsync(filePath, transferRequest, config, cancellationToken);
+            var result = await TransferWithRetryAsync(filePath, transferRequest, config, cancellationToken, operationId);
             result.Duration = DateTime.UtcNow - startTime;
 
             _logger.LogInformation("Resume transfer completed. Success: {Success}, Bytes: {Bytes}, Duration: {Duration}",
                 result.Success, result.BytesTransferred, result.Duration);
+
+            _memoryProfiler?.RecordSnapshot(operationId, "Complete", $"Resume transfer completed: Success={result.Success}, Bytes={result.BytesTransferred}");
+            
+            // Get memory profile and recommendations
+            var profile = _memoryProfiler?.StopProfiling(operationId);
+            if (profile != null)
+            {
+                var recommendations = _memoryProfiler?.GetRecommendations(profile);
+                if (recommendations?.Any() == true)
+                {
+                    _logger.LogInformation("Memory profiling recommendations for resume transfer:");
+                    foreach (var rec in recommendations)
+                    {
+                        _logger.LogInformation("- {Priority}: {Title} - {Description}", 
+                            rec.Priority, rec.Title, rec.Description);
+                    }
+                }
+            }
 
             return result;
         }
         catch (OperationCanceledException)
         {
             _logger.LogWarning("Resume transfer was cancelled for {FilePath}", filePath);
+            _memoryProfiler?.RecordSnapshot(operationId, "Cancelled", "Resume transfer was cancelled");
+            _memoryProfiler?.StopProfiling(operationId);
             return new TransferResult
             {
                 Success = false,
@@ -209,6 +277,8 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error during resume transfer for {FilePath}", filePath);
+            _memoryProfiler?.RecordSnapshot(operationId, "Exception", $"Unexpected error: {ex.Message}");
+            _memoryProfiler?.StopProfiling(operationId);
             return new TransferResult
             {
                 Success = false,
@@ -221,7 +291,7 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     /// <summary>
     /// Performs file transfer with retry logic
     /// </summary>
-    private async Task<TransferResult> TransferWithRetryAsync(string filePath, TransferRequest request, TransferConfig config, CancellationToken cancellationToken)
+    private async Task<TransferResult> TransferWithRetryAsync(string filePath, TransferRequest request, TransferConfig config, CancellationToken cancellationToken, string operationId)
     {
         Exception? lastException = null;
         
@@ -231,11 +301,13 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
             {
                 _logger.LogDebug("Transfer attempt {Attempt} of {MaxRetries} for {TransferId}", 
                     attempt, config.MaxRetries, request.TransferId);
+                _memoryProfiler?.RecordSnapshot(operationId, $"Attempt{attempt}", $"Transfer attempt {attempt} of {config.MaxRetries}");
 
-                var result = await PerformTransferAsync(filePath, request, config, cancellationToken);
+                var result = await PerformTransferAsync(filePath, request, config, cancellationToken, operationId);
                 
                 if (result.Success)
                 {
+                    _memoryProfiler?.RecordSnapshot(operationId, "TransferSuccess", $"Transfer succeeded on attempt {attempt}");
                     return result;
                 }
 
@@ -246,6 +318,7 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
             {
                 lastException = ex;
                 _logger.LogWarning(ex, "Transfer attempt {Attempt} failed for {TransferId}", attempt, request.TransferId);
+                _memoryProfiler?.RecordSnapshot(operationId, $"AttemptFailed{attempt}", $"Attempt {attempt} failed: {ex.Message}");
             }
 
             // Don't retry if cancelled
@@ -259,6 +332,7 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
             {
                 var delay = TimeSpan.FromMilliseconds(BaseRetryDelayMs * Math.Pow(2, attempt - 1));
                 _logger.LogDebug("Waiting {Delay}ms before retry attempt {NextAttempt}", delay.TotalMilliseconds, attempt + 1);
+                _memoryProfiler?.RecordSnapshot(operationId, $"RetryDelay{attempt}", $"Waiting {delay.TotalMilliseconds}ms before retry");
                 await Task.Delay(delay, cancellationToken);
             }
         }
@@ -274,12 +348,14 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     /// <summary>
     /// Performs the actual file transfer
     /// </summary>
-    private async Task<TransferResult> PerformTransferAsync(string filePath, TransferRequest request, TransferConfig config, CancellationToken cancellationToken)
+    private async Task<TransferResult> PerformTransferAsync(string filePath, TransferRequest request, TransferConfig config, CancellationToken cancellationToken, string operationId)
     {
         using var tcpClient = new TcpClient();
         
         try
         {
+            _memoryProfiler?.RecordSnapshot(operationId, "Connect", "Connecting to server");
+            
             // Connect to server with timeout
             var connectTask = tcpClient.ConnectAsync(config.TargetServer.IPAddress, config.TargetServer.Port);
             var timeoutTask = Task.Delay(TimeSpan.FromSeconds(config.TimeoutSeconds), cancellationToken);
@@ -298,13 +374,16 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
 
             _logger.LogDebug("Connected to {Server}:{Port} for transfer {TransferId}", 
                 config.TargetServer.IPAddress, config.TargetServer.Port, request.TransferId);
+            _memoryProfiler?.RecordSnapshot(operationId, "Connected", "Successfully connected to server");
 
             using var networkStream = tcpClient.GetStream();
             
             // Send transfer request header
+            _memoryProfiler?.RecordSnapshot(operationId, "SendRequest", "Sending transfer request");
             await SendTransferRequestAsync(networkStream, request, cancellationToken);
             
             // Wait for server acknowledgment
+            _memoryProfiler?.RecordSnapshot(operationId, "WaitAck", "Waiting for server acknowledgment");
             var ackResponse = await ReceiveAcknowledgmentAsync(networkStream, cancellationToken);
             if (!ackResponse.Success)
             {
@@ -323,6 +402,7 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
                         completedChunks = new HashSet<int>(resumeChunks);
                         _logger.LogInformation("Resume transfer for {TransferId}: {Count} chunks already completed", 
                             request.TransferId, completedChunks.Count);
+                        _memoryProfiler?.RecordSnapshot(operationId, "ResumeInfo", $"Resume transfer: {completedChunks.Count} chunks completed");
                     }
                 }
                 catch (Exception ex)
@@ -332,10 +412,14 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
             }
 
             // Send file data
-            var bytesTransferred = await SendFileDataAsync(networkStream, filePath, request, completedChunks, cancellationToken);
+            _memoryProfiler?.RecordSnapshot(operationId, "SendData", "Starting file data transfer");
+            var bytesTransferred = await SendFileDataAsync(networkStream, filePath, request, completedChunks, cancellationToken, operationId);
             
             // Wait for final confirmation
+            _memoryProfiler?.RecordSnapshot(operationId, "WaitConfirmation", "Waiting for final confirmation");
             var finalResponse = await ReceiveFinalConfirmationAsync(networkStream, cancellationToken);
+            
+            _memoryProfiler?.RecordSnapshot(operationId, "TransferComplete", $"Transfer completed: {bytesTransferred} bytes");
             
             return new TransferResult
             {
@@ -347,6 +431,7 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during file transfer for {TransferId}", request.TransferId);
+            _memoryProfiler?.RecordSnapshot(operationId, "TransferError", $"Transfer error: {ex.Message}");
             throw;
         }
     }
@@ -390,30 +475,33 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     /// <summary>
     /// Sends file data to the server
     /// </summary>
-    private async Task<long> SendFileDataAsync(NetworkStream stream, string filePath, TransferRequest request, HashSet<int> completedChunks, CancellationToken cancellationToken)
+    private async Task<long> SendFileDataAsync(NetworkStream stream, string filePath, TransferRequest request, HashSet<int> completedChunks, CancellationToken cancellationToken, string operationId)
     {
         var fileInfo = new FileInfo(filePath);
         var fileSize = fileInfo.Length;
         
         _logger.LogDebug("Starting file data transfer for {TransferId}, file size: {FileSize} bytes", request.TransferId, fileSize);
+        _memoryProfiler?.RecordSnapshot(operationId, "StartDataTransfer", $"Starting data transfer, file size: {fileSize} bytes");
         
         // Determine if we should use chunking
         var shouldChunk = fileSize > request.ChunkingStrategy.ChunkSize;
         
         if (shouldChunk)
         {
-            return await SendFileDataChunkedAsync(stream, filePath, request, completedChunks, cancellationToken);
+            _memoryProfiler?.RecordSnapshot(operationId, "ChunkedTransfer", "Using chunked transfer strategy");
+            return await SendFileDataChunkedAsync(stream, filePath, request, completedChunks, cancellationToken, operationId);
         }
         else
         {
-            return await SendFileDataDirectAsync(stream, filePath, request, cancellationToken);
+            _memoryProfiler?.RecordSnapshot(operationId, "DirectTransfer", "Using direct transfer strategy");
+            return await SendFileDataDirectAsync(stream, filePath, request, cancellationToken, operationId);
         }
     }
 
     /// <summary>
     /// Sends file data directly without chunking
     /// </summary>
-    private async Task<long> SendFileDataDirectAsync(NetworkStream stream, string filePath, TransferRequest request, CancellationToken cancellationToken)
+    private async Task<long> SendFileDataDirectAsync(NetworkStream stream, string filePath, TransferRequest request, CancellationToken cancellationToken, string operationId)
     {
         using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
         var buffer = new byte[BufferSize];
@@ -433,17 +521,20 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
             await stream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
             totalBytes += bytesRead;
             
-            // Log progress every 10MB
+            // Log progress every 10MB and record memory snapshots
             if (totalBytes % (10 * 1024 * 1024) == 0 || totalBytes == fileSize)
             {
                 var progress = (double)totalBytes / fileSize * 100;
                 _logger.LogDebug("Transfer progress for {TransferId}: {Progress:F1}% ({Bytes}/{Total} bytes)", 
                     request.TransferId, progress, totalBytes, fileSize);
+                _memoryProfiler?.RecordSnapshot(operationId, "DirectProgress", 
+                    $"Direct transfer progress: {progress:F1}% ({totalBytes}/{fileSize} bytes)");
             }
         }
         
         await stream.FlushAsync(cancellationToken);
         _logger.LogDebug("Completed direct file data transfer for {TransferId}, total bytes: {TotalBytes}", request.TransferId, totalBytes);
+        _memoryProfiler?.RecordSnapshot(operationId, "DirectComplete", $"Direct transfer completed: {totalBytes} bytes");
         
         return totalBytes;
     }
@@ -451,7 +542,7 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     /// <summary>
     /// Sends file data using chunking strategy
     /// </summary>
-    private async Task<long> SendFileDataChunkedAsync(NetworkStream stream, string filePath, TransferRequest request, HashSet<int> completedChunks, CancellationToken cancellationToken)
+    private async Task<long> SendFileDataChunkedAsync(NetworkStream stream, string filePath, TransferRequest request, HashSet<int> completedChunks, CancellationToken cancellationToken, string operationId)
     {
         using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
         var fileSize = fileStream.Length;
@@ -460,6 +551,8 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
         
         _logger.LogInformation("Starting chunked transfer for {TransferId}: {ChunkCount} chunks of {ChunkSize} bytes each", 
             request.TransferId, chunkCount, request.ChunkingStrategy.ChunkSize);
+        _memoryProfiler?.RecordSnapshot(operationId, "ChunkedStart", 
+            $"Starting chunked transfer: {chunkCount} chunks of {request.ChunkingStrategy.ChunkSize} bytes");
 
         for (int chunkIndex = 0; chunkIndex < chunkCount; chunkIndex++)
         {
@@ -507,13 +600,21 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
             
             totalBytes += bytesRead;
             
-            // Log progress
+            // Log progress and record memory snapshots
             var progress = (double)totalBytes / fileSize * 100;
             _logger.LogDebug("Sent chunk {ChunkIndex}/{ChunkCount} for {TransferId}: {Progress:F1}% ({Bytes}/{Total} bytes)", 
                 chunkIndex + 1, chunkCount, request.TransferId, progress, totalBytes, fileSize);
+            
+            // Record memory snapshot every 10 chunks or 10% progress
+            if (chunkIndex % 10 == 0 || progress % 10 < (progress - 10) % 10)
+            {
+                _memoryProfiler?.RecordSnapshot(operationId, "ChunkProgress", 
+                    $"Chunk {chunkIndex + 1}/{chunkCount}: {progress:F1}% ({totalBytes}/{fileSize} bytes)");
+            }
         }
         
         _logger.LogInformation("Completed chunked file data transfer for {TransferId}, total bytes: {TotalBytes}", request.TransferId, totalBytes);
+        _memoryProfiler?.RecordSnapshot(operationId, "ChunkedComplete", $"Chunked transfer completed: {totalBytes} bytes");
         
         return totalBytes;
     }

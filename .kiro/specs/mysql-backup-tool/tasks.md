@@ -263,8 +263,8 @@
 **Description**: Optimize performance for large database backups
 
 **Subtasks**:
-- [ ] Profile memory usage during large backups
-- [ ] Optimize compression streaming
+- [x] Profile memory usage during large backups
+- [x] Optimize compression streaming
 - [ ] Improve network transfer efficiency
 - [ ] Add performance benchmarks
 

@@ -59,6 +59,10 @@ public static class ServiceCollectionExtensions
         // Add application-specific logging service
         services.AddScoped<ILoggingService, LoggingService>();
         
+        // Add memory profiler
+        services.AddSingleton<MemoryProfilingConfig>();
+        services.AddScoped<IMemoryProfiler, MemoryProfiler>();
+        
         // Add encryption service
         services.AddScoped<IEncryptionService, EncryptionService>();
         

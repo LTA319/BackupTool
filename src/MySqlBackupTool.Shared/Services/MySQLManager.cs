@@ -12,12 +12,14 @@ namespace MySqlBackupTool.Shared.Services;
 public class MySQLManager : IMySQLManager, IBackupService
 {
     private readonly ILogger<MySQLManager> _logger;
+    private readonly IMemoryProfiler? _memoryProfiler;
     private readonly TimeSpan _defaultTimeout = TimeSpan.FromSeconds(30);
     private readonly TimeSpan _serviceOperationTimeout = TimeSpan.FromSeconds(60);
 
-    public MySQLManager(ILogger<MySQLManager> logger)
+    public MySQLManager(ILogger<MySQLManager> logger, IMemoryProfiler? memoryProfiler = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _memoryProfiler = memoryProfiler;
     }
 
     /// <summary>
@@ -31,6 +33,10 @@ public class MySQLManager : IMySQLManager, IBackupService
             return false;
         }
 
+        var operationId = $"stop-{serviceName}-{Guid.NewGuid():N}";
+        _memoryProfiler?.StartProfiling(operationId, "MySQL-Stop");
+        _memoryProfiler?.RecordSnapshot(operationId, "Start", $"Starting MySQL stop for service: {serviceName}");
+
         _logger.LogInformation("Attempting to stop MySQL service: {ServiceName}", serviceName);
 
         try
@@ -42,10 +48,13 @@ public class MySQLManager : IMySQLManager, IBackupService
             {
                 var status = service.Status;
                 _logger.LogDebug("Current service status: {Status}", status);
+                _memoryProfiler?.RecordSnapshot(operationId, "StatusCheck", $"Service status: {status}");
             }
             catch (InvalidOperationException ex)
             {
                 _logger.LogError(ex, "MySQL service '{ServiceName}' not found", serviceName);
+                _memoryProfiler?.RecordSnapshot(operationId, "Error", "Service not found");
+                _memoryProfiler?.StopProfiling(operationId);
                 return false;
             }
 
@@ -53,6 +62,8 @@ public class MySQLManager : IMySQLManager, IBackupService
             if (service.Status == ServiceControllerStatus.Stopped)
             {
                 _logger.LogInformation("MySQL service '{ServiceName}' is already stopped", serviceName);
+                _memoryProfiler?.RecordSnapshot(operationId, "AlreadyStopped", "Service already in stopped state");
+                _memoryProfiler?.StopProfiling(operationId);
                 return true;
             }
 
@@ -60,42 +71,58 @@ public class MySQLManager : IMySQLManager, IBackupService
             if (service.Status == ServiceControllerStatus.StopPending)
             {
                 _logger.LogInformation("MySQL service '{ServiceName}' is already stopping, waiting for completion", serviceName);
+                _memoryProfiler?.RecordSnapshot(operationId, "WaitingForStop", "Service is stopping, waiting for completion");
                 await WaitForServiceStatusAsync(service, ServiceControllerStatus.Stopped, _serviceOperationTimeout);
-                return service.Status == ServiceControllerStatus.Stopped;
+                var result = service.Status == ServiceControllerStatus.Stopped;
+                _memoryProfiler?.RecordSnapshot(operationId, "WaitComplete", $"Wait completed, success: {result}");
+                _memoryProfiler?.StopProfiling(operationId);
+                return result;
             }
 
             // Stop the service
+            _memoryProfiler?.RecordSnapshot(operationId, "SendStopCommand", "Sending stop command to service");
             service.Stop();
             _logger.LogInformation("Stop command sent to MySQL service '{ServiceName}'", serviceName);
 
             // Wait for the service to stop
+            _memoryProfiler?.RecordSnapshot(operationId, "WaitingForStop", "Waiting for service to stop");
             await WaitForServiceStatusAsync(service, ServiceControllerStatus.Stopped, _serviceOperationTimeout);
 
             if (service.Status == ServiceControllerStatus.Stopped)
             {
                 _logger.LogInformation("MySQL service '{ServiceName}' stopped successfully", serviceName);
+                _memoryProfiler?.RecordSnapshot(operationId, "Success", "Service stopped successfully");
+                _memoryProfiler?.StopProfiling(operationId);
                 return true;
             }
             else
             {
                 _logger.LogError("MySQL service '{ServiceName}' failed to stop within timeout. Current status: {Status}", 
                     serviceName, service.Status);
+                _memoryProfiler?.RecordSnapshot(operationId, "Timeout", $"Stop timeout, status: {service.Status}");
+                _memoryProfiler?.StopProfiling(operationId);
                 return false;
             }
         }
         catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "Failed to stop MySQL service '{ServiceName}': Service not found or access denied", serviceName);
+            _memoryProfiler?.RecordSnapshot(operationId, "Exception", $"InvalidOperationException: {ex.Message}");
+            _memoryProfiler?.StopProfiling(operationId);
             return false;
         }
         catch (System.ComponentModel.Win32Exception ex)
         {
             _logger.LogError(ex, "Failed to stop MySQL service '{ServiceName}': Windows error", serviceName);
+            _memoryProfiler?.RecordSnapshot(operationId, "Exception", $"Win32Exception: {ex.Message}");
+            _memoryProfiler?.StopProfiling(operationId);
             return false;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error stopping MySQL service '{ServiceName}'", serviceName);
+            _memoryProfiler?.RecordSnapshot(operationId, "Exception", $"Unexpected error: {ex.Message}");
+            _memoryProfiler?.StopProfiling(operationId);
             return false;
         }
     }
