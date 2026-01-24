@@ -8,6 +8,7 @@ using MySqlBackupTool.Shared.Interfaces;
 using MySqlBackupTool.Shared.Logging;
 using MySqlBackupTool.Shared.Models;
 using MySqlBackupTool.Shared.Services;
+using System.Security.Cryptography.X509Certificates;
 
 namespace MySqlBackupTool.Shared.DependencyInjection;
 
@@ -52,15 +53,19 @@ public static class ServiceCollectionExtensions
     /// <summary>
     /// Adds client-specific services to the dependency injection container
     /// </summary>
-    public static IServiceCollection AddClientServices(this IServiceCollection services)
+    public static IServiceCollection AddClientServices(this IServiceCollection services, bool useSecureTransfer = true)
     {
         // Add checksum service
         services.AddScoped<IChecksumService, ChecksumService>();
+        
+        // Add certificate manager
+        services.AddScoped<CertificateManager>();
         
         // Add core services (without timeout protection)
         services.AddScoped<MySQLManager>();
         services.AddScoped<CompressionService>();
         services.AddScoped<FileTransferClient>();
+        services.AddScoped<SecureFileTransferClient>();
         
         // Add timeout-protected services as the primary implementations
         services.AddScoped<IMySQLManager>(provider =>
@@ -79,13 +84,27 @@ public static class ServiceCollectionExtensions
             return new TimeoutProtectedCompressionService(innerService, errorRecoveryManager, logger);
         });
         
-        services.AddScoped<IFileTransferClient>(provider =>
+        // Register the appropriate file transfer client based on security preference
+        if (useSecureTransfer)
         {
-            var innerClient = provider.GetRequiredService<FileTransferClient>();
-            var errorRecoveryManager = provider.GetRequiredService<IErrorRecoveryManager>();
-            var logger = provider.GetRequiredService<ILogger<TimeoutProtectedFileTransferClient>>();
-            return new TimeoutProtectedFileTransferClient(innerClient, errorRecoveryManager, logger);
-        });
+            services.AddScoped<IFileTransferClient>(provider =>
+            {
+                var innerClient = provider.GetRequiredService<SecureFileTransferClient>();
+                var errorRecoveryManager = provider.GetRequiredService<IErrorRecoveryManager>();
+                var logger = provider.GetRequiredService<ILogger<TimeoutProtectedFileTransferClient>>();
+                return new TimeoutProtectedFileTransferClient(innerClient, errorRecoveryManager, logger);
+            });
+        }
+        else
+        {
+            services.AddScoped<IFileTransferClient>(provider =>
+            {
+                var innerClient = provider.GetRequiredService<FileTransferClient>();
+                var errorRecoveryManager = provider.GetRequiredService<IErrorRecoveryManager>();
+                var logger = provider.GetRequiredService<ILogger<TimeoutProtectedFileTransferClient>>();
+                return new TimeoutProtectedFileTransferClient(innerClient, errorRecoveryManager, logger);
+            });
+        }
         
         return services;
     }
@@ -93,13 +112,27 @@ public static class ServiceCollectionExtensions
     /// <summary>
     /// Adds server-specific services to the dependency injection container
     /// </summary>
-    public static IServiceCollection AddServerServices(this IServiceCollection services, string? baseStoragePath = null)
+    public static IServiceCollection AddServerServices(this IServiceCollection services, string? baseStoragePath = null, bool useSecureReceiver = true)
     {
         // Add checksum service
         services.AddScoped<IChecksumService, ChecksumService>();
         
-        // Add file receiver service
-        services.AddScoped<IFileReceiver, FileReceiver>();
+        // Add certificate manager
+        services.AddScoped<CertificateManager>();
+        
+        // Add file receiver services
+        services.AddScoped<FileReceiver>();
+        services.AddScoped<SecureFileReceiver>();
+        
+        // Register the appropriate file receiver based on security preference
+        if (useSecureReceiver)
+        {
+            services.AddScoped<IFileReceiver>(provider => provider.GetRequiredService<SecureFileReceiver>());
+        }
+        else
+        {
+            services.AddScoped<IFileReceiver>(provider => provider.GetRequiredService<FileReceiver>());
+        }
         
         // Add chunk manager
         services.AddScoped<IChunkManager, ChunkManager>();
@@ -198,4 +231,77 @@ public static class ServiceCollectionExtensions
         
         return services.AddErrorHandlingServices(config);
     }
+
+    /// <summary>
+    /// Configures SSL/TLS services with certificate management
+    /// </summary>
+    public static IServiceCollection ConfigureSslServices(this IServiceCollection services, Action<SslConfiguration>? configureSsl = null)
+    {
+        var sslConfig = new SslConfiguration();
+        configureSsl?.Invoke(sslConfig);
+
+        services.AddSingleton(sslConfig);
+        
+        return services;
+    }
+
+    /// <summary>
+    /// Creates a self-signed certificate for development/testing purposes
+    /// </summary>
+    public static IServiceCollection AddDevelopmentCertificate(this IServiceCollection services, string subjectName = "localhost", int validityDays = 365)
+    {
+        services.AddSingleton(provider =>
+        {
+            var certificateManager = provider.GetRequiredService<CertificateManager>();
+            return certificateManager.CreateSelfSignedCertificate(subjectName, TimeSpan.FromDays(validityDays));
+        });
+
+        return services;
+    }
+}
+
+/// <summary>
+/// Configuration options for SSL/TLS services
+/// </summary>
+public class SslConfiguration
+{
+    /// <summary>
+    /// Whether to use SSL/TLS for network communications
+    /// </summary>
+    public bool UseSSL { get; set; } = true;
+
+    /// <summary>
+    /// Path to the server certificate file
+    /// </summary>
+    public string? ServerCertificatePath { get; set; }
+
+    /// <summary>
+    /// Password for the server certificate file
+    /// </summary>
+    public string? ServerCertificatePassword { get; set; }
+
+    /// <summary>
+    /// Whether to require client certificates
+    /// </summary>
+    public bool RequireClientCertificate { get; set; } = false;
+
+    /// <summary>
+    /// Whether to validate server certificates on the client side
+    /// </summary>
+    public bool ValidateServerCertificate { get; set; } = true;
+
+    /// <summary>
+    /// Whether to allow self-signed certificates
+    /// </summary>
+    public bool AllowSelfSignedCertificates { get; set; } = false;
+
+    /// <summary>
+    /// Expected certificate subject name for validation
+    /// </summary>
+    public string? ExpectedCertificateSubject { get; set; }
+
+    /// <summary>
+    /// Certificate thumbprint for validation
+    /// </summary>
+    public string? CertificateThumbprint { get; set; }
 }
