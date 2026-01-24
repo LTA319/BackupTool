@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using MySqlBackupTool.Client.Forms;
 
 namespace MySqlBackupTool.Client;
 
@@ -31,8 +32,6 @@ public partial class FormMain : Form
             this.Size = new Size(800, 600);
             this.StartPosition = FormStartPosition.CenterScreen;
             
-            // TODO: Initialize UI components in later tasks
-            
             _logger.LogInformation("Main form initialized successfully");
         }
         catch (Exception ex)
@@ -43,6 +42,62 @@ public partial class FormMain : Form
                 MessageBoxButtons.OK, 
                 MessageBoxIcon.Error);
         }
+    }
+
+    private void configurationToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            using var configListForm = new ConfigurationListForm(_serviceProvider);
+            configListForm.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error opening configuration management");
+            MessageBox.Show($"Error opening configuration management: {ex.Message}", 
+                "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void backupMonitorToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            using var monitorForm = new BackupMonitorForm(_serviceProvider);
+            monitorForm.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error opening backup monitor");
+            MessageBox.Show($"Error opening backup monitor: {ex.Message}", 
+                "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void logBrowserToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            using var logBrowserForm = new LogBrowserForm(_serviceProvider);
+            logBrowserForm.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error opening log browser");
+            MessageBox.Show($"Error opening log browser: {ex.Message}", 
+                "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void exitToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        this.Close();
+    }
+
+    private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        MessageBox.Show("MySQL Backup Tool - Client\n\nA distributed backup solution for MySQL databases.\n\nVersion 1.0", 
+            "About", MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     protected override void OnFormClosing(FormClosingEventArgs e)
