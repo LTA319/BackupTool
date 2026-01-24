@@ -27,6 +27,8 @@ public class FileReceiver : IFileReceiver, IDisposable
     private readonly IStorageManager _storageManager;
     private readonly IChunkManager _chunkManager;
     private readonly IChecksumService _checksumService;
+    private readonly IAuthenticationService _authenticationService;
+    private readonly IAuthorizationService _authorizationService;
     private TcpListener? _tcpListener;
     private CancellationTokenSource? _cancellationTokenSource;
     private readonly List<Task> _clientTasks = new();
@@ -37,12 +39,16 @@ public class FileReceiver : IFileReceiver, IDisposable
         ILogger<FileReceiver> logger,
         IStorageManager storageManager,
         IChunkManager chunkManager,
-        IChecksumService checksumService)
+        IChecksumService checksumService,
+        IAuthenticationService authenticationService,
+        IAuthorizationService authorizationService)
     {
         _logger = logger;
         _storageManager = storageManager;
         _chunkManager = chunkManager;
         _checksumService = checksumService ?? throw new ArgumentNullException(nameof(checksumService));
+        _authenticationService = authenticationService ?? throw new ArgumentNullException(nameof(authenticationService));
+        _authorizationService = authorizationService ?? throw new ArgumentNullException(nameof(authorizationService));
     }
 
     /// <summary>
@@ -325,10 +331,37 @@ public class FileReceiver : IFileReceiver, IDisposable
         
         try
         {
+            // Authenticate and authorize the request
+            var authContext = await _authenticationService.GetAuthorizationContextAsync(request.AuthenticationToken);
+            if (authContext == null)
+            {
+                await SendTransferResponseAsync(stream, false, "Invalid authentication token", cancellationToken);
+                return new ReceiveResult
+                {
+                    Success = false,
+                    ErrorMessage = "Authentication failed"
+                };
+            }
+
+            // Check authorization for upload operation
+            var isAuthorized = await _authorizationService.IsAuthorizedAsync(authContext, "upload_backup");
+            if (!isAuthorized)
+            {
+                await SendTransferResponseAsync(stream, false, "Insufficient permissions for backup upload", cancellationToken);
+                return new ReceiveResult
+                {
+                    Success = false,
+                    ErrorMessage = "Authorization failed"
+                };
+            }
+
+            _logger.LogInformation("Authenticated file transfer request from client {ClientId} for {FileName}", 
+                authContext.ClientId, request.Metadata.FileName);
+
             // Create backup path
             var backupMetadata = new BackupMetadata
             {
-                ServerName = request.Metadata.SourceConfig?.Name ?? "Unknown",
+                ServerName = request.Metadata.SourceConfig?.Name ?? authContext.ClientId,
                 DatabaseName = "MySQL", // Default for now
                 BackupTime = request.Metadata.CreatedAt,
                 BackupType = "Full",

@@ -2,6 +2,7 @@ using FsCheck;
 using FsCheck.Xunit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Moq;
 using MySqlBackupTool.Shared.Data;
 using MySqlBackupTool.Shared.Data.Repositories;
 using MySqlBackupTool.Shared.Interfaces;
@@ -265,7 +266,24 @@ public class NetworkCommunicationPropertyTests : IDisposable
         var resumeTokenRepository = new ResumeTokenRepository(dbContext, repoLogger);
         
         var chunkManager = new ChunkManager(chunkLogger, checksumService, resumeTokenRepository);
-        var fileReceiver = new FileReceiver(logger, storageManager, chunkManager, checksumService);
+        
+        // Create mock authentication services for testing
+        var mockAuthService = new Mock<IAuthenticationService>();
+        var mockAuthzService = new Mock<IAuthorizationService>();
+        
+        // Setup mock to allow all operations for testing
+        mockAuthService.Setup(x => x.GetAuthorizationContextAsync(It.IsAny<string>()))
+            .ReturnsAsync(new AuthorizationContext 
+            { 
+                ClientId = "test-client", 
+                Permissions = new List<string> { BackupPermissions.UploadBackup } 
+            });
+        
+        mockAuthzService.Setup(x => x.IsAuthorizedAsync(It.IsAny<AuthorizationContext>(), It.IsAny<string>()))
+            .ReturnsAsync(true);
+        
+        var fileReceiver = new FileReceiver(logger, storageManager, chunkManager, checksumService, 
+            mockAuthService.Object, mockAuthzService.Object);
         
         _fileReceivers.Add(fileReceiver);
         return fileReceiver;

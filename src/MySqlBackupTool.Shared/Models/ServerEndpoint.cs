@@ -50,6 +50,16 @@ public class ServerEndpoint : IValidatableObject
     public string? ExpectedCertificateSubject { get; set; }
 
     /// <summary>
+    /// Client credentials for authentication
+    /// </summary>
+    public ClientCredentials? ClientCredentials { get; set; }
+
+    /// <summary>
+    /// Whether authentication is required for this endpoint
+    /// </summary>
+    public bool RequireAuthentication { get; set; } = true;
+
+    /// <summary>
     /// Validates that the IP address is in a valid format
     /// </summary>
     public bool IsValidIPAddress()

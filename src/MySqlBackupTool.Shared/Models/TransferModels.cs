@@ -41,6 +41,18 @@ public class TransferRequest
     public bool ResumeTransfer { get; set; } = false;
 
     public string? ResumeToken { get; set; }
+
+    /// <summary>
+    /// Authentication token for the transfer request
+    /// </summary>
+    [Required]
+    public string AuthenticationToken { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Client ID making the request
+    /// </summary>
+    [Required]
+    public string ClientId { get; set; } = string.Empty;
 }
 
 /// <summary>
@@ -154,6 +166,18 @@ public class ReceiveRequest
     [Required]
     [StringLength(500)]
     public string TargetPath { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Authentication token for the receive request
+    /// </summary>
+    [Required]
+    public string AuthenticationToken { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Client ID making the request
+    /// </summary>
+    [Required]
+    public string ClientId { get; set; } = string.Empty;
 }
 
 /// <summary>
