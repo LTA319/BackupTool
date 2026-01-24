@@ -97,9 +97,32 @@ dotnet run --project src/MySqlBackupTool.Client/MySqlBackupTool.Client.csproj
 └─────────────────┘                └─────────────────┘
 ```
 
+## Documentation
+
+Comprehensive documentation is available in the `docs/` directory:
+
+- **[API Reference](docs/API-Reference.md)** - Complete API documentation for all interfaces and services
+- **[User Guide](docs/User-Guide.md)** - Comprehensive user guide with setup instructions and best practices
+- **[Configuration Examples](docs/Configuration-Examples.md)** - Practical configuration examples for various deployment scenarios
+- **[Performance Benchmarking](docs/PerformanceBenchmarking.md)** - Performance testing and optimization guide
+
+### Quick Links
+
+- [Getting Started](docs/User-Guide.md#getting-started) - Initial setup and configuration
+- [Basic Operations](docs/User-Guide.md#basic-operations) - Running backups and managing schedules
+- [API Reference](docs/API-Reference.md) - Complete interface documentation
+- [Configuration Examples](docs/Configuration-Examples.md) - Ready-to-use configuration templates
+
 ## Contributing
 
 This project follows a task-based development approach. Each feature is implemented as a discrete task with comprehensive testing including both unit tests and property-based tests.
+
+### Development Documentation
+
+- All public APIs are documented with XML comments
+- Comprehensive unit test coverage for all services
+- Property-based testing for critical components
+- Integration tests for end-to-end workflows
 
 ## License
 
