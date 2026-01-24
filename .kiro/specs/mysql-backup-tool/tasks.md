@@ -175,14 +175,14 @@ This implementation plan breaks down the MySQL Full-File Backup Tool into discre
     - Include cancellation token support
     - _Requirements: 6.1, 6.3, 6.5_
   
-  - [ ] 11.2 Write property test for progress reporting and cancellation
+  - [x] 11.2 Write property test for progress reporting and cancellation
     - **Property 10: Progress Reporting Monotonicity**
     - **Property 13: Background Progress Updates**
     - **Property 14: Graceful Cancellation**
     - **Validates: Requirements 4.4, 6.3, 6.5**
 
 - [ ] 12. Implement error handling and recovery
-  - [ ] 12.1 Create comprehensive error handling system
+  - [-] 12.1 Create comprehensive error handling system
     - Implement ErrorRecoveryManager with specific error handlers
     - Add timeout mechanisms for all operations
     - Include automatic MySQL restart on failures
