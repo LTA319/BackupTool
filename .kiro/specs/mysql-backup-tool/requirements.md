@@ -64,23 +64,15 @@ A comprehensive MySQL backup solution with client-server architecture, featuring
   - Corruption detection
   - Restoration testing
 
-#### 3. Cloud Storage Integration
-- **Required for**: Off-site backup storage
-- **Specifications**:
-  - AWS S3 support
-  - Azure Blob Storage support
-  - Google Cloud Storage support
-  - Configurable storage providers
-
-#### 4. Notification System
+#### 3. Notification System
 - **Required for**: Backup status alerts
 - **Specifications**:
   - Email notifications
-  - SMS notifications (optional)
-  - Webhook support
   - Configurable notification rules
+  - SMTP server configuration
+  - Backup success/failure email templates
 
-#### 5. Retention Management
+#### 4. Retention Management
 - **Required for**: Automated cleanup
 - **Specifications**:
   - Configurable retention policies
@@ -88,7 +80,7 @@ A comprehensive MySQL backup solution with client-server architecture, featuring
   - Storage quota management
   - Archive management
 
-#### 6. Backup Scheduling
+#### 5. Backup Scheduling
 - **Required for**: Automated backups
 - **Specifications**:
   - Cron expression support
@@ -281,31 +273,20 @@ A comprehensive MySQL backup solution with client-server architecture, featuring
 ### Epic 3: Enhanced Functionality
 **Priority**: Medium
 
-#### Story 3.1: Cloud Storage Integration
+#### Story 3.1: Notification System
 **As a** system administrator  
-**I want** cloud storage backup options  
-**So that** I have off-site backup capabilities  
-
-**Acceptance Criteria**:
-- [ ] Implement `StorageService`
-- [ ] Support AWS S3 uploads
-- [ ] Support Azure Blob Storage
-- [ ] Configurable storage providers
-- [ ] Pass all storage tests
-
-#### Story 3.2: Notification System
-**As a** system administrator  
-**I want** backup status notifications  
+**I want** email notifications for backup status  
 **So that** I'm informed of backup success/failure  
 
 **Acceptance Criteria**:
 - [ ] Implement `NotificationService`
-- [ ] Support email notifications
-- [ ] Configurable notification rules
-- [ ] Handle notification failures
+- [ ] Support SMTP email sending
+- [ ] Configurable email templates
+- [ ] Support HTML and plain text email formats
+- [ ] Handle email sending failures
 - [ ] Pass all notification tests
 
-#### Story 3.3: Retention Management
+#### Story 3.2: Retention Management
 **As a** system administrator  
 **I want** automated backup cleanup  
 **So that** storage space is managed efficiently  
@@ -317,7 +298,7 @@ A comprehensive MySQL backup solution with client-server architecture, featuring
 - [ ] Storage quota management
 - [ ] Pass all retention tests
 
-#### Story 3.4: Backup Scheduling
+#### Story 3.3: Backup Scheduling
 **As a** system administrator  
 **I want** scheduled automated backups  
 **So that** backups run without manual intervention  
@@ -371,10 +352,10 @@ A comprehensive MySQL backup solution with client-server architecture, featuring
 4. Comprehensive testing
 
 ### Phase 3: Enhanced Features (Week 4-6)
-1. Implement StorageService
-2. Implement NotificationService
-3. Implement RetentionService
-4. Implement SchedulerService
+1. Implement NotificationService (email notifications)
+2. Implement RetentionService
+3. Implement SchedulerService
+4. Refine email templates and configuration
 
 ### Phase 4: Integration & Polish (Week 7-8)
 1. End-to-end integration testing
@@ -386,7 +367,7 @@ A comprehensive MySQL backup solution with client-server architecture, featuring
 
 - [ ] All 52 tests passing
 - [ ] Complete backup workflow with encryption
-- [ ] Cloud storage integration working
+- [ ] Email notification system working
 - [ ] Automated scheduling functional
 - [ ] Comprehensive error handling
 - [ ] Performance benchmarks met

@@ -15,8 +15,8 @@
 **Description**: Create proper interfaces for existing services to enable dependency injection and testing
 
 **Subtasks**:
-- [ ] Create `IBackupService` interface for `MySQLManager`
-- [ ] Create `ICompressionService` interface for `CompressionService`
+- [x] Create `IBackupService` interface for `MySQLManager`
+- [x] Create `ICompressionService` interface for `CompressionService`
 - [ ] Create `IFileTransferService` interface for `FileTransferClient`
 - [ ] Create `ILoggingService` interface for `LoggingService`
 - [ ] Update existing services to implement interfaces
@@ -118,48 +118,36 @@
 
 ## Phase 3: Enhanced Services (Medium Priority)
 
-### Task 6: Cloud Storage Service
-**Status**: not-started  
-**Priority**: Medium  
-**Estimated Effort**: 12 hours  
-**Description**: Implement cloud storage integration for off-site backups
-
-**Subtasks**:
-- [ ] Create `IStorageService` interface
-- [ ] Implement AWS S3 provider
-- [ ] Implement Azure Blob Storage provider
-- [ ] Add configurable storage providers
-- [ ] Implement upload progress tracking
-- [ ] Add retry logic and error handling
-- [ ] Create comprehensive unit tests
-
-**Files to create**:
-- `src/MySqlBackupTool.Shared/Interfaces/IStorageService.cs`
-- `src/MySqlBackupTool.Shared/Services/StorageService.cs`
-- `src/MySqlBackupTool.Shared/Services/Providers/AwsS3Provider.cs`
-- `src/MySqlBackupTool.Shared/Services/Providers/AzureBlobProvider.cs`
-- `tests/MySqlBackupTool.Tests/Services/StorageServiceTests.cs`
-
-### Task 7: Notification Service
+### Task 6: Notification Service
 **Status**: not-started  
 **Priority**: Medium  
 **Estimated Effort**: 8 hours  
-**Description**: Implement notification system for backup status alerts
+**Description**: Implement email notification system for backup status alerts
 
 **Subtasks**:
 - [ ] Create `INotificationService` interface
-- [ ] Implement email notifications
-- [ ] Add webhook support
-- [ ] Implement configurable notification rules
-- [ ] Add notification templates
+- [ ] Implement SMTP email sending
+- [ ] Add email template support
+- [ ] Implement HTML and plain text formats
+- [ ] Add configurable notification rules
+- [ ] Implement sending status tracking
 - [ ] Create comprehensive unit tests
 
 **Files to create**:
 - `src/MySqlBackupTool.Shared/Interfaces/INotificationService.cs`
 - `src/MySqlBackupTool.Shared/Services/NotificationService.cs`
+- `src/MySqlBackupTool.Shared/Models/NotificationModels.cs`
 - `tests/MySqlBackupTool.Tests/Services/NotificationServiceTests.cs`
 
-### Task 8: Retention Management Service
+**Acceptance Criteria**:
+- [ ] Send SMTP email notifications
+- [ ] Support HTML and plain text formats
+- [ ] Use configurable email templates
+- [ ] Handle email sending failures
+- [ ] Test SMTP connection configuration
+- [ ] Pass all notification tests
+
+### Task 7: Retention Management Service
 **Status**: not-started  
 **Priority**: Medium  
 **Estimated Effort**: 6 hours  
@@ -178,7 +166,7 @@
 - `src/MySqlBackupTool.Shared/Services/RetentionService.cs`
 - `tests/MySqlBackupTool.Tests/Services/RetentionServiceTests.cs`
 
-### Task 9: Scheduler Service
+### Task 8: Scheduler Service
 **Status**: not-started  
 **Priority**: Low  
 **Estimated Effort**: 10 hours  
@@ -199,7 +187,7 @@
 
 ## Phase 4: Integration & Testing (Final Priority)
 
-### Task 10: End-to-End Integration
+### Task 9: End-to-End Integration
 **Status**: not-started  
 **Priority**: High  
 **Estimated Effort**: 8 hours  
@@ -207,12 +195,12 @@
 
 **Subtasks**:
 - [ ] Create full backup workflow with encryption
-- [ ] Implement backup + compression + cloud upload
-- [ ] Add notification integration
+- [ ] Implement backup + compression + local transfer
+- [ ] Add email notification integration
 - [ ] Test retention policy execution
 - [ ] Verify scheduled backup execution
 
-### Task 11: Performance Optimization
+### Task 10: Performance Optimization
 **Status**: not-started  
 **Priority**: Medium  
 **Estimated Effort**: 6 hours  
@@ -224,7 +212,7 @@
 - [ ] Improve network transfer efficiency
 - [ ] Add performance benchmarks
 
-### Task 12: Documentation & Polish
+### Task 11: Documentation & Polish
 **Status**: not-started  
 **Priority**: Low  
 **Estimated Effort**: 4 hours  
@@ -245,7 +233,6 @@
 | EncryptionService | failing | Service not implemented |
 | ConfigurationService | failing | Service name mismatch - needs interface alignment |
 | ValidationService | failing | Service not implemented |
-| StorageService | failing | Service not implemented |
 | NotificationService | failing | Service not implemented |
 | RetentionService | failing | Service not implemented |
 | SchedulerService | failing | Service not implemented |

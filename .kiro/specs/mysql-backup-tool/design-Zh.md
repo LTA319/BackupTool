@@ -52,7 +52,6 @@ graph TB
     subgraph "缺失的关键服务"
         EncSvc[EncryptionService]
         ValSvc[ValidationService]
-        StorageSvc[StorageService]
         NotifSvc[NotificationService]
         RetentionSvc[RetentionService]
         SchedulerSvc[SchedulerService]
@@ -61,15 +60,13 @@ graph TB
     subgraph "集成点"
         CompSvc[CompressionService]
         TransferClient[FileTransferClient]
-        CloudStorage[云提供商]
-        EmailSMTP[电子邮件/SMS]
+        EmailSMTP[SMTP 邮件服务器]
         CronEngine[Cron 调度器]
     end
     
     CompSvc --> EncSvc
     EncSvc --> ValSvc
-    ValSvc --> StorageSvc
-    StorageSvc --> CloudStorage
+    ValSvc --> TransferClient
     NotifSvc --> EmailSMTP
     SchedulerSvc --> CronEngine
 ```
@@ -165,45 +162,28 @@ public interface IValidationService
 - 详细报告
 - 性能优化
 
-#### 3. StorageService (中等优先级)
-**接口**: `IStorageService`
-**要求**:
-```csharp
-public interface IStorageService
-{
-    Task<UploadResult> UploadAsync(string filePath, StorageProvider provider, StorageConfig config, CancellationToken cancellationToken = default);
-    Task<DownloadResult> DownloadAsync(string remoteKey, string localPath, StorageProvider provider, StorageConfig config);
-    Task<bool> ExistsAsync(string remoteKey, StorageProvider provider, StorageConfig config);
-    Task<StorageInfo> GetInfoAsync(string remoteKey, StorageProvider provider, StorageConfig config);
-}
-```
-
-**支持的提供商**:
-- AWS S3
-- Azure Blob Storage
-- Google Cloud Storage
-- 本地文件系统
-
-#### 4. NotificationService (中等优先级)
+#### 3. NotificationService (中等优先级)
 **接口**: `INotificationService`
 **要求**:
 ```csharp
 public interface INotificationService
 {
-    Task SendAsync(NotificationMessage message, NotificationChannel channel, CancellationToken cancellationToken = default);
-    Task SendBulkAsync(IEnumerable<NotificationMessage> messages, NotificationChannel channel);
+    Task SendEmailAsync(EmailMessage message, CancellationToken cancellationToken = default);
+    Task SendBulkEmailAsync(IEnumerable<EmailMessage> messages);
     Task<NotificationStatus> GetStatusAsync(string notificationId);
-    Task<IEnumerable<NotificationTemplate>> GetTemplatesAsync();
+    Task<IEnumerable<EmailTemplate>> GetTemplatesAsync();
+    Task<bool> TestSmtpConnectionAsync(SmtpConfig config);
 }
 ```
 
-**支持的渠道**:
-- 电子邮件 (SMTP)
-- Webhooks
-- SMS (可选)
-- Slack 集成 (可选)
+**支持的功能**:
+- SMTP 邮件发送
+- HTML 和纯文本邮件格式
+- 邮件模板系统
+- 可配置的 SMTP 服务器
+- 发送状态跟踪
 
-#### 5. RetentionService (中等优先级)
+#### 4. RetentionService (中等优先级)
 **接口**: `IRetentionService`
 **要求**:
 ```csharp
@@ -222,7 +202,7 @@ public interface IRetentionService
 - 基于大小的保留
 - 自定义保留规则
 
-#### 6. SchedulerService (低优先级)
+#### 5. SchedulerService (低优先级)
 **接口**: `ISchedulerService`
 **要求**:
 ```csharp
@@ -302,24 +282,36 @@ public class ValidationIssue
 }
 ```
 
-#### 存储模型
+#### 通知模型
 ```csharp
-public class StorageConfig
+public class EmailMessage
 {
-    public StorageProvider Provider { get; set; }
-    public string ConnectionString { get; set; }
-    public string BucketName { get; set; }
-    public string Region { get; set; }
-    public Dictionary<string, string> AdditionalSettings { get; set; } = new();
+    public string To { get; set; }
+    public string Subject { get; set; }
+    public string Body { get; set; }
+    public bool IsHtml { get; set; } = true;
+    public List<string> Attachments { get; set; } = new();
+    public Dictionary<string, string> Headers { get; set; } = new();
 }
 
-public class UploadResult
+public class SmtpConfig
 {
-    public bool Success { get; set; }
-    public string RemoteKey { get; set; }
-    public long BytesUploaded { get; set; }
-    public TimeSpan Duration { get; set; }
-    public string ErrorMessage { get; set; }
+    public string Host { get; set; }
+    public int Port { get; set; } = 587;
+    public bool EnableSsl { get; set; } = true;
+    public string Username { get; set; }
+    public string Password { get; set; }
+    public string FromAddress { get; set; }
+    public string FromName { get; set; }
+}
+
+public class EmailTemplate
+{
+    public string Name { get; set; }
+    public string Subject { get; set; }
+    public string HtmlBody { get; set; }
+    public string TextBody { get; set; }
+    public List<string> RequiredVariables { get; set; } = new();
 }
 ```
 
@@ -340,11 +332,10 @@ public class UploadResult
 4. **加密** → 加密压缩文件（新）
 5. **验证** → 验证文件完整性（新）
 6. **传输** → 发送到本地服务器
-7. **云存储** → 上传到云提供商（新）
-8. **通知** → 发送状态警报（新）
-9. **保留** → 应用清理策略（新）
-10. **日志记录** → 记录全面详情
-11. **清理** → 删除临时文件并重启 MySQL
+7. **邮件通知** → 发送备份状态邮件（新）
+8. **保留** → 应用清理策略（新）
+9. **日志记录** → 记录全面详情
+10. **清理** → 删除临时文件并重启 MySQL
 
 ## 测试策略
 
@@ -414,7 +405,8 @@ public class UploadResult
 - **客户端**: Windows 服务或 GUI 应用程序
 - **服务器**: 带多个监听器的 Windows 服务
 - **数据库**: 带备份和复制的 SQLite
-- **存储**: 本地 + 云存储选项
+- **存储**: 本地文件系统存储
+- **通知**: SMTP 邮件服务器集成
 - **监控**: 健康检查和指标收集
 
 此更新的设计文档反映了当前实现状态，并为完成缺失功能提供了清晰的路线图，同时保持现有架构的优势。
