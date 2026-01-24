@@ -79,12 +79,12 @@ public class FileMetadata
 }
 
 /// <summary>
-/// Strategy for chunking large files
+/// Strategy for chunking large files with optimized defaults
 /// </summary>
 public class ChunkingStrategy
 {
     [Range(1024, long.MaxValue)] // Minimum 1KB chunks
-    public long ChunkSize { get; set; } = 50 * 1024 * 1024; // 50MB default
+    public long ChunkSize { get; set; } = 10 * 1024 * 1024; // 10MB default (increased from 50MB for better balance)
 
     [Range(1, 10)]
     public int MaxConcurrentChunks { get; set; } = 4;
@@ -97,6 +97,49 @@ public class ChunkingStrategy
     public int CalculateChunkCount(long fileSize)
     {
         return (int)Math.Ceiling((double)fileSize / ChunkSize);
+    }
+
+    /// <summary>
+    /// Gets an optimized chunking strategy based on file size
+    /// </summary>
+    public static ChunkingStrategy GetOptimizedStrategy(long fileSize)
+    {
+        if (fileSize < 10 * 1024 * 1024) // < 10MB
+        {
+            return new ChunkingStrategy
+            {
+                ChunkSize = 1 * 1024 * 1024, // 1MB chunks for small files
+                MaxConcurrentChunks = 2,
+                EnableCompression = true
+            };
+        }
+        else if (fileSize < 100 * 1024 * 1024) // < 100MB
+        {
+            return new ChunkingStrategy
+            {
+                ChunkSize = 5 * 1024 * 1024, // 5MB chunks for medium files
+                MaxConcurrentChunks = 4,
+                EnableCompression = true
+            };
+        }
+        else if (fileSize < 1024 * 1024 * 1024) // < 1GB
+        {
+            return new ChunkingStrategy
+            {
+                ChunkSize = 10 * 1024 * 1024, // 10MB chunks for large files
+                MaxConcurrentChunks = 6,
+                EnableCompression = true
+            };
+        }
+        else // >= 1GB
+        {
+            return new ChunkingStrategy
+            {
+                ChunkSize = 25 * 1024 * 1024, // 25MB chunks for huge files
+                MaxConcurrentChunks = 8,
+                EnableCompression = true
+            };
+        }
     }
 }
 

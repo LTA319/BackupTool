@@ -16,7 +16,13 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     private readonly ILogger<FileTransferClient> _logger;
     private readonly IChecksumService _checksumService;
     private readonly IMemoryProfiler? _memoryProfiler;
-    private const int BufferSize = 8192; // 8KB buffer for file reading
+    // Optimized buffer sizes for different scenarios
+    private const int SmallFileBufferSize = 64 * 1024; // 64KB for files < 10MB
+    private const int LargeFileBufferSize = 1024 * 1024; // 1MB for files >= 10MB
+    private const int HugeFileBufferSize = 4 * 1024 * 1024; // 4MB for files >= 100MB
+    private const long LargeFileThreshold = 10 * 1024 * 1024; // 10MB
+    private const long HugeFileThreshold = 100 * 1024 * 1024; // 100MB
+    
     private const int MaxRetryAttempts = 3;
     private const int BaseRetryDelayMs = 1000; // 1 second base delay
 
@@ -346,7 +352,7 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     }
 
     /// <summary>
-    /// Performs the actual file transfer
+    /// Performs the actual file transfer with optimized network settings
     /// </summary>
     private async Task<TransferResult> PerformTransferAsync(string filePath, TransferRequest request, TransferConfig config, CancellationToken cancellationToken, string operationId)
     {
@@ -354,7 +360,10 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
         
         try
         {
-            _memoryProfiler?.RecordSnapshot(operationId, "Connect", "Connecting to server");
+            // Configure TCP client for optimal performance
+            ConfigureTcpClientForPerformance(tcpClient);
+            
+            _memoryProfiler?.RecordSnapshot(operationId, "Connect", "Connecting to server with optimized settings");
             
             // Connect to server with timeout
             var connectTask = tcpClient.ConnectAsync(config.TargetServer.IPAddress, config.TargetServer.Port);
@@ -372,7 +381,7 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
                 throw new InvalidOperationException("Failed to establish TCP connection");
             }
 
-            _logger.LogDebug("Connected to {Server}:{Port} for transfer {TransferId}", 
+            _logger.LogDebug("Connected to {Server}:{Port} for transfer {TransferId} with optimized settings", 
                 config.TargetServer.IPAddress, config.TargetServer.Port, request.TransferId);
             _memoryProfiler?.RecordSnapshot(operationId, "Connected", "Successfully connected to server");
 
@@ -499,20 +508,32 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     }
 
     /// <summary>
-    /// Sends file data directly without chunking
+    /// Sends file data directly without chunking with optimized buffer sizes
     /// </summary>
     private async Task<long> SendFileDataDirectAsync(NetworkStream stream, string filePath, TransferRequest request, CancellationToken cancellationToken, string operationId)
     {
         using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
-        var buffer = new byte[BufferSize];
+        var fileSize = fileStream.Length;
+        
+        // Choose optimal buffer size based on file size
+        var bufferSize = GetOptimalBufferSize(fileSize);
+        var buffer = new byte[bufferSize];
+        
         long totalBytes = 0;
-        long fileSize = fileStream.Length;
+        
+        _logger.LogDebug("Starting direct transfer for {TransferId}, file size: {FileSize} bytes, buffer size: {BufferSize} bytes", 
+            request.TransferId, fileSize, bufferSize);
+        _memoryProfiler?.RecordSnapshot(operationId, "DirectTransferStart", 
+            $"Direct transfer starting: file size {fileSize} bytes, buffer size {bufferSize} bytes");
+        
+        // Configure network stream for optimal performance
+        ConfigureNetworkStreamForPerformance(stream, bufferSize);
         
         while (totalBytes < fileSize)
         {
             cancellationToken.ThrowIfCancellationRequested();
             
-            var bytesToRead = (int)Math.Min(BufferSize, fileSize - totalBytes);
+            var bytesToRead = (int)Math.Min(bufferSize, fileSize - totalBytes);
             var bytesRead = await fileStream.ReadAsync(buffer, 0, bytesToRead, cancellationToken);
             
             if (bytesRead == 0)
@@ -521,26 +542,30 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
             await stream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
             totalBytes += bytesRead;
             
-            // Log progress every 10MB and record memory snapshots
-            if (totalBytes % (10 * 1024 * 1024) == 0 || totalBytes == fileSize)
+            // Log progress and flush periodically for better performance
+            if (totalBytes % (bufferSize * 10) == 0 || totalBytes == fileSize)
             {
                 var progress = (double)totalBytes / fileSize * 100;
                 _logger.LogDebug("Transfer progress for {TransferId}: {Progress:F1}% ({Bytes}/{Total} bytes)", 
                     request.TransferId, progress, totalBytes, fileSize);
                 _memoryProfiler?.RecordSnapshot(operationId, "DirectProgress", 
                     $"Direct transfer progress: {progress:F1}% ({totalBytes}/{fileSize} bytes)");
+                
+                // Flush network stream periodically for better throughput
+                await stream.FlushAsync(cancellationToken);
             }
         }
         
         await stream.FlushAsync(cancellationToken);
-        _logger.LogDebug("Completed direct file data transfer for {TransferId}, total bytes: {TotalBytes}", request.TransferId, totalBytes);
+        _logger.LogDebug("Completed direct file data transfer for {TransferId}, total bytes: {TotalBytes}, buffer size: {BufferSize}", 
+            request.TransferId, totalBytes, bufferSize);
         _memoryProfiler?.RecordSnapshot(operationId, "DirectComplete", $"Direct transfer completed: {totalBytes} bytes");
         
         return totalBytes;
     }
 
     /// <summary>
-    /// Sends file data using chunking strategy
+    /// Sends file data using chunking strategy with optimized performance
     /// </summary>
     private async Task<long> SendFileDataChunkedAsync(NetworkStream stream, string filePath, TransferRequest request, HashSet<int> completedChunks, CancellationToken cancellationToken, string operationId)
     {
@@ -548,6 +573,9 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
         var fileSize = fileStream.Length;
         var chunkCount = request.ChunkingStrategy.CalculateChunkCount(fileSize);
         long totalBytes = 0;
+        
+        // Configure network stream for chunked transfer performance
+        ConfigureNetworkStreamForPerformance(stream, (int)Math.Min(request.ChunkingStrategy.ChunkSize, HugeFileBufferSize));
         
         _logger.LogInformation("Starting chunked transfer for {TransferId}: {ChunkCount} chunks of {ChunkSize} bytes each", 
             request.TransferId, chunkCount, request.ChunkingStrategy.ChunkSize);
@@ -573,7 +601,7 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
                 continue;
             }
             
-            // Read chunk data
+            // Read chunk data with optimized buffer allocation
             var chunkData = new byte[currentChunkSize];
             var bytesRead = await fileStream.ReadAsync(chunkData, 0, currentChunkSize, cancellationToken);
             
@@ -595,19 +623,20 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
                 IsLastChunk = chunkIndex == chunkCount - 1
             };
             
-            // Send chunk
-            await SendChunkAsync(stream, chunk, cancellationToken);
+            // Send chunk with retry logic for individual chunks
+            await SendChunkWithRetryAsync(stream, chunk, cancellationToken);
             
             totalBytes += bytesRead;
             
-            // Log progress and record memory snapshots
+            // Log progress and record memory snapshots with adaptive frequency
             var progress = (double)totalBytes / fileSize * 100;
-            _logger.LogDebug("Sent chunk {ChunkIndex}/{ChunkCount} for {TransferId}: {Progress:F1}% ({Bytes}/{Total} bytes)", 
-                chunkIndex + 1, chunkCount, request.TransferId, progress, totalBytes, fileSize);
+            var shouldLogProgress = chunkIndex % Math.Max(1, chunkCount / 20) == 0 || chunkIndex == chunkCount - 1;
             
-            // Record memory snapshot every 10 chunks or 10% progress
-            if (chunkIndex % 10 == 0 || progress % 10 < (progress - 10) % 10)
+            if (shouldLogProgress)
             {
+                _logger.LogDebug("Sent chunk {ChunkIndex}/{ChunkCount} for {TransferId}: {Progress:F1}% ({Bytes}/{Total} bytes)", 
+                    chunkIndex + 1, chunkCount, request.TransferId, progress, totalBytes, fileSize);
+                
                 _memoryProfiler?.RecordSnapshot(operationId, "ChunkProgress", 
                     $"Chunk {chunkIndex + 1}/{chunkCount}: {progress:F1}% ({totalBytes}/{fileSize} bytes)");
             }
@@ -617,6 +646,38 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
         _memoryProfiler?.RecordSnapshot(operationId, "ChunkedComplete", $"Chunked transfer completed: {totalBytes} bytes");
         
         return totalBytes;
+    }
+
+    /// <summary>
+    /// Sends a single chunk to the server with retry logic
+    /// </summary>
+    private async Task SendChunkWithRetryAsync(NetworkStream stream, ChunkData chunk, CancellationToken cancellationToken)
+    {
+        const int maxChunkRetries = 3;
+        Exception? lastException = null;
+        
+        for (int attempt = 1; attempt <= maxChunkRetries; attempt++)
+        {
+            try
+            {
+                await SendChunkAsync(stream, chunk, cancellationToken);
+                return; // Success
+            }
+            catch (Exception ex) when (attempt < maxChunkRetries)
+            {
+                lastException = ex;
+                _logger.LogWarning(ex, "Chunk {ChunkIndex} send attempt {Attempt} failed, retrying...", 
+                    chunk.ChunkIndex, attempt);
+                
+                // Brief delay before retry
+                await Task.Delay(100 * attempt, cancellationToken);
+            }
+        }
+        
+        // All retries failed
+        throw new InvalidOperationException(
+            $"Failed to send chunk {chunk.ChunkIndex} after {maxChunkRetries} attempts: {lastException?.Message}", 
+            lastException);
     }
 
     /// <summary>
@@ -708,6 +769,79 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
             ChecksumSHA256 = sha256,
             CreatedAt = DateTime.UtcNow
         };
+    }
+
+    /// <summary>
+    /// Gets optimal buffer size based on file size for maximum transfer efficiency
+    /// </summary>
+    private int GetOptimalBufferSize(long fileSize)
+    {
+        if (fileSize >= HugeFileThreshold)
+        {
+            return HugeFileBufferSize; // 4MB for very large files
+        }
+        else if (fileSize >= LargeFileThreshold)
+        {
+            return LargeFileBufferSize; // 1MB for large files
+        }
+        else
+        {
+            return SmallFileBufferSize; // 64KB for smaller files
+        }
+    }
+
+    /// <summary>
+    /// Configures network stream for optimal performance based on buffer size
+    /// </summary>
+    private void ConfigureNetworkStreamForPerformance(NetworkStream stream, int bufferSize)
+    {
+        try
+        {
+            // Set socket options for better performance
+            var socket = stream.Socket;
+            
+            // Increase send and receive buffer sizes
+            socket.SendBufferSize = Math.Max(bufferSize * 2, 65536); // At least 64KB
+            socket.ReceiveBufferSize = Math.Max(bufferSize * 2, 65536);
+            
+            // Disable Nagle's algorithm for better throughput with large buffers
+            socket.NoDelay = true;
+            
+            // Set socket timeout to prevent hanging
+            socket.SendTimeout = 30000; // 30 seconds
+            socket.ReceiveTimeout = 30000;
+            
+            _logger.LogDebug("Configured network stream: SendBuffer={SendBuffer}, ReceiveBuffer={ReceiveBuffer}, NoDelay={NoDelay}",
+                socket.SendBufferSize, socket.ReceiveBufferSize, socket.NoDelay);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to configure network stream for optimal performance, using defaults");
+        }
+    }
+
+    /// <summary>
+    /// Configures TCP client for optimal performance before connection
+    /// </summary>
+    private void ConfigureTcpClientForPerformance(TcpClient tcpClient)
+    {
+        try
+        {
+            // Set client buffer sizes before connection
+            tcpClient.SendBufferSize = 1024 * 1024; // 1MB send buffer
+            tcpClient.ReceiveBufferSize = 1024 * 1024; // 1MB receive buffer
+            
+            // Set connection timeout
+            tcpClient.SendTimeout = 30000; // 30 seconds
+            tcpClient.ReceiveTimeout = 30000;
+            
+            _logger.LogDebug("Configured TCP client: SendBuffer={SendBuffer}, ReceiveBuffer={ReceiveBuffer}",
+                tcpClient.SendBufferSize, tcpClient.ReceiveBufferSize);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to configure TCP client for optimal performance, using defaults");
+        }
     }
 
 }
