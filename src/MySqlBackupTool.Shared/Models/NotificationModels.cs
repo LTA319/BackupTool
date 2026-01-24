@@ -82,6 +82,35 @@ public class AlertingConfig
     public bool EnableAlerting { get; set; } = true;
 
     /// <summary>
+    /// Base URL for HTTP client operations (optional)
+    /// </summary>
+    [Url]
+    [StringLength(2000)]
+    public string? BaseUrl { get; set; }
+
+    /// <summary>
+    /// Timeout in seconds for HTTP client requests
+    /// </summary>
+    [Range(1, 300)]
+    public int TimeoutSeconds { get; set; } = 30;
+
+    /// <summary>
+    /// Maximum number of retry attempts for HTTP operations
+    /// </summary>
+    [Range(0, 10)]
+    public int MaxRetryAttempts { get; set; } = 3;
+
+    /// <summary>
+    /// Whether to enable circuit breaker pattern for HTTP operations
+    /// </summary>
+    public bool EnableCircuitBreaker { get; set; } = false;
+
+    /// <summary>
+    /// Default headers to include in HTTP requests
+    /// </summary>
+    public Dictionary<string, string> DefaultHeaders { get; set; } = new();
+
+    /// <summary>
     /// Email configuration for alerts
     /// </summary>
     public EmailConfig Email { get; set; } = new();
