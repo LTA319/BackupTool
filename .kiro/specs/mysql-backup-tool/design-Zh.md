@@ -1,533 +1,420 @@
-# 设计文档：MySQL 全文件备份工具
+# 设计文档：MySQL 备份工具 - 更新架构
 
 ## 概述
 
-MySQL 全文件备份工具是基于 .NET 构建的分布式备份解决方案，为 MySQL 数据库提供企业级备份功能。系统采用客户端-服务器架构，其中备份客户端管理 MySQL 实例并创建备份，而文件接收服务器处理存储和文件管理。该解决方案设计用于处理大型数据库（100GB+），具备断点续传、多线程和全面日志记录功能。
+MySQL 全文件备份工具是基于 .NET 构建的分布式备份解决方案，为 MySQL 数据库提供企业级备份功能。系统采用客户端-服务器架构，其中备份客户端管理 MySQL 实例并创建备份，而文件接收服务器处理存储和文件管理。
 
-系统解决了企业环境中对可靠 MySQL 备份的关键需求，通过实施安全的备份流程来最小化停机时间并确保数据完整性。关键创新包括大型数据库的文件分块、中断传输的断点续传功能以及分布式部署的灵活性。
+**当前实现状态**: 系统具有大量工作功能，但需要接口对齐和实现缺失的关键服务以实现完整规格合规性。
 
-## 架构
+## 当前架构分析
 
-### 系统架构
+### 已实现的组件
 
-系统采用分布式客户端-服务器架构，包含以下关键组件：
+系统当前具有以下工作组件：
 
 ```mermaid
 graph TB
-    subgraph "客户端机器"
-        BC[备份客户端]
-        MySQL[MySQL 实例]
-        LCD[本地配置数据库]
-        BC --> MySQL
-        BC --> LCD
+    subgraph "客户端应用程序"
+        GUI[Windows Forms GUI]
+        MySQLMgr[MySQLManager 服务]
+        CompSvc[CompressionService]
+        TransferClient[FileTransferClient]
+        LogSvc[LoggingService]
     end
     
-    subgraph "服务器机器"
-        FRS[文件接收服务器]
-        SCD[服务器配置数据库]
-        BS[备份存储]
-        FRS --> SCD
-        FRS --> BS
+    subgraph "服务器应用程序"
+        FileReceiver[FileReceiver 服务]
+        ServerDB[SQLite 数据库]
     end
     
-    BC -->|网络传输| FRS
-    
-    subgraph "UI 层"
-        GUI[管理界面]
-        LOG[日志浏览器]
-        GUI --> BC
-        LOG --> LCD
-        LOG --> SCD
+    subgraph "共享库"
+        Models[数据模型]
+        Interfaces[服务接口]
+        Repos[存储库模式]
     end
+    
+    GUI --> MySQLMgr
+    MySQLMgr --> CompSvc
+    CompSvc --> TransferClient
+    TransferClient --> FileReceiver
+    LogSvc --> ServerDB
+    
+    Models --> MySQLMgr
+    Models --> CompSvc
+    Interfaces --> Models
+    Repos --> ServerDB
 ```
 
-### 部署模式
+### 缺失的组件（待实现）
 
-1. **单机部署**：客户端和服务器组件在同一台机器上
-2. **分布式部署**：客户端和服务器在通过网络连接的不同机器上
-3. **多客户端部署**：多个客户端备份到集中式服务器
+```mermaid
+graph TB
+    subgraph "缺失的关键服务"
+        EncSvc[EncryptionService]
+        ValSvc[ValidationService]
+        StorageSvc[StorageService]
+        NotifSvc[NotificationService]
+        RetentionSvc[RetentionService]
+        SchedulerSvc[SchedulerService]
+    end
+    
+    subgraph "集成点"
+        CompSvc[CompressionService]
+        TransferClient[FileTransferClient]
+        CloudStorage[云提供商]
+        EmailSMTP[电子邮件/SMS]
+        CronEngine[Cron 调度器]
+    end
+    
+    CompSvc --> EncSvc
+    EncSvc --> ValSvc
+    ValSvc --> StorageSvc
+    StorageSvc --> CloudStorage
+    NotifSvc --> EmailSMTP
+    SchedulerSvc --> CronEngine
+```
 
-### 通信协议
+## 服务架构
 
-系统使用基于 TCP 的通信，包含以下协议层：
-- **传输层**：带可配置端口的 TCP 套接字
-- **消息层**：用于文件传输命令的自定义二进制协议
-- **安全层**：传输中数据的 TLS 加密
-- **断点续传层**：基于分块的传输和断点续传令牌
+### 当前服务实现
 
-## 组件和接口
+#### 1. MySQLManager 服务
+**位置**: `src/MySqlBackupTool.Shared/Services/MySQLManager.cs`
+**状态**: ✅ 已实现
+**功能**:
+- MySQL 服务生命周期管理
+- 数据库备份执行
+- 连接验证
+- 进度报告
+- 错误处理和恢复
 
-### 备份客户端组件
+**需要的接口**: `IBackupService` (用于测试兼容性)
 
-**主要职责：**
-- MySQL 实例生命周期管理（停止/启动）
-- 数据目录压缩
-- 文件传输协调
-- 本地配置管理
-- 进度报告和日志记录
+#### 2. CompressionService
+**位置**: `src/MySqlBackupTool.Shared/Services/CompressionService.cs`
+**状态**: ✅ 已实现
+**功能**:
+- GZip 压缩
+- 异步文件处理
+- 进度报告
+- 内存高效流处理
 
-**关键接口：**
+**需要的接口**: `ICompressionService` (已存在)
 
+#### 3. FileTransferClient
+**位置**: `src/MySqlBackupTool.Shared/Services/FileTransferClient.cs`
+**状态**: ✅ 已实现
+**功能**:
+- 基于 TCP 的文件传输
+- 进度跟踪
+- 连接管理
+- 错误处理和重试
+
+**需要的接口**: `IFileTransferService` (用于一致性)
+
+#### 4. LoggingService
+**位置**: `src/MySqlBackupTool.Shared/Services/LoggingService.cs`
+**状态**: ✅ 已实现
+**功能**:
+- 使用 Serilog 的结构化日志
+- 多个输出目标
+- 可配置的日志级别
+- 性能监控
+
+**需要的接口**: `ILoggingService` (用于依赖注入)
+
+### 缺失服务规格
+
+#### 1. EncryptionService (关键)
+**接口**: `IEncryptionService`
+**要求**:
 ```csharp
-public interface IMySQLManager
+public interface IEncryptionService
 {
-    Task<bool> StopInstanceAsync(string serviceName);
-    Task<bool> StartInstanceAsync(string serviceName);
-    Task<bool> VerifyInstanceAvailabilityAsync(ConnectionInfo connection);
-}
-
-public interface ICompressionService
-{
-    Task<string> CompressDirectoryAsync(string sourcePath, string targetPath, IProgress<CompressionProgress> progress);
-    Task CleanupAsync(string filePath);
-}
-
-public interface IFileTransferClient
-{
-    Task<TransferResult> TransferFileAsync(string filePath, TransferConfig config, CancellationToken cancellationToken);
-    Task<TransferResult> ResumeTransferAsync(string resumeToken, CancellationToken cancellationToken);
+    Task EncryptAsync(string inputPath, string outputPath, string password, CancellationToken cancellationToken = default);
+    Task DecryptAsync(string inputPath, string outputPath, string password, CancellationToken cancellationToken = default);
+    bool ValidatePassword(string encryptedFilePath, string password);
+    Task<EncryptionMetadata> GetMetadataAsync(string encryptedFilePath);
 }
 ```
 
-### 文件接收服务器组件
+**实现要求**:
+- AES-256 加密
+- PBKDF2 密钥派生
+- 大文件流处理
+- 进度报告
+- 安全内存处理
 
-**主要职责：**
-- 传入连接的网络监听器
-- 文件分块接收和重组
-- 备份文件组织和存储
-- 断点续传令牌管理
-- 并发客户端处理
-
-**关键接口：**
-
+#### 2. ValidationService (关键)
+**接口**: `IValidationService`
+**要求**:
 ```csharp
-public interface IFileReceiver
+public interface IValidationService
 {
-    Task StartListeningAsync(int port);
-    Task StopListeningAsync();
-    Task<ReceiveResult> ReceiveFileAsync(ReceiveRequest request);
-}
-
-public interface IChunkManager
-{
-    Task<string> InitializeTransferAsync(FileMetadata metadata);
-    Task<ChunkResult> ReceiveChunkAsync(string transferId, ChunkData chunk);
-    Task<string> FinalizeTransferAsync(string transferId);
-    Task<ResumeInfo> GetResumeInfoAsync(string resumeToken);
-}
-
-public interface IStorageManager
-{
-    Task<string> CreateBackupPathAsync(BackupMetadata metadata);
-    Task<bool> ValidateStorageSpaceAsync(long requiredSpace);
-    Task ApplyRetentionPolicyAsync(RetentionPolicy policy);
+    Task<ValidationResult> ValidateBackupAsync(string filePath, CancellationToken cancellationToken = default);
+    Task<bool> ValidateIntegrityAsync(string filePath, string expectedChecksum);
+    Task<string> CalculateChecksumAsync(string filePath, ChecksumAlgorithm algorithm = ChecksumAlgorithm.SHA256);
+    Task<ValidationReport> GenerateReportAsync(string filePath);
 }
 ```
 
-### 配置数据库组件
+**实现要求**:
+- 文件完整性验证
+- 校验和计算（MD5、SHA256）
+- 损坏检测
+- 详细报告
+- 性能优化
 
-**架构设计：**
-
-```sql
--- 配置表
-CREATE TABLE BackupConfigurations (
-    Id INTEGER PRIMARY KEY,
-    Name TEXT NOT NULL,
-    MySQLConnectionString TEXT NOT NULL,
-    DataDirectoryPath TEXT NOT NULL,
-    ServiceName TEXT NOT NULL,
-    TargetServerIP TEXT NOT NULL,
-    TargetServerPort INTEGER NOT NULL,
-    TargetDirectory TEXT NOT NULL,
-    NamingStrategy TEXT NOT NULL,
-    IsActive BOOLEAN DEFAULT 1,
-    CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE ScheduleConfigurations (
-    Id INTEGER PRIMARY KEY,
-    BackupConfigId INTEGER REFERENCES BackupConfigurations(Id),
-    ScheduleType TEXT NOT NULL, -- 'Daily', 'Weekly', 'Monthly'
-    ScheduleTime TEXT NOT NULL,
-    IsEnabled BOOLEAN DEFAULT 1
-);
-
--- 日志表
-CREATE TABLE BackupLogs (
-    Id INTEGER PRIMARY KEY,
-    BackupConfigId INTEGER REFERENCES BackupConfigurations(Id),
-    StartTime DATETIME NOT NULL,
-    EndTime DATETIME,
-    Status TEXT NOT NULL, -- 'Running', 'Completed', 'Failed', 'Cancelled'
-    FilePath TEXT,
-    FileSize INTEGER,
-    ErrorMessage TEXT,
-    ResumeToken TEXT
-);
-
-CREATE TABLE TransferLogs (
-    Id INTEGER PRIMARY KEY,
-    BackupLogId INTEGER REFERENCES BackupLogs(Id),
-    ChunkIndex INTEGER NOT NULL,
-    ChunkSize INTEGER NOT NULL,
-    TransferTime DATETIME NOT NULL,
-    Status TEXT NOT NULL
-);
+#### 3. StorageService (中等优先级)
+**接口**: `IStorageService`
+**要求**:
+```csharp
+public interface IStorageService
+{
+    Task<UploadResult> UploadAsync(string filePath, StorageProvider provider, StorageConfig config, CancellationToken cancellationToken = default);
+    Task<DownloadResult> DownloadAsync(string remoteKey, string localPath, StorageProvider provider, StorageConfig config);
+    Task<bool> ExistsAsync(string remoteKey, StorageProvider provider, StorageConfig config);
+    Task<StorageInfo> GetInfoAsync(string remoteKey, StorageProvider provider, StorageConfig config);
+}
 ```
 
-### 用户界面组件
+**支持的提供商**:
+- AWS S3
+- Azure Blob Storage
+- Google Cloud Storage
+- 本地文件系统
 
-**管理界面功能：**
-- 配置管理表单
-- 实时备份进度显示
-- 计划配置向导
-- 系统状态仪表板
+#### 4. NotificationService (中等优先级)
+**接口**: `INotificationService`
+**要求**:
+```csharp
+public interface INotificationService
+{
+    Task SendAsync(NotificationMessage message, NotificationChannel channel, CancellationToken cancellationToken = default);
+    Task SendBulkAsync(IEnumerable<NotificationMessage> messages, NotificationChannel channel);
+    Task<NotificationStatus> GetStatusAsync(string notificationId);
+    Task<IEnumerable<NotificationTemplate>> GetTemplatesAsync();
+}
+```
 
-**日志浏览器功能：**
-- 可搜索的备份历史
-- 按日期、状态、配置过滤
-- 详细传输进度视图
-- 报告导出功能
+**支持的渠道**:
+- 电子邮件 (SMTP)
+- Webhooks
+- SMS (可选)
+- Slack 集成 (可选)
+
+#### 5. RetentionService (中等优先级)
+**接口**: `IRetentionService`
+**要求**:
+```csharp
+public interface IRetentionService
+{
+    Task ApplyPolicyAsync(RetentionPolicy policy, string backupDirectory, CancellationToken cancellationToken = default);
+    Task<RetentionReport> AnalyzeAsync(string backupDirectory, RetentionPolicy policy);
+    Task<IEnumerable<string>> GetExpiredFilesAsync(string backupDirectory, RetentionPolicy policy);
+    Task CleanupAsync(IEnumerable<string> filesToDelete, bool dryRun = false);
+}
+```
+
+**策略类型**:
+- 基于年龄的保留
+- 基于数量的保留
+- 基于大小的保留
+- 自定义保留规则
+
+#### 6. SchedulerService (低优先级)
+**接口**: `ISchedulerService`
+**要求**:
+```csharp
+public interface ISchedulerService
+{
+    Task ScheduleAsync(BackupSchedule schedule, CancellationToken cancellationToken = default);
+    Task UnscheduleAsync(string scheduleId);
+    Task<IEnumerable<BackupSchedule>> GetSchedulesAsync();
+    Task<ScheduleStatus> GetStatusAsync(string scheduleId);
+    Task ExecuteNowAsync(string scheduleId);
+}
+```
+
+**功能**:
+- Cron 表达式支持
+- 循环计划
+- 一次性计划
+- 计划监控
+- 执行历史
 
 ## 数据模型
 
-### 核心数据结构
+### 当前模型（已实现）
+位于 `src/MySqlBackupTool.Shared/Models/`:
+- `BackupConfiguration.cs`
+- `MySQLConnectionInfo.cs`
+- `ServerEndpoint.cs`
+- `FileNamingStrategy.cs`
+- `BackupOperationModels.cs`
+- `TransferModels.cs`
+- `LoggingModels.cs`
 
+### 缺失模型（待实现）
+
+#### 加密模型
 ```csharp
-public class BackupConfiguration
+public class EncryptionMetadata
 {
-    public int Id { get; set; }
-    public string Name { get; set; }
-    public MySQLConnectionInfo MySQLConnection { get; set; }
-    public string DataDirectoryPath { get; set; }
-    public string ServiceName { get; set; }
-    public ServerEndpoint TargetServer { get; set; }
-    public string TargetDirectory { get; set; }
-    public FileNamingStrategy NamingStrategy { get; set; }
-    public bool IsActive { get; set; }
-    public DateTime CreatedAt { get; set; }
+    public string Algorithm { get; set; } = "AES-256";
+    public string KeyDerivation { get; set; } = "PBKDF2";
+    public int Iterations { get; set; } = 100000;
+    public byte[] Salt { get; set; }
+    public byte[] IV { get; set; }
+    public DateTime EncryptedAt { get; set; }
+    public long OriginalSize { get; set; }
+    public string OriginalChecksum { get; set; }
 }
 
-public class MySQLConnectionInfo
+public class EncryptionConfig
 {
-    public string Username { get; set; }
     public string Password { get; set; }
-    public string ServiceName { get; set; }
-    public string DataDirectoryPath { get; set; }
-    public int Port { get; set; } = 3306;
-    public string Host { get; set; } = "localhost";
-}
-
-public class ServerEndpoint
-{
-    public string IPAddress { get; set; }
-    public int Port { get; set; }
-    public bool UseSSL { get; set; } = true;
-}
-
-public class FileNamingStrategy
-{
-    public string Pattern { get; set; } // 例如："{timestamp}_{database}_{server}.zip"
-    public string DateFormat { get; set; } = "yyyyMMdd_HHmmss";
-    public bool IncludeServerName { get; set; } = true;
-    public bool IncludeDatabaseName { get; set; } = true;
+    public int KeySize { get; set; } = 256;
+    public int Iterations { get; set; } = 100000;
+    public bool SecureDelete { get; set; } = true;
 }
 ```
 
-### 传输协议模型
-
+#### 验证模型
 ```csharp
-public class TransferRequest
+public class ValidationResult
 {
-    public string TransferId { get; set; }
-    public FileMetadata Metadata { get; set; }
-    public ChunkingStrategy ChunkingStrategy { get; set; }
-    public bool ResumeTransfer { get; set; }
-    public string ResumeToken { get; set; }
-}
-
-public class FileMetadata
-{
-    public string FileName { get; set; }
-    public long FileSize { get; set; }
-    public string ChecksumMD5 { get; set; }
-    public string ChecksumSHA256 { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public BackupConfiguration SourceConfig { get; set; }
-}
-
-public class ChunkingStrategy
-{
-    public long ChunkSize { get; set; } = 50 * 1024 * 1024; // 默认 50MB
-    public int MaxConcurrentChunks { get; set; } = 4;
-    public bool EnableCompression { get; set; } = true;
-}
-
-public class ChunkData
-{
-    public string TransferId { get; set; }
-    public int ChunkIndex { get; set; }
-    public byte[] Data { get; set; }
-    public string ChunkChecksum { get; set; }
-    public bool IsLastChunk { get; set; }
-}
-```
-
-### 日志和进度模型
-
-```csharp
-public class BackupLog
-{
-    public int Id { get; set; }
-    public int BackupConfigId { get; set; }
-    public DateTime StartTime { get; set; }
-    public DateTime? EndTime { get; set; }
-    public BackupStatus Status { get; set; }
+    public bool IsValid { get; set; }
     public string FilePath { get; set; }
-    public long? FileSize { get; set; }
-    public string ErrorMessage { get; set; }
-    public string ResumeToken { get; set; }
-    public List<TransferLog> TransferLogs { get; set; }
+    public long FileSize { get; set; }
+    public string Checksum { get; set; }
+    public ChecksumAlgorithm Algorithm { get; set; }
+    public DateTime ValidatedAt { get; set; }
+    public List<ValidationIssue> Issues { get; set; } = new();
+    public TimeSpan ValidationDuration { get; set; }
 }
 
-public enum BackupStatus
+public class ValidationIssue
 {
-    Queued,      // 排队中
-    StoppingMySQL,  // 停止MySQL
-    Compressing,    // 压缩中
-    Transferring,   // 传输中
-    StartingMySQL,  // 启动MySQL
-    Verifying,      // 验证中
-    Completed,      // 已完成
-    Failed,         // 失败
-    Cancelled       // 已取消
-}
-
-public class BackupProgress
-{
-    public BackupStatus CurrentStatus { get; set; }
-    public double OverallProgress { get; set; } // 0.0 到 1.0
-    public string CurrentOperation { get; set; }
-    public long BytesTransferred { get; set; }
-    public long TotalBytes { get; set; }
-    public TimeSpan ElapsedTime { get; set; }
-    public TimeSpan? EstimatedTimeRemaining { get; set; }
-    public double TransferRate { get; set; } // 每秒字节数
+    public ValidationIssueType Type { get; set; }
+    public string Description { get; set; }
+    public ValidationSeverity Severity { get; set; }
 }
 ```
 
-## 错误处理
-
-### 错误类别和恢复策略
-
-**MySQL 管理错误：**
-- **服务停止失败**：使用递增超时重试，持续失败时发出警报
-- **服务启动失败**：尝试多种重启策略，手动干预警报
-- **连接验证失败**：使用退避重试，持续失败时回滚
-
-**文件系统错误：**
-- **压缩失败**：清理部分文件，重启 MySQL，记录详细错误
-- **磁盘空间不足**：警告管理员，实施清理策略
-- **权限错误**：提供权限解决的明确指导
-
-**网络传输错误：**
-- **连接超时**：实施指数退避重试
-- **传输中断**：生成断点续传令牌，排队重试
-- **校验和不匹配**：重试分块传输，持续失败时升级
-
-**配置错误：**
-- **无效连接参数**：保存前验证，提供清晰错误消息
-- **缺少目录**：尝试创建，权限不足时警报
-- **端口冲突**：检测并建议替代端口
-
-### 错误恢复机制
-
+#### 存储模型
 ```csharp
-public class ErrorRecoveryManager
+public class StorageConfig
 {
-    public async Task<RecoveryResult> HandleMySQLStopFailure(MySQLStopError error)
-    {
-        // 实施递增重试策略
-        // 1. 标准停止命令
-        // 2. 带超时的强制停止
-        // 3. 进程终止
-        // 4. 手动干预警报
-    }
-    
-    public async Task<RecoveryResult> HandleTransferFailure(TransferError error)
-    {
-        // 生成断点续传令牌
-        // 清理部分传输
-        // 使用退避排队重试
-        // 超过最大重试次数时警报
-    }
-    
-    public async Task<RecoveryResult> HandleCompressionFailure(CompressionError error)
-    {
-        // 清理部分压缩文件
-        // 确保 MySQL 重启
-        // 记录详细错误信息
-        // 警告管理员
-    }
+    public StorageProvider Provider { get; set; }
+    public string ConnectionString { get; set; }
+    public string BucketName { get; set; }
+    public string Region { get; set; }
+    public Dictionary<string, string> AdditionalSettings { get; set; } = new();
+}
+
+public class UploadResult
+{
+    public bool Success { get; set; }
+    public string RemoteKey { get; set; }
+    public long BytesUploaded { get; set; }
+    public TimeSpan Duration { get; set; }
+    public string ErrorMessage { get; set; }
 }
 ```
 
-### 日志策略
+## 集成工作流
 
-**结构化日志级别：**
-- **Debug**：故障排除的详细操作跟踪
-- **Info**：正常操作里程碑和进度
-- **Warning**：可恢复错误和重试尝试
-- **Error**：需要关注的失败操作
-- **Critical**：需要立即干预的系统故障
+### 当前工作流（已实现）
+1. **配置** → 从 SQLite 数据库加载备份设置
+2. **MySQL 管理** → 安全停止 MySQL 服务
+3. **压缩** → 将数据目录压缩为 ZIP 文件
+4. **传输** → 通过 TCP 将压缩文件发送到服务器
+5. **日志记录** → 记录操作详情和进度
+6. **清理** → 删除临时文件并重启 MySQL
 
-**日志关联：**
-- 每个备份操作获得唯一的关联 ID
-- 所有相关日志条目标记关联 ID
-- 传输分块链接到父备份操作
-- 错误日志包含完整上下文和堆栈跟踪
+### 目标工作流（包含缺失服务）
+1. **配置** → 加载备份设置
+2. **MySQL 管理** → 安全停止 MySQL 服务
+3. **压缩** → 压缩数据目录
+4. **加密** → 加密压缩文件（新）
+5. **验证** → 验证文件完整性（新）
+6. **传输** → 发送到本地服务器
+7. **云存储** → 上传到云提供商（新）
+8. **通知** → 发送状态警报（新）
+9. **保留** → 应用清理策略（新）
+10. **日志记录** → 记录全面详情
+11. **清理** → 删除临时文件并重启 MySQL
 
 ## 测试策略
 
-测试策略采用双重方法，结合单元测试处理特定场景和基于属性的测试进行所有可能输入的全面验证。
+### 当前测试问题
+- 测试期望的服务名称与实现不匹配
+- 缺失接口阻止适当的依赖注入测试
+- 客户端-服务器通信不存在集成测试
 
-**单元测试重点：**
-- 配置验证边界情况
-- MySQL 服务管理错误条件
-- 文件系统权限场景
-- 网络连接失败模式
-- 断点续传令牌生成和验证
-- 校验和计算准确性
+### 更新的测试方法
 
-**基于属性的测试重点：**
-- 所有文件大小的文件传输完整性
-- 任何分块策略的分块重组正确性
-- 从任何中断点的断点续传能力
-- 配置持久化和检索一致性
-- 所有命名策略的备份命名唯一性
+#### 单元测试
+- 使用接口独立测试每个服务
+- 模拟依赖项进行隔离测试
+- 专注于边界情况和错误条件
+- 验证所有公共方法和属性
 
-**集成测试：**
-- 端到端备份工作流
-- 多客户端并发操作
-- 大文件处理（100GB+ 场景）
-- 网络故障和恢复场景
-- 跨平台兼容性验证
+#### 集成测试
+- 端到端测试完整工作流
+- 验证客户端-服务器通信
+- 使用真实数据库和文件系统进行测试
+- 验证错误恢复场景
 
-**性能测试：**
-- 大文件操作期间的内存使用
-- 网络吞吐量优化
-- 并发客户端处理能力
-- 负载下的数据库查询性能
-- 后台操作期间的 UI 响应性
+#### 基于属性的测试
+- 测试所有输入的通用属性
+- 验证整个工作流的数据完整性
+- 测试加密/解密往返
+- 验证备份恢复功能
 
-**属性测试配置：**
-- 每个属性测试最少 100 次迭代
-- 每个测试标记功能和属性引用
-- 随机化测试数据生成以获得全面覆盖
-- 可重现测试失败的确定性种子值
+## 性能考虑
 
-## 正确性属性
+### 当前性能特征
+- **内存使用**: 大文件的高效流处理
+- **网络传输**: 基于 TCP 的进度报告
+- **压缩**: 可配置级别的 GZip
+- **数据库操作**: 使用 Entity Framework 的 SQLite
 
-*属性是应该在系统的所有有效执行中保持为真的特征或行为——本质上是关于系统应该做什么的正式陈述。属性作为人类可读规范和机器可验证正确性保证之间的桥梁。*
+### 性能目标
+- **大文件**: 高效处理 100GB+ 数据库
+- **内存使用**: 操作期间 < 500MB
+- **网络吞吐量**: 有效利用可用带宽
+- **压缩比**: 实现 60-80% 大小减少
+- **加密开销**: < 10% 性能影响
 
-基于预工作分析和属性反思以消除冗余，以下属性捕获了基本的正确性要求：
+## 安全架构
 
-### 属性 1：配置往返一致性
-*对于任何*有效的配置数据（MySQL 连接信息、备份目标或调度设置），存储配置然后检索它应该产生等效的配置数据。
-**验证：需求 2.1、2.2、2.3**
+### 当前安全功能
+- 用于配置存储的 SQLite 数据库
+- 基于 TCP 的网络通信
+- 基本错误处理和日志记录
 
-### 属性 2：网络通信建立
-*对于任何*具有网络连接的有效客户端-服务器端点对，备份客户端应该能够与文件接收服务器建立安全通信。
-**验证：需求 1.2、1.5、8.1、8.2**
+### 增强安全性（待实现）
+- **加密**: 备份文件的 AES-256
+- **网络安全**: 所有通信的 TLS
+- **身份验证**: 客户端-服务器身份验证
+- **凭据管理**: 密码的安全存储
+- **审计日志**: 全面的安全事件日志记录
 
-### 属性 3：并发客户端支持
-*对于任何*多个备份客户端实例集合，文件接收服务器应该能够同时处理来自所有客户端的并发连接。
-**验证：需求 1.4、8.5**
+## 部署架构
 
-### 属性 4：配置验证
-*对于任何*配置输入，系统应该接受有效配置并拒绝无效配置，确保只存储有效配置。
-**验证：需求 2.4**
+### 当前部署
+- **客户端**: Windows Forms 应用程序
+- **服务器**: 带 TCP 监听器的控制台应用程序
+- **数据库**: 用于配置和日志的 SQLite 文件
+- **存储**: 本地文件系统
 
-### 属性 5：MySQL 实例管理
-*对于任何*处于运行状态的 MySQL 实例，备份过程应该能够停止实例、执行操作、重启实例并验证可用性，将实例返回到运行状态。
-**验证：需求 3.1、3.4、3.5**
+### 增强部署选项
+- **客户端**: Windows 服务或 GUI 应用程序
+- **服务器**: 带多个监听器的 Windows 服务
+- **数据库**: 带备份和复制的 SQLite
+- **存储**: 本地 + 云存储选项
+- **监控**: 健康检查和指标收集
 
-### 属性 6：文件压缩和传输
-*对于任何*有效的数据目录，系统应该能够将其压缩为备份文件并按照配置的命名约定将其传输到目标位置。
-**验证：需求 3.2、3.3**
-
-### 属性 7：备份清理
-*对于任何*成功的备份操作，系统应该在确认 MySQL 可用性后清理临时文件（本地 Data.zip）。
-**验证：需求 3.6**
-
-### 属性 8：大文件分块
-*对于任何*超过配置大小阈值的备份文件，系统应该将其分割成分块并在目标位置正确重组，重组后的文件与原文件相同。
-**验证：需求 4.1、4.2**
-
-### 属性 9：文件完整性验证
-*对于任何*文件传输（分块或整体），系统应该使用校验和验证文件完整性并检测任何损坏或修改。
-**验证：需求 4.5、8.4**
-
-### 属性 10：进度报告单调性
-*对于任何*备份操作，进度指示器应该单调递增（永不减少）并在成功完成时达到 100%。
-**验证：需求 4.4**
-
-### 属性 11：断点续传能力
-*对于任何*在任何点中断的备份传输，系统应该生成断点续传令牌并能够从最后成功传输的分块继续传输，最终结果与未中断传输相同。
-**验证：需求 5.1、5.2、5.3、5.4**
-
-### 属性 12：断点续传令牌清理
-*对于任何*使用断点续传功能成功完成的备份操作，系统应该自动清理相关的断点续传令牌数据。
-**验证：需求 5.5**
-
-### 属性 13：后台进度更新
-*对于任何*在后台运行的备份操作，系统应该向用户界面提供实时进度更新而不阻塞操作。
-**验证：需求 6.3**
-
-### 属性 14：优雅取消
-*对于任何*正在运行的备份操作，系统应该能够优雅地取消操作，确保 MySQL 重启并清理临时文件。
-**验证：需求 6.5**
-
-### 属性 15：全面备份日志记录
-*对于任何*备份操作（成功或失败），系统应该记录所有必需信息，包括开始时间、结束时间、文件大小、完成状态和任何错误详情。
-**验证：需求 7.1、7.4**
-
-### 属性 16：日志存储和检索
-*对于任何*备份日志条目，存储日志然后搜索/检索它应该返回相同的日志数据，所有元数据完整。
-**验证：需求 7.2**
-
-### 属性 17：日志保留策略执行
-*对于任何*配置的保留策略（基于年龄、数量或空间），系统应该根据策略自动删除旧日志，同时保留符合保留条件的日志。
-**验证：需求 7.5**
-
-### 属性 18：备份报告生成
-*对于任何*时间段和备份操作集合，系统应该生成准确反映该时间段备份统计信息的摘要报告。
-**验证：需求 7.6**
-
-### 属性 19：网络传输重试与退避
-*对于任何*网络传输失败，系统应该实施带指数退避的重试机制，在连接恢复时最终成功或在最大重试次数后失败。
-**验证：需求 8.3、8.6**
-
-### 属性 20：MySQL 重启的错误恢复
-*对于任何*备份操作失败（压缩、传输等），系统应该确保 MySQL 实例重启并正确记录错误。
-**验证：需求 3.7、9.1、9.2、9.3**
-
-### 属性 21：关键错误警报
-*对于任何*关键系统错误，系统应该通过所有配置的警报渠道发送通知。
-**验证：需求 9.4、9.6**
-
-### 属性 22：操作超时预防
-*对于任何*系统操作，操作应该在配置的超时限制内完成或被终止以防止无限期挂起。
-**验证：需求 9.5**
-
-### 属性 23：文件命名唯一性和模式
-*对于任何*使用任何命名策略配置的备份操作，系统应该生成遵循配置模式的唯一文件名并防止覆盖。
-**验证：需求 10.1、10.2、10.3**
-
-### 属性 24：目录组织
-*对于任何*备份文件和目录结构配置，文件接收服务器应该根据配置的结构组织备份文件。
-**验证：需求 10.4**
-
-### 属性 25：文件保留策略应用
-*对于任何*配置的文件保留策略，系统应该根据策略（年龄、数量或存储空间限制）自动管理备份文件。
-**验证：需求 10.5**
+此更新的设计文档反映了当前实现状态，并为完成缺失功能提供了清晰的路线图，同时保持现有架构的优势。

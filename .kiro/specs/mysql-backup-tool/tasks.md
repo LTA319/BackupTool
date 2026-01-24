@@ -1,278 +1,273 @@
-# Implementation Plan: MySQL Full-File Backup Tool
+# MySQL Backup Tool - Implementation Tasks
 
-## Overview
+## Current Status Assessment
 
-This implementation plan breaks down the MySQL Full-File Backup Tool into discrete coding tasks that build incrementally toward a complete distributed backup solution. The approach focuses on core functionality first, followed by advanced features like chunking, resume capability, and comprehensive logging. Each task builds on previous work and includes validation through testing.
+**Project State**: Partially implemented with significant test-implementation misalignment  
+**Last Updated**: Context transfer analysis completed  
+**Critical Issue**: Test project expects different service names than actual implementations  
 
-## Tasks
+## Phase 1: Foundation & Alignment (Critical Priority)
 
-- [x] 1. Set up project structure and core interfaces
-  - Create solution structure with separate projects for Client, Server, and Shared components
-  - Define core interfaces (IMySQLManager, ICompressionService, IFileTransferClient, IFileReceiver)
-  - Set up SQLite database schema and Entity Framework configuration
-  - Configure logging framework and dependency injection
-  - _Requirements: 1.1, 2.5_
+### Task 1: Service Interface Creation
+**Status**: not-started  
+**Priority**: Critical  
+**Estimated Effort**: 4 hours  
+**Description**: Create proper interfaces for existing services to enable dependency injection and testing
 
-- [x] 2. Implement configuration management system
-  - [x] 2.1 Create configuration data models and validation
-    - Implement BackupConfiguration, MySQLConnectionInfo, ServerEndpoint classes
-    - Add data validation attributes and custom validation logic
-    - _Requirements: 2.1, 2.2, 2.3, 2.4_
-  
-  - [x] 2.2 Write property test for configuration round-trip consistency
-    - **Property 1: Configuration Round-Trip Consistency**
-    - **Validates: Requirements 2.1, 2.2, 2.3**
-  
-  - [x] 2.3 Implement SQLite configuration database operations
-    - Create Entity Framework DbContext and repository pattern
-    - Implement CRUD operations for all configuration types
-    - Add database migration support
-    - _Requirements: 2.1, 2.2, 2.3, 2.5_
-  
-  - [x] 2.4 Write property test for configuration validation
-    - **Property 4: Configuration Validation**
-    - **Validates: Requirements 2.4**
+**Subtasks**:
+- [ ] Create `IBackupService` interface for `MySQLManager`
+- [ ] Create `ICompressionService` interface for `CompressionService`
+- [ ] Create `IFileTransferService` interface for `FileTransferClient`
+- [ ] Create `ILoggingService` interface for `LoggingService`
+- [ ] Update existing services to implement interfaces
+- [ ] Configure dependency injection container
 
-- [x] 3. Implement MySQL instance management
-  - [x] 3.1 Create MySQL service manager
-    - Implement IMySQLManager interface with Windows service control
-    - Add methods for stop, start, and availability verification
-    - Include timeout handling and error recovery
-    - _Requirements: 3.1, 3.4, 3.5_
-  
-  - [x] 3.2 Write property test for MySQL instance management
-    - **Property 5: MySQL Instance Management**
-    - **Validates: Requirements 3.1, 3.4, 3.5**
-  
-  - [x] 3.3 Implement connection verification logic
-    - Create MySQL connection testing with configurable timeouts
-    - Add retry logic with exponential backoff
-    - _Requirements: 3.5_
+**Files to modify**:
+- `src/MySqlBackupTool.Shared/Interfaces/` (new directory)
+- `src/MySqlBackupTool.Shared/Services/*.cs`
+- `src/MySqlBackupTool.Shared/DependencyInjection/ServiceCollectionExtensions.cs`
 
-- [x] 4. Implement file compression and basic transfer
-  - [x] 4.1 Create compression service
-    - Implement ICompressionService using System.IO.Compression
-    - Add progress reporting during compression operations
-    - Include cleanup functionality for temporary files
-    - _Requirements: 3.2, 3.6_
-  
-  - [x] 4.2 Write property test for file compression and cleanup
-    - **Property 6: File Compression and Transfer**
-    - **Property 7: Backup Cleanup**
-    - **Validates: Requirements 3.2, 3.3, 3.6**
-  
-  - [x] 4.3 Implement basic file transfer client
-    - Create simple file transfer over TCP sockets
-    - Add basic error handling and retry logic
-    - Include progress reporting capabilities
-    - _Requirements: 3.3, 8.1_
+### Task 2: Test Project Refactoring
+**Status**: not-started  
+**Priority**: Critical  
+**Estimated Effort**: 6 hours  
+**Description**: Align test project with actual service implementations
 
-- [x] 5. Implement file receiver server
-  - [x] 5.1 Create TCP server for file reception
-    - Implement IFileReceiver interface with TCP listener
-    - Add concurrent client connection handling
-    - Include basic file reception and storage logic
-    - _Requirements: 8.1, 8.5_
-  
-  - [x] 5.2 Write property test for network communication
-    - **Property 2: Network Communication Establishment**
-    - **Property 3: Concurrent Client Support**
-    - **Validates: Requirements 1.2, 1.4, 1.5, 8.1, 8.2, 8.5**
-  
-  - [x] 5.3 Implement file naming and organization
-    - Create FileNamingStrategy implementation
-    - Add directory structure management
-    - Include filename uniqueness validation
-    - _Requirements: 10.1, 10.2, 10.3, 10.4_
-  
-  - [x] 5.4 Write property test for file naming and organization
-    - **Property 23: File Naming Uniqueness and Patterns**
-    - **Property 24: Directory Organization**
-    - **Validates: Requirements 10.1, 10.2, 10.3, 10.4**
+**Subtasks**:
+- [ ] Rename `BackupServiceTests` to `MySQLManagerTests`
+- [ ] Update all test service references to match actual implementations
+- [ ] Fix test project dependencies
+- [ ] Update test data and mocks
+- [ ] Verify basic tests pass with existing implementations
 
-- [x] 6. Checkpoint - Basic backup workflow validation
-  - Ensure all tests pass, ask the user if questions arise.
+**Files to modify**:
+- `tests/MySqlBackupTool.Tests/Services/BackupServiceTests.cs` → `MySQLManagerTests.cs`
+- `tests/MySqlBackupTool.Tests/Services/CompressionServiceTests.cs`
+- `tests/MySqlBackupTool.Tests/MySqlBackupTool.Tests.csproj`
 
-- [x] 7. Implement file chunking for large files
-  - [x] 7.1 Create chunking strategy and chunk manager
-    - Implement ChunkingStrategy and ChunkData models
-    - Add file splitting logic with configurable chunk sizes
-    - Include chunk metadata and indexing
-    - _Requirements: 4.1_
-  
-  - [x] 7.2 Implement chunk transfer protocol
-    - Extend file transfer client to handle chunked transfers
-    - Add chunk ordering and reassembly logic
-    - Include progress tracking across chunks
-    - _Requirements: 4.1, 4.2_
-  
-  - [x] 7.3 Write property test for file chunking
-    - **Property 8: File Chunking for Large Files**
-    - **Validates: Requirements 4.1, 4.2**
-  
-  - [x] 7.4 Implement server-side chunk reassembly
-    - Create IChunkManager interface implementation
-    - Add chunk reception and temporary storage
-    - Include file reassembly and validation logic
-    - _Requirements: 4.2_
+### Task 3: Integration Test Setup
+**Status**: not-started  
+**Priority**: High  
+**Estimated Effort**: 4 hours  
+**Description**: Create integration tests for client-server communication
 
-- [x] 8. Implement file integrity validation
-  - [x] 8.1 Add checksum calculation and validation
-    - Implement MD5 and SHA256 checksum generation
-    - Add checksum validation during file transfers
-    - Include chunk-level integrity checking
-    - _Requirements: 4.5, 8.4_
-  
-  - [x] 8.2 Write property test for file integrity validation
-    - **Property 9: File Integrity Validation**
-    - **Validates: Requirements 4.5, 8.4**
+**Subtasks**:
+- [ ] Create integration test project structure
+- [ ] Test client-server file transfer
+- [ ] Test end-to-end backup workflow
+- [ ] Add test database setup/teardown
 
-- [x] 9. Implement resume capability
-  - [x] 9.1 Create resume token management
-    - Implement resume token generation and storage
-    - Add transfer state persistence to database
-    - Include cleanup logic for completed transfers
-    - _Requirements: 5.1, 5.5_
-  
-  - [x] 9.2 Implement resume logic in client and server
-    - Add resume capability to file transfer client
-    - Implement server-side resume support
-    - Include integrity verification for resumed transfers
-    - _Requirements: 5.2, 5.3, 5.4_
-  
-  - [x] 9.3 Write property test for resume capability
-    - **Property 11: Resume Capability**
-    - **Property 12: Resume Token Cleanup**
-    - **Validates: Requirements 5.1, 5.2, 5.3, 5.4, 5.5**
+**Files to create**:
+- `tests/MySqlBackupTool.Integration/`
+- `tests/MySqlBackupTool.Integration/ClientServerTests.cs`
+- `tests/MySqlBackupTool.Integration/BackupWorkflowTests.cs`
 
-- [x] 10. Implement comprehensive logging system
-  - [x] 10.1 Create backup logging infrastructure
-    - Implement BackupLog and TransferLog models
-    - Add database operations for log storage and retrieval
-    - Include log search and filtering capabilities
-    - _Requirements: 7.1, 7.2, 7.4_
-  
-  - [x] 10.2 Write property test for logging functionality
-    - **Property 15: Comprehensive Backup Logging**
-    - **Property 16: Log Storage and Retrieval**
-    - **Validates: Requirements 7.1, 7.2, 7.4**
-  
-  - [x] 10.3 Implement log retention and reporting
-    - Add automatic log cleanup based on retention policies
-    - Create backup summary report generation
-    - Include configurable retention strategies
-    - _Requirements: 7.5, 7.6_
-  
-  - [x] 10.4 Write property test for log retention and reporting
-    - **Property 17: Log Retention Policy Enforcement**
-    - **Property 18: Backup Report Generation**
-    - **Validates: Requirements 7.5, 7.6**
+## Phase 2: Critical Missing Services (High Priority)
 
-- [x] 11. Implement multi-threading and progress reporting
-  - [x] 11.1 Create background task management
-    - Implement backup operations on background threads
-    - Add thread-safe progress reporting mechanisms
-    - Include cancellation token support
-    - _Requirements: 6.1, 6.3, 6.5_
-  
-  - [x] 11.2 Write property test for progress reporting and cancellation
-    - **Property 10: Progress Reporting Monotonicity**
-    - **Property 13: Background Progress Updates**
-    - **Property 14: Graceful Cancellation**
-    - **Validates: Requirements 4.4, 6.3, 6.5**
+### Task 4: Encryption Service Implementation
+**Status**: not-started  
+**Priority**: High  
+**Estimated Effort**: 8 hours  
+**Description**: Implement file encryption/decryption service
 
-- [x] 12. Implement error handling and recovery
-  - [x] 12.1 Create comprehensive error handling system
-    - Implement ErrorRecoveryManager with specific error handlers
-    - Add timeout mechanisms for all operations
-    - Include automatic MySQL restart on failures
-    - _Requirements: 3.7, 9.1, 9.2, 9.3, 9.4, 9.5_
-  
-  - [x] 12.2 Write property test for error recovery
-    - **Property 20: Error Recovery with MySQL Restart**
-    - **Property 22: Operation Timeout Prevention**
-    - **Validates: Requirements 3.7, 9.1, 9.2, 9.3, 9.5**
-  
-  - [x] 12.3 Implement network retry and alerting
-    - Add exponential backoff retry for network operations
-    - Create alerting system for critical errors
-    - Include notification delivery mechanisms
-    - _Requirements: 8.3, 8.6, 9.4, 9.6_
-  
-  - [x] 12.4 Write property test for network retry and alerting
-    - **Property 19: Network Transfer Retry with Backoff**
-    - **Property 21: Critical Error Alerting**
-    - **Validates: Requirements 8.3, 8.6, 9.4, 9.6**
+**Subtasks**:
+- [ ] Create `IEncryptionService` interface
+- [ ] Implement AES-256 encryption
+- [ ] Add password-based key derivation
+- [ ] Implement async encrypt/decrypt methods
+- [ ] Add proper error handling
+- [ ] Create comprehensive unit tests
 
-- [x] 13. Implement file retention policies
-  - [x] 13.1 Create retention policy management
-    - Implement configurable retention policies (age, count, space)
-    - Add automatic file cleanup based on policies
-    - Include policy validation and enforcement
-    - _Requirements: 10.5_
-  
-  - [x] 13.2 Write property test for file retention policies
-    - **Property 25: File Retention Policy Application**
-    - **Validates: Requirements 10.5**
+**Files to create**:
+- `src/MySqlBackupTool.Shared/Interfaces/IEncryptionService.cs`
+- `src/MySqlBackupTool.Shared/Services/EncryptionService.cs`
+- `tests/MySqlBackupTool.Tests/Services/EncryptionServiceTests.cs`
 
-- [x] 14. Implement security features
-  - [x] 14.1 Add SSL/TLS support for network communications
-    - Implement secure socket connections
-    - Add certificate validation and management
-    - Include encryption for data in transit
-    - _Requirements: 8.2_
-  
-  - [x] 14.2 Implement authentication and authorization
-    - Add client authentication mechanisms
-    - Create server-side authorization checks
-    - Include secure credential storage
-    - _Requirements: 1.5, 8.2_
+**Acceptance Criteria**:
+- [ ] Encrypt files with AES-256
+- [ ] Decrypt files with correct password
+- [ ] Throw exception for wrong password
+- [ ] Handle large files efficiently
+- [ ] Pass all existing encryption tests
 
-- [x] 15. Create user interface components
-  - [x] 15.1 Implement configuration management UI
-    - Create forms for backup configuration setup
-    - Add validation and user feedback
-    - Include connection testing capabilities
-    - _Requirements: 2.1, 2.2, 2.3, 2.4_
-  
-  - [x] 15.2 Implement backup monitoring and control UI
-    - Create real-time backup progress display
-    - Add backup operation controls (start, stop, cancel)
-    - Include status dashboard and notifications
-    - _Requirements: 6.2, 6.3, 6.5_
-  
-  - [x] 15.3 Implement log browsing interface
-    - Create searchable backup history viewer
-    - Add filtering and export capabilities
-    - Include detailed transfer progress views
-    - _Requirements: 7.2, 7.3_
+### Task 5: Backup Validation Service
+**Status**: not-started  
+**Priority**: High  
+**Estimated Effort**: 6 hours  
+**Description**: Implement backup file validation and integrity checking
 
-- [x] 16. Implement scheduling system
-  - [x] 16.1 Create backup scheduler
-    - Implement configurable backup scheduling
-    - Add automatic startup and background execution
-    - Include schedule validation and management
-    - _Requirements: 2.3, 2.6_
-  
-  - [x] 16.2 Write unit test for auto-startup functionality
-    - Test automatic backup operations on system boot
-    - **Validates: Requirements 2.6**
+**Subtasks**:
+- [ ] Create `IValidationService` interface
+- [ ] Implement file integrity validation
+- [ ] Add backup completeness checks
+- [ ] Implement corruption detection
+- [ ] Add checksum validation
+- [ ] Create comprehensive unit tests
 
-- [x] 17. Final integration and testing
-  - [x] 17.1 Wire all components together
-    - Integrate client and server components
-    - Add dependency injection configuration
-    - Include application startup and shutdown logic
-    - _Requirements: All requirements_
-  
-  - [x] 17.2 Write integration tests for end-to-end workflows
-    - Test complete backup workflows from start to finish
-    - Include distributed deployment scenarios
-    - Test large file handling and resume capabilities
-    - _Requirements: All requirements_
+**Files to create**:
+- `src/MySqlBackupTool.Shared/Interfaces/IValidationService.cs`
+- `src/MySqlBackupTool.Shared/Services/ValidationService.cs`
+- `tests/MySqlBackupTool.Tests/Services/ValidationServiceTests.cs`
 
-- [ ] 18. Final checkpoint - Comprehensive system validation
-  - Ensure all tests pass, ask the user if questions arise.
+**Acceptance Criteria**:
+- [ ] Validate backup file integrity
+- [ ] Detect corrupted files
+- [ ] Verify backup completeness
+- [ ] Generate validation reports
+- [ ] Pass all existing validation tests
+
+## Phase 3: Enhanced Services (Medium Priority)
+
+### Task 6: Cloud Storage Service
+**Status**: not-started  
+**Priority**: Medium  
+**Estimated Effort**: 12 hours  
+**Description**: Implement cloud storage integration for off-site backups
+
+**Subtasks**:
+- [ ] Create `IStorageService` interface
+- [ ] Implement AWS S3 provider
+- [ ] Implement Azure Blob Storage provider
+- [ ] Add configurable storage providers
+- [ ] Implement upload progress tracking
+- [ ] Add retry logic and error handling
+- [ ] Create comprehensive unit tests
+
+**Files to create**:
+- `src/MySqlBackupTool.Shared/Interfaces/IStorageService.cs`
+- `src/MySqlBackupTool.Shared/Services/StorageService.cs`
+- `src/MySqlBackupTool.Shared/Services/Providers/AwsS3Provider.cs`
+- `src/MySqlBackupTool.Shared/Services/Providers/AzureBlobProvider.cs`
+- `tests/MySqlBackupTool.Tests/Services/StorageServiceTests.cs`
+
+### Task 7: Notification Service
+**Status**: not-started  
+**Priority**: Medium  
+**Estimated Effort**: 8 hours  
+**Description**: Implement notification system for backup status alerts
+
+**Subtasks**:
+- [ ] Create `INotificationService` interface
+- [ ] Implement email notifications
+- [ ] Add webhook support
+- [ ] Implement configurable notification rules
+- [ ] Add notification templates
+- [ ] Create comprehensive unit tests
+
+**Files to create**:
+- `src/MySqlBackupTool.Shared/Interfaces/INotificationService.cs`
+- `src/MySqlBackupTool.Shared/Services/NotificationService.cs`
+- `tests/MySqlBackupTool.Tests/Services/NotificationServiceTests.cs`
+
+### Task 8: Retention Management Service
+**Status**: not-started  
+**Priority**: Medium  
+**Estimated Effort**: 6 hours  
+**Description**: Implement automated backup cleanup and retention policies
+
+**Subtasks**:
+- [ ] Create `IRetentionService` interface
+- [ ] Implement retention policy engine
+- [ ] Add automated cleanup logic
+- [ ] Implement storage quota management
+- [ ] Add retention reporting
+- [ ] Create comprehensive unit tests
+
+**Files to create**:
+- `src/MySqlBackupTool.Shared/Interfaces/IRetentionService.cs`
+- `src/MySqlBackupTool.Shared/Services/RetentionService.cs`
+- `tests/MySqlBackupTool.Tests/Services/RetentionServiceTests.cs`
+
+### Task 9: Scheduler Service
+**Status**: not-started  
+**Priority**: Low  
+**Estimated Effort**: 10 hours  
+**Description**: Implement backup scheduling with cron expression support
+
+**Subtasks**:
+- [ ] Create `ISchedulerService` interface
+- [ ] Implement cron expression parser
+- [ ] Add schedule management
+- [ ] Implement background task execution
+- [ ] Add schedule monitoring
+- [ ] Create comprehensive unit tests
+
+**Files to create**:
+- `src/MySqlBackupTool.Shared/Interfaces/ISchedulerService.cs`
+- `src/MySqlBackupTool.Shared/Services/SchedulerService.cs`
+- `tests/MySqlBackupTool.Tests/Services/SchedulerServiceTests.cs`
+
+## Phase 4: Integration & Testing (Final Priority)
+
+### Task 10: End-to-End Integration
+**Status**: not-started  
+**Priority**: High  
+**Estimated Effort**: 8 hours  
+**Description**: Implement complete backup workflows with all services
+
+**Subtasks**:
+- [ ] Create full backup workflow with encryption
+- [ ] Implement backup + compression + cloud upload
+- [ ] Add notification integration
+- [ ] Test retention policy execution
+- [ ] Verify scheduled backup execution
+
+### Task 11: Performance Optimization
+**Status**: not-started  
+**Priority**: Medium  
+**Estimated Effort**: 6 hours  
+**Description**: Optimize performance for large database backups
+
+**Subtasks**:
+- [ ] Profile memory usage during large backups
+- [ ] Optimize compression streaming
+- [ ] Improve network transfer efficiency
+- [ ] Add performance benchmarks
+
+### Task 12: Documentation & Polish
+**Status**: not-started  
+**Priority**: Low  
+**Estimated Effort**: 4 hours  
+**Description**: Complete documentation and final polish
+
+**Subtasks**:
+- [ ] Update API documentation
+- [ ] Create user guides
+- [ ] Add configuration examples
+- [ ] Final code review and cleanup
+
+## Property-Based Testing Status
+
+| Service | Status | Details |
+|---------|--------|------------|
+| BackupService (MySQLManager) | failing | Service name mismatch - needs interface alignment |
+| CompressionService | failing | Service name mismatch - needs interface alignment |
+| EncryptionService | failing | Service not implemented |
+| ConfigurationService | failing | Service name mismatch - needs interface alignment |
+| ValidationService | failing | Service not implemented |
+| StorageService | failing | Service not implemented |
+| NotificationService | failing | Service not implemented |
+| RetentionService | failing | Service not implemented |
+| SchedulerService | failing | Service not implemented |
+
+## Success Metrics
+
+- [ ] All 52 tests passing
+- [ ] Complete backup workflow functional
+- [ ] All critical services implemented
+- [ ] Integration tests passing
+- [ ] Performance benchmarks met
+- [ ] Documentation complete
+
+## Immediate Next Steps
+
+1. **Start with Task 1**: Create service interfaces for existing implementations
+2. **Follow with Task 2**: Refactor test project to match actual services
+3. **Verify foundation**: Ensure basic tests pass before implementing missing services
+4. **Implement critical services**: Focus on encryption and validation first
+5. **Build incrementally**: Add one service at a time with full testing
+
+This approach will quickly resolve the test failures while building upon the substantial existing implementation.
 
 ## Notes
 
@@ -281,4 +276,4 @@ This implementation plan breaks down the MySQL Full-File Backup Tool into discre
 - Property tests validate universal correctness properties across all inputs
 - Unit tests validate specific examples and edge cases
 - Integration tests ensure end-to-end functionality
-- Checkpoints provide validation points during development
+- Focus on getting existing functionality working before adding new features
