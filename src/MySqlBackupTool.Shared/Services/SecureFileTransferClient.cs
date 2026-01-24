@@ -13,7 +13,7 @@ namespace MySqlBackupTool.Shared.Services;
 /// <summary>
 /// SSL/TLS-enabled file transfer client implementation
 /// </summary>
-public class SecureFileTransferClient : IFileTransferClient
+public class SecureFileTransferClient : IFileTransferClient, IFileTransferService
 {
     private readonly ILogger<SecureFileTransferClient> _logger;
     private readonly IChecksumService _checksumService;

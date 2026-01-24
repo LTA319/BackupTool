@@ -55,6 +55,9 @@ public static class ServiceCollectionExtensions
 
         // Add logging
         services.AddBackupToolLogging();
+        
+        // Add application-specific logging service
+        services.AddScoped<ILoggingService, LoggingService>();
 
         return services;
     }
@@ -120,10 +123,28 @@ public static class ServiceCollectionExtensions
                 var logger = provider.GetRequiredService<ILogger<TimeoutProtectedFileTransferClient>>();
                 return new TimeoutProtectedFileTransferClient(innerClient, errorRecoveryManager, logger);
             });
+            
+            // Register IFileTransferService as an alias for IFileTransferClient for consistency
+            services.AddScoped<IFileTransferService>(provider =>
+            {
+                var innerClient = provider.GetRequiredService<SecureFileTransferClient>();
+                var errorRecoveryManager = provider.GetRequiredService<IErrorRecoveryManager>();
+                var logger = provider.GetRequiredService<ILogger<TimeoutProtectedFileTransferClient>>();
+                return new TimeoutProtectedFileTransferClient(innerClient, errorRecoveryManager, logger);
+            });
         }
         else
         {
             services.AddScoped<IFileTransferClient>(provider =>
+            {
+                var innerClient = provider.GetRequiredService<FileTransferClient>();
+                var errorRecoveryManager = provider.GetRequiredService<IErrorRecoveryManager>();
+                var logger = provider.GetRequiredService<ILogger<TimeoutProtectedFileTransferClient>>();
+                return new TimeoutProtectedFileTransferClient(innerClient, errorRecoveryManager, logger);
+            });
+            
+            // Register IFileTransferService as an alias for IFileTransferClient for consistency
+            services.AddScoped<IFileTransferService>(provider =>
             {
                 var innerClient = provider.GetRequiredService<FileTransferClient>();
                 var errorRecoveryManager = provider.GetRequiredService<IErrorRecoveryManager>();

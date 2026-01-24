@@ -52,7 +52,6 @@ graph TB
     subgraph "Missing Critical Services"
         EncSvc[EncryptionService]
         ValSvc[ValidationService]
-        StorageSvc[StorageService]
         NotifSvc[NotificationService]
         RetentionSvc[RetentionService]
         SchedulerSvc[SchedulerService]
@@ -61,15 +60,13 @@ graph TB
     subgraph "Integration Points"
         CompSvc[CompressionService]
         TransferClient[FileTransferClient]
-        CloudStorage[Cloud Providers]
-        EmailSMTP[Email/SMS]
+        EmailSMTP[SMTP Email Server]
         CronEngine[Cron Scheduler]
     end
     
     CompSvc --> EncSvc
     EncSvc --> ValSvc
-    ValSvc --> StorageSvc
-    StorageSvc --> CloudStorage
+    ValSvc --> TransferClient
     NotifSvc --> EmailSMTP
     SchedulerSvc --> CronEngine
 ```
@@ -165,45 +162,28 @@ public interface IValidationService
 - Detailed reporting
 - Performance optimization
 
-#### 3. StorageService (Medium Priority)
-**Interface**: `IStorageService`
-**Requirements**:
-```csharp
-public interface IStorageService
-{
-    Task<UploadResult> UploadAsync(string filePath, StorageProvider provider, StorageConfig config, CancellationToken cancellationToken = default);
-    Task<DownloadResult> DownloadAsync(string remoteKey, string localPath, StorageProvider provider, StorageConfig config);
-    Task<bool> ExistsAsync(string remoteKey, StorageProvider provider, StorageConfig config);
-    Task<StorageInfo> GetInfoAsync(string remoteKey, StorageProvider provider, StorageConfig config);
-}
-```
-
-**Supported Providers**:
-- AWS S3
-- Azure Blob Storage
-- Google Cloud Storage
-- Local file system
-
-#### 4. NotificationService (Medium Priority)
+#### 3. NotificationService (Medium Priority)
 **Interface**: `INotificationService`
 **Requirements**:
 ```csharp
 public interface INotificationService
 {
-    Task SendAsync(NotificationMessage message, NotificationChannel channel, CancellationToken cancellationToken = default);
-    Task SendBulkAsync(IEnumerable<NotificationMessage> messages, NotificationChannel channel);
+    Task SendEmailAsync(EmailMessage message, CancellationToken cancellationToken = default);
+    Task SendBulkEmailAsync(IEnumerable<EmailMessage> messages);
     Task<NotificationStatus> GetStatusAsync(string notificationId);
-    Task<IEnumerable<NotificationTemplate>> GetTemplatesAsync();
+    Task<IEnumerable<EmailTemplate>> GetTemplatesAsync();
+    Task<bool> TestSmtpConnectionAsync(SmtpConfig config);
 }
 ```
 
-**Supported Channels**:
-- Email (SMTP)
-- Webhooks
-- SMS (optional)
-- Slack integration (optional)
+**Supported Features**:
+- SMTP email sending
+- HTML and plain text email formats
+- Email template system
+- Configurable SMTP servers
+- Sending status tracking
 
-#### 5. RetentionService (Medium Priority)
+#### 4. RetentionService (Medium Priority)
 **Interface**: `IRetentionService`
 **Requirements**:
 ```csharp
@@ -222,7 +202,7 @@ public interface IRetentionService
 - Size-based retention
 - Custom retention rules
 
-#### 6. SchedulerService (Low Priority)
+#### 5. SchedulerService (Low Priority)
 **Interface**: `ISchedulerService`
 **Requirements**:
 ```csharp
@@ -302,24 +282,36 @@ public class ValidationIssue
 }
 ```
 
-#### Storage Models
+#### Notification Models
 ```csharp
-public class StorageConfig
+public class EmailMessage
 {
-    public StorageProvider Provider { get; set; }
-    public string ConnectionString { get; set; }
-    public string BucketName { get; set; }
-    public string Region { get; set; }
-    public Dictionary<string, string> AdditionalSettings { get; set; } = new();
+    public string To { get; set; }
+    public string Subject { get; set; }
+    public string Body { get; set; }
+    public bool IsHtml { get; set; } = true;
+    public List<string> Attachments { get; set; } = new();
+    public Dictionary<string, string> Headers { get; set; } = new();
 }
 
-public class UploadResult
+public class SmtpConfig
 {
-    public bool Success { get; set; }
-    public string RemoteKey { get; set; }
-    public long BytesUploaded { get; set; }
-    public TimeSpan Duration { get; set; }
-    public string ErrorMessage { get; set; }
+    public string Host { get; set; }
+    public int Port { get; set; } = 587;
+    public bool EnableSsl { get; set; } = true;
+    public string Username { get; set; }
+    public string Password { get; set; }
+    public string FromAddress { get; set; }
+    public string FromName { get; set; }
+}
+
+public class EmailTemplate
+{
+    public string Name { get; set; }
+    public string Subject { get; set; }
+    public string HtmlBody { get; set; }
+    public string TextBody { get; set; }
+    public List<string> RequiredVariables { get; set; } = new();
 }
 ```
 
@@ -340,11 +332,10 @@ public class UploadResult
 4. **Encryption** → Encrypt compressed file (NEW)
 5. **Validation** → Verify file integrity (NEW)
 6. **Transfer** → Send to local server
-7. **Cloud Storage** → Upload to cloud providers (NEW)
-8. **Notification** → Send status alerts (NEW)
-9. **Retention** → Apply cleanup policies (NEW)
-10. **Logging** → Record comprehensive details
-11. **Cleanup** → Remove temporary files and restart MySQL
+7. **Email Notification** → Send backup status emails (NEW)
+8. **Retention** → Apply cleanup policies (NEW)
+9. **Logging** → Record comprehensive details
+10. **Cleanup** → Remove temporary files and restart MySQL
 
 ## Testing Strategy
 
@@ -414,7 +405,8 @@ public class UploadResult
 - **Client**: Windows service or GUI application
 - **Server**: Windows service with multiple listeners
 - **Database**: SQLite with backup and replication
-- **Storage**: Local + cloud storage options
+- **Storage**: Local file system storage
+- **Notification**: SMTP email server integration
 - **Monitoring**: Health checks and metrics collection
 
 This updated design document reflects the current implementation state and provides a clear roadmap for completing the missing functionality while maintaining the existing architecture's strengths.

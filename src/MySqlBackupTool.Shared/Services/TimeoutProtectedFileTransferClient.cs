@@ -7,7 +7,7 @@ namespace MySqlBackupTool.Shared.Services;
 /// <summary>
 /// Decorator for IFileTransferClient that adds timeout protection to all operations
 /// </summary>
-public class TimeoutProtectedFileTransferClient : IFileTransferClient
+public class TimeoutProtectedFileTransferClient : IFileTransferClient, IFileTransferService
 {
     private readonly IFileTransferClient _innerClient;
     private readonly IErrorRecoveryManager _errorRecoveryManager;

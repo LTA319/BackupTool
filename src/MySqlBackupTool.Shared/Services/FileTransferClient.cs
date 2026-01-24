@@ -11,7 +11,7 @@ namespace MySqlBackupTool.Shared.Services;
 /// <summary>
 /// TCP-based file transfer client implementation
 /// </summary>
-public class FileTransferClient : IFileTransferClient
+public class FileTransferClient : IFileTransferClient, IFileTransferService
 {
     private readonly ILogger<FileTransferClient> _logger;
     private readonly IChecksumService _checksumService;
