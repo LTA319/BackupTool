@@ -14,17 +14,20 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
     private readonly ILogger<ErrorRecoveryManager> _logger;
     private readonly IMySQLManager _mysqlManager;
     private readonly ICompressionService _compressionService;
+    private readonly IAlertingService? _alertingService;
     private ErrorRecoveryConfig _configuration;
 
     public ErrorRecoveryManager(
         ILogger<ErrorRecoveryManager> logger,
         IMySQLManager mysqlManager,
         ICompressionService compressionService,
-        ErrorRecoveryConfig? configuration = null)
+        ErrorRecoveryConfig? configuration = null,
+        IAlertingService? alertingService = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _mysqlManager = mysqlManager ?? throw new ArgumentNullException(nameof(mysqlManager));
         _compressionService = compressionService ?? throw new ArgumentNullException(nameof(compressionService));
+        _alertingService = alertingService;
         _configuration = configuration ?? new ErrorRecoveryConfig();
     }
 
@@ -292,36 +295,20 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
 
     public async Task<bool> SendCriticalErrorAlertAsync(CriticalErrorAlert alert, CancellationToken cancellationToken = default)
     {
-        if (!_configuration.EnableCriticalErrorAlerts || !_configuration.AlertEmailAddresses.Any())
+        if (_alertingService == null)
         {
-            _logger.LogDebug("Critical error alerts are disabled or no recipients configured");
+            _logger.LogDebug("No alerting service configured, logging alert for operation {OperationId}", alert.OperationId);
+            _logger.LogWarning("Critical error alert: {ErrorType} - {ErrorMessage}", alert.ErrorType, alert.ErrorMessage);
             return false;
         }
 
         try
         {
-            _logger.LogInformation("Sending critical error alert for operation {OperationId}, error type {ErrorType}",
-                alert.OperationId, alert.ErrorType);
-
-            var subject = $"MySQL Backup Tool Critical Error - {alert.ErrorType}";
-            var body = BuildAlertEmailBody(alert);
-
-            // Note: In a real implementation, you would configure SMTP settings
-            // For now, we'll just log the alert details
-            _logger.LogWarning("Email alert would be sent to {Recipients}: {Subject}",
-                string.Join(", ", _configuration.AlertEmailAddresses), subject);
-            _logger.LogDebug("Alert body: {Body}", body);
-
-            alert.AlertSent = true;
-            alert.AlertSentAt = DateTime.UtcNow;
-            alert.AlertRecipients = _configuration.AlertEmailAddresses.ToList();
-
-            return true;
+            return await _alertingService.SendCriticalErrorAlertAsync(alert, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send critical error alert for operation {OperationId}",
-                alert.OperationId);
+            _logger.LogError(ex, "Failed to send critical error alert through alerting service for operation {OperationId}", alert.OperationId);
             return false;
         }
     }
