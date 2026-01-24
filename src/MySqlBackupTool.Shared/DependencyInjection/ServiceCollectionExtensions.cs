@@ -6,6 +6,7 @@ using MySqlBackupTool.Shared.Data.Migrations;
 using MySqlBackupTool.Shared.Data.Repositories;
 using MySqlBackupTool.Shared.Interfaces;
 using MySqlBackupTool.Shared.Logging;
+using MySqlBackupTool.Shared.Models;
 using MySqlBackupTool.Shared.Services;
 
 namespace MySqlBackupTool.Shared.DependencyInjection;
@@ -38,6 +39,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<BackupReportingService>();
         services.AddScoped<RetentionManagementService>();
 
+        // Add error handling services
+        services.AddErrorHandlingServices();
+
         // Add logging
         services.AddBackupToolLogging();
 
@@ -52,14 +56,35 @@ public static class ServiceCollectionExtensions
         // Add checksum service
         services.AddScoped<IChecksumService, ChecksumService>();
         
-        // Add MySQL management service
-        services.AddScoped<IMySQLManager, MySQLManager>();
+        // Add core services (without timeout protection)
+        services.AddScoped<MySQLManager>();
+        services.AddScoped<CompressionService>();
+        services.AddScoped<FileTransferClient>();
         
-        // Add compression service
-        services.AddScoped<ICompressionService, CompressionService>();
+        // Add timeout-protected services as the primary implementations
+        services.AddScoped<IMySQLManager>(provider =>
+        {
+            var innerManager = provider.GetRequiredService<MySQLManager>();
+            var errorRecoveryManager = provider.GetRequiredService<IErrorRecoveryManager>();
+            var logger = provider.GetRequiredService<ILogger<TimeoutProtectedMySQLManager>>();
+            return new TimeoutProtectedMySQLManager(innerManager, errorRecoveryManager, logger);
+        });
         
-        // Add file transfer client
-        services.AddScoped<IFileTransferClient, FileTransferClient>();
+        services.AddScoped<ICompressionService>(provider =>
+        {
+            var innerService = provider.GetRequiredService<CompressionService>();
+            var errorRecoveryManager = provider.GetRequiredService<IErrorRecoveryManager>();
+            var logger = provider.GetRequiredService<ILogger<TimeoutProtectedCompressionService>>();
+            return new TimeoutProtectedCompressionService(innerService, errorRecoveryManager, logger);
+        });
+        
+        services.AddScoped<IFileTransferClient>(provider =>
+        {
+            var innerClient = provider.GetRequiredService<FileTransferClient>();
+            var errorRecoveryManager = provider.GetRequiredService<IErrorRecoveryManager>();
+            var logger = provider.GetRequiredService<ILogger<TimeoutProtectedFileTransferClient>>();
+            return new TimeoutProtectedFileTransferClient(innerClient, errorRecoveryManager, logger);
+        });
         
         return services;
     }
@@ -106,5 +131,37 @@ public static class ServiceCollectionExtensions
         var migrationService = scope.ServiceProvider.GetRequiredService<DatabaseMigrationService>();
         
         await migrationService.InitializeDatabaseAsync();
+    }
+
+    /// <summary>
+    /// Adds error handling and recovery services to the dependency injection container
+    /// </summary>
+    public static IServiceCollection AddErrorHandlingServices(this IServiceCollection services, ErrorRecoveryConfig? config = null)
+    {
+        // Register error recovery configuration
+        if (config != null)
+        {
+            services.AddSingleton(config);
+        }
+        else
+        {
+            services.AddSingleton(new ErrorRecoveryConfig());
+        }
+
+        // Register error recovery manager
+        services.AddScoped<IErrorRecoveryManager, ErrorRecoveryManager>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Adds error handling services with custom configuration
+    /// </summary>
+    public static IServiceCollection AddErrorHandlingServices(this IServiceCollection services, Action<ErrorRecoveryConfig> configureOptions)
+    {
+        var config = new ErrorRecoveryConfig();
+        configureOptions(config);
+        
+        return services.AddErrorHandlingServices(config);
     }
 }
