@@ -44,7 +44,11 @@ public class TimeoutProtectedMySQLManager : IMySQLManager, IBackupService
             var mysqlException = new MySQLServiceException(operationId, serviceName, MySQLServiceOperation.Stop, 
                 $"MySQL stop operation timed out after {ex.ActualDuration.TotalSeconds:F1} seconds", ex);
             
-            var recoveryResult = await _errorRecoveryManager.HandleMySQLServiceFailureAsync(mysqlException);
+            var recoveryResult = 
+                await _errorRecoveryManager.HandleMySQLServiceFailureAsync(
+                    mysqlException,
+                    cancellationToken: default,
+                    mysqlManager: _innerManager);
             
             if (!recoveryResult.Success)
             {
@@ -60,7 +64,10 @@ public class TimeoutProtectedMySQLManager : IMySQLManager, IBackupService
             var mysqlException = new MySQLServiceException(operationId, serviceName, MySQLServiceOperation.Stop, 
                 "Unexpected error during MySQL stop operation", ex);
             
-            await _errorRecoveryManager.HandleMySQLServiceFailureAsync(mysqlException);
+            await _errorRecoveryManager.HandleMySQLServiceFailureAsync(
+                mysqlException,
+                cancellationToken: default,
+                mysqlManager: _innerManager);
             return false;
         }
     }
@@ -86,7 +93,11 @@ public class TimeoutProtectedMySQLManager : IMySQLManager, IBackupService
             var mysqlException = new MySQLServiceException(operationId, serviceName, MySQLServiceOperation.Start, 
                 $"MySQL start operation timed out after {ex.ActualDuration.TotalSeconds:F1} seconds", ex);
             
-            var recoveryResult = await _errorRecoveryManager.HandleMySQLServiceFailureAsync(mysqlException);
+            var recoveryResult = 
+                await _errorRecoveryManager.HandleMySQLServiceFailureAsync(
+                    mysqlException, 
+                    cancellationToken: default,
+                    mysqlManager: _innerManager);
             
             if (!recoveryResult.Success)
             {
@@ -102,7 +113,10 @@ public class TimeoutProtectedMySQLManager : IMySQLManager, IBackupService
             var mysqlException = new MySQLServiceException(operationId, serviceName, MySQLServiceOperation.Start, 
                 "Unexpected error during MySQL start operation", ex);
             
-            await _errorRecoveryManager.HandleMySQLServiceFailureAsync(mysqlException);
+            await _errorRecoveryManager.HandleMySQLServiceFailureAsync(
+                mysqlException, 
+                cancellationToken: default,
+                mysqlManager: _innerManager);
             return false;
         }
     }
@@ -136,7 +150,11 @@ public class TimeoutProtectedMySQLManager : IMySQLManager, IBackupService
             var mysqlException = new MySQLServiceException(operationId, connection.ServiceName, MySQLServiceOperation.VerifyAvailability, 
                 $"MySQL verification timed out after {ex.ActualDuration.TotalSeconds:F1} seconds", ex);
             
-            var recoveryResult = await _errorRecoveryManager.HandleMySQLServiceFailureAsync(mysqlException);
+            var recoveryResult = 
+                await _errorRecoveryManager.HandleMySQLServiceFailureAsync(
+                    mysqlException, 
+                    cancellationToken: default,
+                    mysqlManager: _innerManager);
             
             if (!recoveryResult.Success)
             {
@@ -152,7 +170,10 @@ public class TimeoutProtectedMySQLManager : IMySQLManager, IBackupService
             var mysqlException = new MySQLServiceException(operationId, connection.ServiceName, MySQLServiceOperation.VerifyAvailability, 
                 "Unexpected error during MySQL verification", ex);
             
-            await _errorRecoveryManager.HandleMySQLServiceFailureAsync(mysqlException);
+            await _errorRecoveryManager.HandleMySQLServiceFailureAsync(
+                mysqlException, 
+                cancellationToken: default,
+                mysqlManager: _innerManager);
             return false;
         }
     }

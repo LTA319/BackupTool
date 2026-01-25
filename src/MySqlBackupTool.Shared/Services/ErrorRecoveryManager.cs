@@ -12,20 +12,20 @@ namespace MySqlBackupTool.Shared.Services;
 public class ErrorRecoveryManager : IErrorRecoveryManager
 {
     private readonly ILogger<ErrorRecoveryManager> _logger;
-    private readonly IMySQLManager _mysqlManager;
+    //private readonly IMySQLManager _mysqlManager;
     private readonly ICompressionService _compressionService;
     private readonly IAlertingService? _alertingService;
     private ErrorRecoveryConfig _configuration;
 
     public ErrorRecoveryManager(
         ILogger<ErrorRecoveryManager> logger,
-        IMySQLManager mysqlManager,
+        //IMySQLManager mysqlManager,
         ICompressionService compressionService,
         ErrorRecoveryConfig? configuration = null,
         IAlertingService? alertingService = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _mysqlManager = mysqlManager ?? throw new ArgumentNullException(nameof(mysqlManager));
+       // _mysqlManager = mysqlManager ?? throw new ArgumentNullException(nameof(mysqlManager));
         _compressionService = compressionService ?? throw new ArgumentNullException(nameof(compressionService));
         _alertingService = alertingService;
         _configuration = configuration ?? new ErrorRecoveryConfig();
@@ -39,7 +39,10 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
         _logger.LogInformation("Error recovery configuration updated");
     }
 
-    public async Task<RecoveryResult> HandleMySQLServiceFailureAsync(MySQLServiceException error, CancellationToken cancellationToken = default)
+    public async Task<RecoveryResult> HandleMySQLServiceFailureAsync(
+        MySQLServiceException error, 
+        CancellationToken cancellationToken = default,
+        IMySQLManager? mysqlManager = null)
     {
         _logger.LogError(error, "MySQL service failure occurred for operation {OperationId}, service {ServiceName}, operation {Operation}",
             error.OperationId, error.ServiceName, error.Operation);
@@ -52,16 +55,16 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
             switch (error.Operation)
             {
                 case MySQLServiceOperation.Stop:
-                    return await HandleMySQLStopFailureAsync(error, cancellationToken);
+                    return await HandleMySQLStopFailureAsync(error, cancellationToken, mysqlManager);
 
                 case MySQLServiceOperation.Start:
-                    return await HandleMySQLStartFailureAsync(error, cancellationToken);
+                    return await HandleMySQLStartFailureAsync(error, cancellationToken, mysqlManager);
 
                 case MySQLServiceOperation.VerifyAvailability:
-                    return await HandleMySQLVerificationFailureAsync(error, cancellationToken);
+                    return await HandleMySQLVerificationFailureAsync(error, cancellationToken, mysqlManager);
 
                 case MySQLServiceOperation.Restart:
-                    return await HandleMySQLRestartFailureAsync(error, cancellationToken);
+                    return await HandleMySQLRestartFailureAsync(error, cancellationToken, mysqlManager);
 
                 default:
                     _logger.LogWarning("Unknown MySQL operation type: {Operation}", error.Operation);
@@ -411,7 +414,10 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
 
     #region Private Helper Methods
 
-    private async Task<RecoveryResult> HandleMySQLStopFailureAsync(MySQLServiceException error, CancellationToken cancellationToken)
+    private async Task<RecoveryResult> HandleMySQLStopFailureAsync(
+        MySQLServiceException error,
+        CancellationToken cancellationToken,
+        IMySQLManager? mysqlManager = null)
     {
         _logger.LogInformation("Attempting recovery for MySQL stop failure");
 
@@ -431,9 +437,15 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
                     _logger.LogDebug("Waiting {Delay}ms before retry attempt", delay.TotalMilliseconds);
                     await Task.Delay(delay, cancellationToken);
                 }
+                if (mysqlManager == null)
+                {
+                    _logger.LogWarning("MySQLManager not available for MySQL stop recovery");
+                    return RecoveryResult.Failed(RecoveryStrategy.ManualIntervention,
+                        "MySQLManager not available");
+                }
 
                 // Try to stop the service again
-                var stopResult = await _mysqlManager.StopInstanceAsync(error.ServiceName);
+                var stopResult = await mysqlManager.StopInstanceAsync(error.ServiceName);
                 if (stopResult)
                 {
                     _logger.LogInformation("MySQL stop recovery successful on attempt {Attempt}", attempt);
@@ -451,7 +463,10 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
             "MySQL service could not be stopped after multiple attempts");
     }
 
-    private async Task<RecoveryResult> HandleMySQLStartFailureAsync(MySQLServiceException error, CancellationToken cancellationToken)
+    private async Task<RecoveryResult> HandleMySQLStartFailureAsync(
+        MySQLServiceException error, 
+        CancellationToken cancellationToken,
+        IMySQLManager? mysqlManager = null)
     {
         _logger.LogInformation("Attempting recovery for MySQL start failure");
 
@@ -469,8 +484,13 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
                     
                     await Task.Delay(delay, cancellationToken);
                 }
-
-                var startResult = await _mysqlManager.StartInstanceAsync(error.ServiceName);
+                if (mysqlManager == null)
+                {
+                    _logger.LogWarning("MySQLManager not available for MySQL stop recovery");
+                    return RecoveryResult.Failed(RecoveryStrategy.ManualIntervention,
+                        "MySQLManager not available");
+                }
+                var startResult = await mysqlManager.StartInstanceAsync(error.ServiceName);
                 if (startResult)
                 {
                     _logger.LogInformation("MySQL start recovery successful on attempt {Attempt}", attempt);
@@ -488,7 +508,10 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
             "MySQL service could not be started after multiple attempts");
     }
 
-    private async Task<RecoveryResult> HandleMySQLVerificationFailureAsync(MySQLServiceException error, CancellationToken cancellationToken)
+    private async Task<RecoveryResult> HandleMySQLVerificationFailureAsync(
+        MySQLServiceException error, 
+        CancellationToken cancellationToken,
+        IMySQLManager? mysqlManager = null)
     {
         _logger.LogInformation("Attempting recovery for MySQL verification failure");
 
@@ -496,8 +519,15 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
         try
         {
             _logger.LogInformation("Attempting to restart MySQL service for verification recovery");
-            
-            var stopResult = await _mysqlManager.StopInstanceAsync(error.ServiceName);
+
+            if (mysqlManager == null)
+            {
+                _logger.LogWarning("MySQLManager not available for MySQL stop recovery");
+                return RecoveryResult.Failed(RecoveryStrategy.ManualIntervention,
+                    "MySQLManager not available");
+            }
+            var stopResult = await mysqlManager.StopInstanceAsync(error.ServiceName);
+
             if (!stopResult)
             {
                 _logger.LogWarning("Failed to stop MySQL service during verification recovery");
@@ -505,7 +535,7 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
 
             await Task.Delay(_configuration.BaseRetryDelay, cancellationToken);
 
-            var startResult = await _mysqlManager.StartInstanceAsync(error.ServiceName);
+            var startResult = await mysqlManager.StartInstanceAsync(error.ServiceName);
             if (startResult)
             {
                 _logger.LogInformation("MySQL verification recovery successful after restart");
@@ -521,7 +551,10 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
             "MySQL verification failed and restart was unsuccessful");
     }
 
-    private async Task<RecoveryResult> HandleMySQLRestartFailureAsync(MySQLServiceException error, CancellationToken cancellationToken)
+    private async Task<RecoveryResult> HandleMySQLRestartFailureAsync(
+        MySQLServiceException error, 
+        CancellationToken cancellationToken,
+        IMySQLManager? mysqlManager = null)
     {
         _logger.LogInformation("Attempting recovery for MySQL restart failure");
 
@@ -529,11 +562,17 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
         try
         {
             _logger.LogInformation("Attempting manual stop/start sequence for restart recovery");
-            
-            var stopResult = await _mysqlManager.StopInstanceAsync(error.ServiceName);
+
+            if (mysqlManager == null)
+            {
+                _logger.LogWarning("MySQLManager not available for MySQL stop recovery");
+                return RecoveryResult.Failed(RecoveryStrategy.ManualIntervention,
+                    "MySQLManager not available");
+            }
+            var stopResult = await mysqlManager.StopInstanceAsync(error.ServiceName);
             await Task.Delay(_configuration.BaseRetryDelay, cancellationToken);
             
-            var startResult = await _mysqlManager.StartInstanceAsync(error.ServiceName);
+            var startResult = await mysqlManager.StartInstanceAsync(error.ServiceName);
             
             if (stopResult && startResult)
             {

@@ -13,7 +13,7 @@ public interface IErrorRecoveryManager
     /// <param name="error">The MySQL service exception that occurred</param>
     /// <param name="cancellationToken">Cancellation token for the recovery operation</param>
     /// <returns>Result of the recovery attempt</returns>
-    Task<RecoveryResult> HandleMySQLServiceFailureAsync(MySQLServiceException error, CancellationToken cancellationToken = default);
+    Task<RecoveryResult> HandleMySQLServiceFailureAsync(MySQLServiceException error, CancellationToken cancellationToken = default, IMySQLManager? mysqlManager = null);
 
     /// <summary>
     /// Handles file compression operation failures
