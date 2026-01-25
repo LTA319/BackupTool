@@ -35,11 +35,12 @@ public partial class ConfigurationForm : Form
         try
         {
             this.Text = _isEditing ? "Edit Backup Configuration" : "New Backup Configuration";
-            this.Size = new Size(600, 700);
-            this.StartPosition = FormStartPosition.CenterParent;
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.MinimizeBox = false;
+            // 移除固定大小和边框样式设置，允许用户调整窗体大小
+            // this.Size = new Size(600, 700);
+            // this.StartPosition = FormStartPosition.CenterParent;
+            // this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            // this.MaximizeBox = false;
+            // this.MinimizeBox = false;
 
             LoadConfigurationData();
             

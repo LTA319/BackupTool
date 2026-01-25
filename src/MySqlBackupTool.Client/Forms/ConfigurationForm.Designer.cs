@@ -28,581 +28,575 @@ namespace MySqlBackupTool.Client.Forms
         /// </summary>
         private void InitializeComponent()
         {
-            this.tabControl = new System.Windows.Forms.TabControl();
-            this.tabGeneral = new System.Windows.Forms.TabPage();
-            this.tabMySQL = new System.Windows.Forms.TabPage();
-            this.tabServer = new System.Windows.Forms.TabPage();
-            this.tabNaming = new System.Windows.Forms.TabPage();
-            
-            // General tab controls
-            this.lblConfigName = new System.Windows.Forms.Label();
-            this.txtConfigName = new System.Windows.Forms.TextBox();
-            this.chkIsActive = new System.Windows.Forms.CheckBox();
-            
-            // MySQL tab controls
-            this.lblMySqlUsername = new System.Windows.Forms.Label();
-            this.txtMySqlUsername = new System.Windows.Forms.TextBox();
-            this.lblMySqlPassword = new System.Windows.Forms.Label();
-            this.txtMySqlPassword = new System.Windows.Forms.TextBox();
-            this.lblServiceName = new System.Windows.Forms.Label();
-            this.txtServiceName = new System.Windows.Forms.TextBox();
-            this.lblDataDirectory = new System.Windows.Forms.Label();
-            this.txtDataDirectory = new System.Windows.Forms.TextBox();
-            this.btnBrowseDataDirectory = new System.Windows.Forms.Button();
-            this.lblMySqlHost = new System.Windows.Forms.Label();
-            this.txtMySqlHost = new System.Windows.Forms.TextBox();
-            this.lblMySqlPort = new System.Windows.Forms.Label();
-            this.numMySqlPort = new System.Windows.Forms.NumericUpDown();
-            this.btnTestMySqlConnection = new System.Windows.Forms.Button();
-            this.lblMySqlConnectionStatus = new System.Windows.Forms.Label();
-            
-            // Server tab controls
-            this.lblServerIP = new System.Windows.Forms.Label();
-            this.txtServerIP = new System.Windows.Forms.TextBox();
-            this.lblServerPort = new System.Windows.Forms.Label();
-            this.numServerPort = new System.Windows.Forms.NumericUpDown();
-            this.chkUseSSL = new System.Windows.Forms.CheckBox();
-            this.lblTargetDirectory = new System.Windows.Forms.Label();
-            this.txtTargetDirectory = new System.Windows.Forms.TextBox();
-            this.btnTestServerConnection = new System.Windows.Forms.Button();
-            this.lblServerConnectionStatus = new System.Windows.Forms.Label();
-            
-            // Naming tab controls
-            this.lblNamingPattern = new System.Windows.Forms.Label();
-            this.txtNamingPattern = new System.Windows.Forms.TextBox();
-            this.lblDateFormat = new System.Windows.Forms.Label();
-            this.txtDateFormat = new System.Windows.Forms.TextBox();
-            this.chkIncludeServerName = new System.Windows.Forms.CheckBox();
-            this.chkIncludeDatabaseName = new System.Windows.Forms.CheckBox();
-            this.btnPreviewFileName = new System.Windows.Forms.Button();
-            this.lblFileNamePreview = new System.Windows.Forms.Label();
-            
-            // Bottom buttons
-            this.btnSave = new System.Windows.Forms.Button();
-            this.btnValidateAndSave = new System.Windows.Forms.Button();
-            this.btnCancel = new System.Windows.Forms.Button();
-
-            ((System.ComponentModel.ISupportInitialize)(this.numMySqlPort)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numServerPort)).BeginInit();
-            this.tabControl.SuspendLayout();
-            this.tabGeneral.SuspendLayout();
-            this.tabMySQL.SuspendLayout();
-            this.tabServer.SuspendLayout();
-            this.tabNaming.SuspendLayout();
-            this.SuspendLayout();
-
+            tabControl = new TabControl();
+            tabGeneral = new TabPage();
+            lblConfigName = new Label();
+            txtConfigName = new TextBox();
+            chkIsActive = new CheckBox();
+            tabMySQL = new TabPage();
+            lblMySqlUsername = new Label();
+            txtMySqlUsername = new TextBox();
+            lblMySqlPassword = new Label();
+            txtMySqlPassword = new TextBox();
+            lblServiceName = new Label();
+            txtServiceName = new TextBox();
+            lblDataDirectory = new Label();
+            txtDataDirectory = new TextBox();
+            btnBrowseDataDirectory = new Button();
+            lblMySqlHost = new Label();
+            txtMySqlHost = new TextBox();
+            lblMySqlPort = new Label();
+            numMySqlPort = new NumericUpDown();
+            btnTestMySqlConnection = new Button();
+            lblMySqlConnectionStatus = new Label();
+            tabServer = new TabPage();
+            lblServerIP = new Label();
+            txtServerIP = new TextBox();
+            lblServerPort = new Label();
+            numServerPort = new NumericUpDown();
+            chkUseSSL = new CheckBox();
+            lblTargetDirectory = new Label();
+            txtTargetDirectory = new TextBox();
+            btnTestServerConnection = new Button();
+            lblServerConnectionStatus = new Label();
+            tabNaming = new TabPage();
+            lblNamingPattern = new Label();
+            txtNamingPattern = new TextBox();
+            lblDateFormat = new Label();
+            txtDateFormat = new TextBox();
+            chkIncludeServerName = new CheckBox();
+            chkIncludeDatabaseName = new CheckBox();
+            btnPreviewFileName = new Button();
+            lblFileNamePreview = new Label();
+            btnSave = new Button();
+            btnValidateAndSave = new Button();
+            btnCancel = new Button();
+            tabControl.SuspendLayout();
+            tabGeneral.SuspendLayout();
+            tabMySQL.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)numMySqlPort).BeginInit();
+            tabServer.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)numServerPort).BeginInit();
+            tabNaming.SuspendLayout();
+            SuspendLayout();
             // 
             // tabControl
             // 
-            this.tabControl.Controls.Add(this.tabGeneral);
-            this.tabControl.Controls.Add(this.tabMySQL);
-            this.tabControl.Controls.Add(this.tabServer);
-            this.tabControl.Controls.Add(this.tabNaming);
-            this.tabControl.Location = new System.Drawing.Point(12, 12);
-            this.tabControl.Name = "tabControl";
-            this.tabControl.SelectedIndex = 0;
-            this.tabControl.Size = new System.Drawing.Size(560, 580);
-            this.tabControl.TabIndex = 0;
-
+            tabControl.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            tabControl.Controls.Add(tabGeneral);
+            tabControl.Controls.Add(tabMySQL);
+            tabControl.Controls.Add(tabServer);
+            tabControl.Controls.Add(tabNaming);
+            tabControl.Location = new Point(19, 19);
+            tabControl.Margin = new Padding(5, 5, 5, 5);
+            tabControl.Name = "tabControl";
+            tabControl.SelectedIndex = 0;
+            tabControl.Size = new Size(880, 928);
+            tabControl.TabIndex = 0;
             // 
             // tabGeneral
             // 
-            this.tabGeneral.Controls.Add(this.lblConfigName);
-            this.tabGeneral.Controls.Add(this.txtConfigName);
-            this.tabGeneral.Controls.Add(this.chkIsActive);
-            this.tabGeneral.Location = new System.Drawing.Point(4, 24);
-            this.tabGeneral.Name = "tabGeneral";
-            this.tabGeneral.Padding = new System.Windows.Forms.Padding(3);
-            this.tabGeneral.Size = new System.Drawing.Size(552, 552);
-            this.tabGeneral.TabIndex = 0;
-            this.tabGeneral.Text = "General";
-            this.tabGeneral.UseVisualStyleBackColor = true;
-
+            tabGeneral.Controls.Add(lblConfigName);
+            tabGeneral.Controls.Add(txtConfigName);
+            tabGeneral.Controls.Add(chkIsActive);
+            tabGeneral.Location = new Point(4, 33);
+            tabGeneral.Margin = new Padding(5, 5, 5, 5);
+            tabGeneral.Name = "tabGeneral";
+            tabGeneral.Padding = new Padding(5, 5, 5, 5);
+            tabGeneral.Size = new Size(872, 891);
+            tabGeneral.TabIndex = 0;
+            tabGeneral.Text = "General";
+            tabGeneral.UseVisualStyleBackColor = true;
             // 
             // lblConfigName
             // 
-            this.lblConfigName.AutoSize = true;
-            this.lblConfigName.Location = new System.Drawing.Point(20, 30);
-            this.lblConfigName.Name = "lblConfigName";
-            this.lblConfigName.Size = new System.Drawing.Size(120, 15);
-            this.lblConfigName.TabIndex = 0;
-            this.lblConfigName.Text = "Configuration Name:";
-
+            lblConfigName.AutoSize = true;
+            lblConfigName.Location = new Point(31, 48);
+            lblConfigName.Margin = new Padding(5, 0, 5, 0);
+            lblConfigName.Name = "lblConfigName";
+            lblConfigName.Size = new Size(190, 24);
+            lblConfigName.TabIndex = 0;
+            lblConfigName.Text = "Configuration Name:";
             // 
             // txtConfigName
             // 
-            this.txtConfigName.Location = new System.Drawing.Point(20, 50);
-            this.txtConfigName.MaxLength = 100;
-            this.txtConfigName.Name = "txtConfigName";
-            this.txtConfigName.Size = new System.Drawing.Size(300, 23);
-            this.txtConfigName.TabIndex = 1;
-
+            txtConfigName.Location = new Point(31, 80);
+            txtConfigName.Margin = new Padding(5, 5, 5, 5);
+            txtConfigName.MaxLength = 100;
+            txtConfigName.Name = "txtConfigName";
+            txtConfigName.Size = new Size(469, 30);
+            txtConfigName.TabIndex = 1;
             // 
             // chkIsActive
             // 
-            this.chkIsActive.AutoSize = true;
-            this.chkIsActive.Checked = true;
-            this.chkIsActive.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.chkIsActive.Location = new System.Drawing.Point(20, 90);
-            this.chkIsActive.Name = "chkIsActive";
-            this.chkIsActive.Size = new System.Drawing.Size(150, 19);
-            this.chkIsActive.TabIndex = 2;
-            this.chkIsActive.Text = "Configuration is active";
-            this.chkIsActive.UseVisualStyleBackColor = true;
-
+            chkIsActive.AutoSize = true;
+            chkIsActive.Checked = true;
+            chkIsActive.CheckState = CheckState.Checked;
+            chkIsActive.Location = new Point(31, 144);
+            chkIsActive.Margin = new Padding(5, 5, 5, 5);
+            chkIsActive.Name = "chkIsActive";
+            chkIsActive.Size = new Size(228, 28);
+            chkIsActive.TabIndex = 2;
+            chkIsActive.Text = "Configuration is active";
+            chkIsActive.UseVisualStyleBackColor = true;
             // 
             // tabMySQL
             // 
-            this.tabMySQL.Controls.Add(this.lblMySqlUsername);
-            this.tabMySQL.Controls.Add(this.txtMySqlUsername);
-            this.tabMySQL.Controls.Add(this.lblMySqlPassword);
-            this.tabMySQL.Controls.Add(this.txtMySqlPassword);
-            this.tabMySQL.Controls.Add(this.lblServiceName);
-            this.tabMySQL.Controls.Add(this.txtServiceName);
-            this.tabMySQL.Controls.Add(this.lblDataDirectory);
-            this.tabMySQL.Controls.Add(this.txtDataDirectory);
-            this.tabMySQL.Controls.Add(this.btnBrowseDataDirectory);
-            this.tabMySQL.Controls.Add(this.lblMySqlHost);
-            this.tabMySQL.Controls.Add(this.txtMySqlHost);
-            this.tabMySQL.Controls.Add(this.lblMySqlPort);
-            this.tabMySQL.Controls.Add(this.numMySqlPort);
-            this.tabMySQL.Controls.Add(this.btnTestMySqlConnection);
-            this.tabMySQL.Controls.Add(this.lblMySqlConnectionStatus);
-            this.tabMySQL.Location = new System.Drawing.Point(4, 24);
-            this.tabMySQL.Name = "tabMySQL";
-            this.tabMySQL.Padding = new System.Windows.Forms.Padding(3);
-            this.tabMySQL.Size = new System.Drawing.Size(552, 552);
-            this.tabMySQL.TabIndex = 1;
-            this.tabMySQL.Text = "MySQL";
-            this.tabMySQL.UseVisualStyleBackColor = true;
-
+            tabMySQL.Controls.Add(lblMySqlUsername);
+            tabMySQL.Controls.Add(txtMySqlUsername);
+            tabMySQL.Controls.Add(lblMySqlPassword);
+            tabMySQL.Controls.Add(txtMySqlPassword);
+            tabMySQL.Controls.Add(lblServiceName);
+            tabMySQL.Controls.Add(txtServiceName);
+            tabMySQL.Controls.Add(lblDataDirectory);
+            tabMySQL.Controls.Add(txtDataDirectory);
+            tabMySQL.Controls.Add(btnBrowseDataDirectory);
+            tabMySQL.Controls.Add(lblMySqlHost);
+            tabMySQL.Controls.Add(txtMySqlHost);
+            tabMySQL.Controls.Add(lblMySqlPort);
+            tabMySQL.Controls.Add(numMySqlPort);
+            tabMySQL.Controls.Add(btnTestMySqlConnection);
+            tabMySQL.Controls.Add(lblMySqlConnectionStatus);
+            tabMySQL.Location = new Point(4, 33);
+            tabMySQL.Margin = new Padding(5, 5, 5, 5);
+            tabMySQL.Name = "tabMySQL";
+            tabMySQL.Padding = new Padding(5, 5, 5, 5);
+            tabMySQL.Size = new Size(872, 891);
+            tabMySQL.TabIndex = 1;
+            tabMySQL.Text = "MySQL";
+            tabMySQL.UseVisualStyleBackColor = true;
             // 
             // lblMySqlUsername
             // 
-            this.lblMySqlUsername.AutoSize = true;
-            this.lblMySqlUsername.Location = new System.Drawing.Point(20, 20);
-            this.lblMySqlUsername.Name = "lblMySqlUsername";
-            this.lblMySqlUsername.Size = new System.Drawing.Size(65, 15);
-            this.lblMySqlUsername.TabIndex = 0;
-            this.lblMySqlUsername.Text = "Username:";
-
+            lblMySqlUsername.AutoSize = true;
+            lblMySqlUsername.Location = new Point(31, 32);
+            lblMySqlUsername.Margin = new Padding(5, 0, 5, 0);
+            lblMySqlUsername.Name = "lblMySqlUsername";
+            lblMySqlUsername.Size = new Size(100, 24);
+            lblMySqlUsername.TabIndex = 0;
+            lblMySqlUsername.Text = "Username:";
             // 
             // txtMySqlUsername
             // 
-            this.txtMySqlUsername.Location = new System.Drawing.Point(20, 40);
-            this.txtMySqlUsername.MaxLength = 100;
-            this.txtMySqlUsername.Name = "txtMySqlUsername";
-            this.txtMySqlUsername.Size = new System.Drawing.Size(200, 23);
-            this.txtMySqlUsername.TabIndex = 1;
-
+            txtMySqlUsername.Location = new Point(31, 64);
+            txtMySqlUsername.Margin = new Padding(5, 5, 5, 5);
+            txtMySqlUsername.MaxLength = 100;
+            txtMySqlUsername.Name = "txtMySqlUsername";
+            txtMySqlUsername.Size = new Size(312, 30);
+            txtMySqlUsername.TabIndex = 1;
             // 
             // lblMySqlPassword
             // 
-            this.lblMySqlPassword.AutoSize = true;
-            this.lblMySqlPassword.Location = new System.Drawing.Point(20, 70);
-            this.lblMySqlPassword.Name = "lblMySqlPassword";
-            this.lblMySqlPassword.Size = new System.Drawing.Size(60, 15);
-            this.lblMySqlPassword.TabIndex = 2;
-            this.lblMySqlPassword.Text = "Password:";
-
+            lblMySqlPassword.AutoSize = true;
+            lblMySqlPassword.Location = new Point(31, 112);
+            lblMySqlPassword.Margin = new Padding(5, 0, 5, 0);
+            lblMySqlPassword.Name = "lblMySqlPassword";
+            lblMySqlPassword.Size = new Size(95, 24);
+            lblMySqlPassword.TabIndex = 2;
+            lblMySqlPassword.Text = "Password:";
             // 
             // txtMySqlPassword
             // 
-            this.txtMySqlPassword.Location = new System.Drawing.Point(20, 90);
-            this.txtMySqlPassword.MaxLength = 100;
-            this.txtMySqlPassword.Name = "txtMySqlPassword";
-            this.txtMySqlPassword.Size = new System.Drawing.Size(200, 23);
-            this.txtMySqlPassword.TabIndex = 3;
-            this.txtMySqlPassword.UseSystemPasswordChar = true;
-
+            txtMySqlPassword.Location = new Point(31, 144);
+            txtMySqlPassword.Margin = new Padding(5, 5, 5, 5);
+            txtMySqlPassword.MaxLength = 100;
+            txtMySqlPassword.Name = "txtMySqlPassword";
+            txtMySqlPassword.Size = new Size(312, 30);
+            txtMySqlPassword.TabIndex = 3;
+            txtMySqlPassword.UseSystemPasswordChar = true;
             // 
             // lblServiceName
             // 
-            this.lblServiceName.AutoSize = true;
-            this.lblServiceName.Location = new System.Drawing.Point(20, 120);
-            this.lblServiceName.Name = "lblServiceName";
-            this.lblServiceName.Size = new System.Drawing.Size(85, 15);
-            this.lblServiceName.TabIndex = 4;
-            this.lblServiceName.Text = "Service Name:";
-
+            lblServiceName.AutoSize = true;
+            lblServiceName.Location = new Point(31, 192);
+            lblServiceName.Margin = new Padding(5, 0, 5, 0);
+            lblServiceName.Name = "lblServiceName";
+            lblServiceName.Size = new Size(131, 24);
+            lblServiceName.TabIndex = 4;
+            lblServiceName.Text = "Service Name:";
             // 
             // txtServiceName
             // 
-            this.txtServiceName.Location = new System.Drawing.Point(20, 140);
-            this.txtServiceName.MaxLength = 100;
-            this.txtServiceName.Name = "txtServiceName";
-            this.txtServiceName.Size = new System.Drawing.Size(200, 23);
-            this.txtServiceName.TabIndex = 5;
-
+            txtServiceName.Location = new Point(31, 224);
+            txtServiceName.Margin = new Padding(5, 5, 5, 5);
+            txtServiceName.MaxLength = 100;
+            txtServiceName.Name = "txtServiceName";
+            txtServiceName.Size = new Size(312, 30);
+            txtServiceName.TabIndex = 5;
             // 
             // lblDataDirectory
             // 
-            this.lblDataDirectory.AutoSize = true;
-            this.lblDataDirectory.Location = new System.Drawing.Point(20, 170);
-            this.lblDataDirectory.Name = "lblDataDirectory";
-            this.lblDataDirectory.Size = new System.Drawing.Size(85, 15);
-            this.lblDataDirectory.TabIndex = 6;
-            this.lblDataDirectory.Text = "Data Directory:";
-
+            lblDataDirectory.AutoSize = true;
+            lblDataDirectory.Location = new Point(31, 272);
+            lblDataDirectory.Margin = new Padding(5, 0, 5, 0);
+            lblDataDirectory.Name = "lblDataDirectory";
+            lblDataDirectory.Size = new Size(140, 24);
+            lblDataDirectory.TabIndex = 6;
+            lblDataDirectory.Text = "Data Directory:";
             // 
             // txtDataDirectory
             // 
-            this.txtDataDirectory.Location = new System.Drawing.Point(20, 190);
-            this.txtDataDirectory.MaxLength = 500;
-            this.txtDataDirectory.Name = "txtDataDirectory";
-            this.txtDataDirectory.Size = new System.Drawing.Size(350, 23);
-            this.txtDataDirectory.TabIndex = 7;
-
+            txtDataDirectory.Location = new Point(31, 304);
+            txtDataDirectory.Margin = new Padding(5, 5, 5, 5);
+            txtDataDirectory.MaxLength = 500;
+            txtDataDirectory.Name = "txtDataDirectory";
+            txtDataDirectory.Size = new Size(548, 30);
+            txtDataDirectory.TabIndex = 7;
             // 
             // btnBrowseDataDirectory
             // 
-            this.btnBrowseDataDirectory.Location = new System.Drawing.Point(380, 190);
-            this.btnBrowseDataDirectory.Name = "btnBrowseDataDirectory";
-            this.btnBrowseDataDirectory.Size = new System.Drawing.Size(75, 23);
-            this.btnBrowseDataDirectory.TabIndex = 8;
-            this.btnBrowseDataDirectory.Text = "Browse...";
-            this.btnBrowseDataDirectory.UseVisualStyleBackColor = true;
-            this.btnBrowseDataDirectory.Click += new System.EventHandler(this.btnBrowseDataDirectory_Click);
-
+            btnBrowseDataDirectory.Location = new Point(597, 304);
+            btnBrowseDataDirectory.Margin = new Padding(5, 5, 5, 5);
+            btnBrowseDataDirectory.Name = "btnBrowseDataDirectory";
+            btnBrowseDataDirectory.Size = new Size(118, 37);
+            btnBrowseDataDirectory.TabIndex = 8;
+            btnBrowseDataDirectory.Text = "Browse...";
+            btnBrowseDataDirectory.UseVisualStyleBackColor = true;
+            btnBrowseDataDirectory.Click += btnBrowseDataDirectory_Click;
             // 
             // lblMySqlHost
             // 
-            this.lblMySqlHost.AutoSize = true;
-            this.lblMySqlHost.Location = new System.Drawing.Point(20, 220);
-            this.lblMySqlHost.Name = "lblMySqlHost";
-            this.lblMySqlHost.Size = new System.Drawing.Size(35, 15);
-            this.lblMySqlHost.TabIndex = 9;
-            this.lblMySqlHost.Text = "Host:";
-
+            lblMySqlHost.AutoSize = true;
+            lblMySqlHost.Location = new Point(31, 352);
+            lblMySqlHost.Margin = new Padding(5, 0, 5, 0);
+            lblMySqlHost.Name = "lblMySqlHost";
+            lblMySqlHost.Size = new Size(54, 24);
+            lblMySqlHost.TabIndex = 9;
+            lblMySqlHost.Text = "Host:";
             // 
             // txtMySqlHost
             // 
-            this.txtMySqlHost.Location = new System.Drawing.Point(20, 240);
-            this.txtMySqlHost.MaxLength = 255;
-            this.txtMySqlHost.Name = "txtMySqlHost";
-            this.txtMySqlHost.Size = new System.Drawing.Size(150, 23);
-            this.txtMySqlHost.TabIndex = 10;
-
+            txtMySqlHost.Location = new Point(31, 384);
+            txtMySqlHost.Margin = new Padding(5, 5, 5, 5);
+            txtMySqlHost.MaxLength = 255;
+            txtMySqlHost.Name = "txtMySqlHost";
+            txtMySqlHost.Size = new Size(233, 30);
+            txtMySqlHost.TabIndex = 10;
             // 
             // lblMySqlPort
             // 
-            this.lblMySqlPort.AutoSize = true;
-            this.lblMySqlPort.Location = new System.Drawing.Point(200, 220);
-            this.lblMySqlPort.Name = "lblMySqlPort";
-            this.lblMySqlPort.Size = new System.Drawing.Size(32, 15);
-            this.lblMySqlPort.TabIndex = 11;
-            this.lblMySqlPort.Text = "Port:";
-
+            lblMySqlPort.AutoSize = true;
+            lblMySqlPort.Location = new Point(314, 352);
+            lblMySqlPort.Margin = new Padding(5, 0, 5, 0);
+            lblMySqlPort.Name = "lblMySqlPort";
+            lblMySqlPort.Size = new Size(50, 24);
+            lblMySqlPort.TabIndex = 11;
+            lblMySqlPort.Text = "Port:";
             // 
             // numMySqlPort
             // 
-            this.numMySqlPort.Location = new System.Drawing.Point(200, 240);
-            this.numMySqlPort.Maximum = new decimal(new int[] { 65535, 0, 0, 0 });
-            this.numMySqlPort.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
-            this.numMySqlPort.Name = "numMySqlPort";
-            this.numMySqlPort.Size = new System.Drawing.Size(80, 23);
-            this.numMySqlPort.TabIndex = 12;
-            this.numMySqlPort.Value = new decimal(new int[] { 3306, 0, 0, 0 });
-
+            numMySqlPort.Location = new Point(314, 384);
+            numMySqlPort.Margin = new Padding(5, 5, 5, 5);
+            numMySqlPort.Maximum = new decimal(new int[] { 65535, 0, 0, 0 });
+            numMySqlPort.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
+            numMySqlPort.Name = "numMySqlPort";
+            numMySqlPort.Size = new Size(126, 30);
+            numMySqlPort.TabIndex = 12;
+            numMySqlPort.Value = new decimal(new int[] { 3306, 0, 0, 0 });
             // 
             // btnTestMySqlConnection
             // 
-            this.btnTestMySqlConnection.Location = new System.Drawing.Point(20, 270);
-            this.btnTestMySqlConnection.Name = "btnTestMySqlConnection";
-            this.btnTestMySqlConnection.Size = new System.Drawing.Size(120, 30);
-            this.btnTestMySqlConnection.TabIndex = 13;
-            this.btnTestMySqlConnection.Text = "Test Connection";
-            this.btnTestMySqlConnection.UseVisualStyleBackColor = true;
-            this.btnTestMySqlConnection.Click += new System.EventHandler(this.btnTestMySqlConnection_Click);
-
+            btnTestMySqlConnection.Location = new Point(31, 432);
+            btnTestMySqlConnection.Margin = new Padding(5, 5, 5, 5);
+            btnTestMySqlConnection.Name = "btnTestMySqlConnection";
+            btnTestMySqlConnection.Size = new Size(189, 48);
+            btnTestMySqlConnection.TabIndex = 13;
+            btnTestMySqlConnection.Text = "Test Connection";
+            btnTestMySqlConnection.UseVisualStyleBackColor = true;
+            btnTestMySqlConnection.Click += btnTestMySqlConnection_Click;
             // 
             // lblMySqlConnectionStatus
             // 
-            this.lblMySqlConnectionStatus.AutoSize = true;
-            this.lblMySqlConnectionStatus.ForeColor = System.Drawing.Color.Blue;
-            this.lblMySqlConnectionStatus.Location = new System.Drawing.Point(160, 278);
-            this.lblMySqlConnectionStatus.Name = "lblMySqlConnectionStatus";
-            this.lblMySqlConnectionStatus.Size = new System.Drawing.Size(0, 15);
-            this.lblMySqlConnectionStatus.TabIndex = 14;
-
+            lblMySqlConnectionStatus.AutoSize = true;
+            lblMySqlConnectionStatus.ForeColor = Color.Blue;
+            lblMySqlConnectionStatus.Location = new Point(251, 445);
+            lblMySqlConnectionStatus.Margin = new Padding(5, 0, 5, 0);
+            lblMySqlConnectionStatus.Name = "lblMySqlConnectionStatus";
+            lblMySqlConnectionStatus.Size = new Size(0, 24);
+            lblMySqlConnectionStatus.TabIndex = 14;
             // 
             // tabServer
             // 
-            this.tabServer.Controls.Add(this.lblServerIP);
-            this.tabServer.Controls.Add(this.txtServerIP);
-            this.tabServer.Controls.Add(this.lblServerPort);
-            this.tabServer.Controls.Add(this.numServerPort);
-            this.tabServer.Controls.Add(this.chkUseSSL);
-            this.tabServer.Controls.Add(this.lblTargetDirectory);
-            this.tabServer.Controls.Add(this.txtTargetDirectory);
-            this.tabServer.Controls.Add(this.btnTestServerConnection);
-            this.tabServer.Controls.Add(this.lblServerConnectionStatus);
-            this.tabServer.Location = new System.Drawing.Point(4, 24);
-            this.tabServer.Name = "tabServer";
-            this.tabServer.Padding = new System.Windows.Forms.Padding(3);
-            this.tabServer.Size = new System.Drawing.Size(552, 552);
-            this.tabServer.TabIndex = 2;
-            this.tabServer.Text = "Target Server";
-            this.tabServer.UseVisualStyleBackColor = true;
-
+            tabServer.Controls.Add(lblServerIP);
+            tabServer.Controls.Add(txtServerIP);
+            tabServer.Controls.Add(lblServerPort);
+            tabServer.Controls.Add(numServerPort);
+            tabServer.Controls.Add(chkUseSSL);
+            tabServer.Controls.Add(lblTargetDirectory);
+            tabServer.Controls.Add(txtTargetDirectory);
+            tabServer.Controls.Add(btnTestServerConnection);
+            tabServer.Controls.Add(lblServerConnectionStatus);
+            tabServer.Location = new Point(4, 33);
+            tabServer.Margin = new Padding(5, 5, 5, 5);
+            tabServer.Name = "tabServer";
+            tabServer.Padding = new Padding(5, 5, 5, 5);
+            tabServer.Size = new Size(872, 891);
+            tabServer.TabIndex = 2;
+            tabServer.Text = "Target Server";
+            tabServer.UseVisualStyleBackColor = true;
             // 
             // lblServerIP
             // 
-            this.lblServerIP.AutoSize = true;
-            this.lblServerIP.Location = new System.Drawing.Point(20, 20);
-            this.lblServerIP.Name = "lblServerIP";
-            this.lblServerIP.Size = new System.Drawing.Size(70, 15);
-            this.lblServerIP.TabIndex = 0;
-            this.lblServerIP.Text = "IP Address:";
-
+            lblServerIP.AutoSize = true;
+            lblServerIP.Location = new Point(31, 32);
+            lblServerIP.Margin = new Padding(5, 0, 5, 0);
+            lblServerIP.Name = "lblServerIP";
+            lblServerIP.Size = new Size(105, 24);
+            lblServerIP.TabIndex = 0;
+            lblServerIP.Text = "IP Address:";
             // 
             // txtServerIP
             // 
-            this.txtServerIP.Location = new System.Drawing.Point(20, 40);
-            this.txtServerIP.MaxLength = 45;
-            this.txtServerIP.Name = "txtServerIP";
-            this.txtServerIP.Size = new System.Drawing.Size(150, 23);
-            this.txtServerIP.TabIndex = 1;
-
+            txtServerIP.Location = new Point(31, 64);
+            txtServerIP.Margin = new Padding(5, 5, 5, 5);
+            txtServerIP.MaxLength = 45;
+            txtServerIP.Name = "txtServerIP";
+            txtServerIP.Size = new Size(233, 30);
+            txtServerIP.TabIndex = 1;
             // 
             // lblServerPort
             // 
-            this.lblServerPort.AutoSize = true;
-            this.lblServerPort.Location = new System.Drawing.Point(200, 20);
-            this.lblServerPort.Name = "lblServerPort";
-            this.lblServerPort.Size = new System.Drawing.Size(32, 15);
-            this.lblServerPort.TabIndex = 2;
-            this.lblServerPort.Text = "Port:";
-
+            lblServerPort.AutoSize = true;
+            lblServerPort.Location = new Point(314, 32);
+            lblServerPort.Margin = new Padding(5, 0, 5, 0);
+            lblServerPort.Name = "lblServerPort";
+            lblServerPort.Size = new Size(50, 24);
+            lblServerPort.TabIndex = 2;
+            lblServerPort.Text = "Port:";
             // 
             // numServerPort
             // 
-            this.numServerPort.Location = new System.Drawing.Point(200, 40);
-            this.numServerPort.Maximum = new decimal(new int[] { 65535, 0, 0, 0 });
-            this.numServerPort.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
-            this.numServerPort.Name = "numServerPort";
-            this.numServerPort.Size = new System.Drawing.Size(80, 23);
-            this.numServerPort.TabIndex = 3;
-            this.numServerPort.Value = new decimal(new int[] { 8080, 0, 0, 0 });
-
+            numServerPort.Location = new Point(314, 64);
+            numServerPort.Margin = new Padding(5, 5, 5, 5);
+            numServerPort.Maximum = new decimal(new int[] { 65535, 0, 0, 0 });
+            numServerPort.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
+            numServerPort.Name = "numServerPort";
+            numServerPort.Size = new Size(126, 30);
+            numServerPort.TabIndex = 3;
+            numServerPort.Value = new decimal(new int[] { 8080, 0, 0, 0 });
             // 
             // chkUseSSL
             // 
-            this.chkUseSSL.AutoSize = true;
-            this.chkUseSSL.Checked = true;
-            this.chkUseSSL.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.chkUseSSL.Location = new System.Drawing.Point(20, 70);
-            this.chkUseSSL.Name = "chkUseSSL";
-            this.chkUseSSL.Size = new System.Drawing.Size(70, 19);
-            this.chkUseSSL.TabIndex = 4;
-            this.chkUseSSL.Text = "Use SSL";
-            this.chkUseSSL.UseVisualStyleBackColor = true;
-
+            chkUseSSL.AutoSize = true;
+            chkUseSSL.Checked = true;
+            chkUseSSL.CheckState = CheckState.Checked;
+            chkUseSSL.Location = new Point(31, 112);
+            chkUseSSL.Margin = new Padding(5, 5, 5, 5);
+            chkUseSSL.Name = "chkUseSSL";
+            chkUseSSL.Size = new Size(101, 28);
+            chkUseSSL.TabIndex = 4;
+            chkUseSSL.Text = "Use SSL";
+            chkUseSSL.UseVisualStyleBackColor = true;
             // 
             // lblTargetDirectory
             // 
-            this.lblTargetDirectory.AutoSize = true;
-            this.lblTargetDirectory.Location = new System.Drawing.Point(20, 120);
-            this.lblTargetDirectory.Name = "lblTargetDirectory";
-            this.lblTargetDirectory.Size = new System.Drawing.Size(95, 15);
-            this.lblTargetDirectory.TabIndex = 5;
-            this.lblTargetDirectory.Text = "Target Directory:";
-
+            lblTargetDirectory.AutoSize = true;
+            lblTargetDirectory.Location = new Point(31, 192);
+            lblTargetDirectory.Margin = new Padding(5, 0, 5, 0);
+            lblTargetDirectory.Name = "lblTargetDirectory";
+            lblTargetDirectory.Size = new Size(155, 24);
+            lblTargetDirectory.TabIndex = 5;
+            lblTargetDirectory.Text = "Target Directory:";
             // 
             // txtTargetDirectory
             // 
-            this.txtTargetDirectory.Location = new System.Drawing.Point(20, 140);
-            this.txtTargetDirectory.MaxLength = 500;
-            this.txtTargetDirectory.Name = "txtTargetDirectory";
-            this.txtTargetDirectory.Size = new System.Drawing.Size(400, 23);
-            this.txtTargetDirectory.TabIndex = 6;
-
+            txtTargetDirectory.Location = new Point(31, 224);
+            txtTargetDirectory.Margin = new Padding(5, 5, 5, 5);
+            txtTargetDirectory.MaxLength = 500;
+            txtTargetDirectory.Name = "txtTargetDirectory";
+            txtTargetDirectory.Size = new Size(626, 30);
+            txtTargetDirectory.TabIndex = 6;
             // 
             // btnTestServerConnection
             // 
-            this.btnTestServerConnection.Location = new System.Drawing.Point(20, 170);
-            this.btnTestServerConnection.Name = "btnTestServerConnection";
-            this.btnTestServerConnection.Size = new System.Drawing.Size(120, 30);
-            this.btnTestServerConnection.TabIndex = 7;
-            this.btnTestServerConnection.Text = "Test Connection";
-            this.btnTestServerConnection.UseVisualStyleBackColor = true;
-            this.btnTestServerConnection.Click += new System.EventHandler(this.btnTestServerConnection_Click);
-
+            btnTestServerConnection.Location = new Point(31, 272);
+            btnTestServerConnection.Margin = new Padding(5, 5, 5, 5);
+            btnTestServerConnection.Name = "btnTestServerConnection";
+            btnTestServerConnection.Size = new Size(189, 48);
+            btnTestServerConnection.TabIndex = 7;
+            btnTestServerConnection.Text = "Test Connection";
+            btnTestServerConnection.UseVisualStyleBackColor = true;
+            btnTestServerConnection.Click += btnTestServerConnection_Click;
             // 
             // lblServerConnectionStatus
             // 
-            this.lblServerConnectionStatus.AutoSize = true;
-            this.lblServerConnectionStatus.ForeColor = System.Drawing.Color.Blue;
-            this.lblServerConnectionStatus.Location = new System.Drawing.Point(160, 178);
-            this.lblServerConnectionStatus.Name = "lblServerConnectionStatus";
-            this.lblServerConnectionStatus.Size = new System.Drawing.Size(0, 15);
-            this.lblServerConnectionStatus.TabIndex = 8;
-
+            lblServerConnectionStatus.AutoSize = true;
+            lblServerConnectionStatus.ForeColor = Color.Blue;
+            lblServerConnectionStatus.Location = new Point(251, 285);
+            lblServerConnectionStatus.Margin = new Padding(5, 0, 5, 0);
+            lblServerConnectionStatus.Name = "lblServerConnectionStatus";
+            lblServerConnectionStatus.Size = new Size(0, 24);
+            lblServerConnectionStatus.TabIndex = 8;
             // 
             // tabNaming
             // 
-            this.tabNaming.Controls.Add(this.lblNamingPattern);
-            this.tabNaming.Controls.Add(this.txtNamingPattern);
-            this.tabNaming.Controls.Add(this.lblDateFormat);
-            this.tabNaming.Controls.Add(this.txtDateFormat);
-            this.tabNaming.Controls.Add(this.chkIncludeServerName);
-            this.tabNaming.Controls.Add(this.chkIncludeDatabaseName);
-            this.tabNaming.Controls.Add(this.btnPreviewFileName);
-            this.tabNaming.Controls.Add(this.lblFileNamePreview);
-            this.tabNaming.Location = new System.Drawing.Point(4, 24);
-            this.tabNaming.Name = "tabNaming";
-            this.tabNaming.Padding = new System.Windows.Forms.Padding(3);
-            this.tabNaming.Size = new System.Drawing.Size(552, 552);
-            this.tabNaming.TabIndex = 3;
-            this.tabNaming.Text = "File Naming";
-            this.tabNaming.UseVisualStyleBackColor = true;
-
+            tabNaming.Controls.Add(lblNamingPattern);
+            tabNaming.Controls.Add(txtNamingPattern);
+            tabNaming.Controls.Add(lblDateFormat);
+            tabNaming.Controls.Add(txtDateFormat);
+            tabNaming.Controls.Add(chkIncludeServerName);
+            tabNaming.Controls.Add(chkIncludeDatabaseName);
+            tabNaming.Controls.Add(btnPreviewFileName);
+            tabNaming.Controls.Add(lblFileNamePreview);
+            tabNaming.Location = new Point(4, 33);
+            tabNaming.Margin = new Padding(5, 5, 5, 5);
+            tabNaming.Name = "tabNaming";
+            tabNaming.Padding = new Padding(5, 5, 5, 5);
+            tabNaming.Size = new Size(872, 891);
+            tabNaming.TabIndex = 3;
+            tabNaming.Text = "File Naming";
+            tabNaming.UseVisualStyleBackColor = true;
             // 
             // lblNamingPattern
             // 
-            this.lblNamingPattern.AutoSize = true;
-            this.lblNamingPattern.Location = new System.Drawing.Point(20, 20);
-            this.lblNamingPattern.Name = "lblNamingPattern";
-            this.lblNamingPattern.Size = new System.Drawing.Size(95, 15);
-            this.lblNamingPattern.TabIndex = 0;
-            this.lblNamingPattern.Text = "Naming Pattern:";
-
+            lblNamingPattern.AutoSize = true;
+            lblNamingPattern.Location = new Point(31, 32);
+            lblNamingPattern.Margin = new Padding(5, 0, 5, 0);
+            lblNamingPattern.Name = "lblNamingPattern";
+            lblNamingPattern.Size = new Size(152, 24);
+            lblNamingPattern.TabIndex = 0;
+            lblNamingPattern.Text = "Naming Pattern:";
             // 
             // txtNamingPattern
             // 
-            this.txtNamingPattern.Location = new System.Drawing.Point(20, 40);
-            this.txtNamingPattern.MaxLength = 200;
-            this.txtNamingPattern.Name = "txtNamingPattern";
-            this.txtNamingPattern.Size = new System.Drawing.Size(400, 23);
-            this.txtNamingPattern.TabIndex = 1;
-
+            txtNamingPattern.Location = new Point(31, 64);
+            txtNamingPattern.Margin = new Padding(5, 5, 5, 5);
+            txtNamingPattern.MaxLength = 200;
+            txtNamingPattern.Name = "txtNamingPattern";
+            txtNamingPattern.Size = new Size(626, 30);
+            txtNamingPattern.TabIndex = 1;
             // 
             // lblDateFormat
             // 
-            this.lblDateFormat.AutoSize = true;
-            this.lblDateFormat.Location = new System.Drawing.Point(20, 70);
-            this.lblDateFormat.Name = "lblDateFormat";
-            this.lblDateFormat.Size = new System.Drawing.Size(75, 15);
-            this.lblDateFormat.TabIndex = 2;
-            this.lblDateFormat.Text = "Date Format:";
-
+            lblDateFormat.AutoSize = true;
+            lblDateFormat.Location = new Point(31, 112);
+            lblDateFormat.Margin = new Padding(5, 0, 5, 0);
+            lblDateFormat.Name = "lblDateFormat";
+            lblDateFormat.Size = new Size(122, 24);
+            lblDateFormat.TabIndex = 2;
+            lblDateFormat.Text = "Date Format:";
             // 
             // txtDateFormat
             // 
-            this.txtDateFormat.Location = new System.Drawing.Point(20, 90);
-            this.txtDateFormat.MaxLength = 50;
-            this.txtDateFormat.Name = "txtDateFormat";
-            this.txtDateFormat.Size = new System.Drawing.Size(200, 23);
-            this.txtDateFormat.TabIndex = 3;
-
+            txtDateFormat.Location = new Point(31, 144);
+            txtDateFormat.Margin = new Padding(5, 5, 5, 5);
+            txtDateFormat.MaxLength = 50;
+            txtDateFormat.Name = "txtDateFormat";
+            txtDateFormat.Size = new Size(312, 30);
+            txtDateFormat.TabIndex = 3;
             // 
             // chkIncludeServerName
             // 
-            this.chkIncludeServerName.AutoSize = true;
-            this.chkIncludeServerName.Checked = true;
-            this.chkIncludeServerName.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.chkIncludeServerName.Location = new System.Drawing.Point(20, 120);
-            this.chkIncludeServerName.Name = "chkIncludeServerName";
-            this.chkIncludeServerName.Size = new System.Drawing.Size(130, 19);
-            this.chkIncludeServerName.TabIndex = 4;
-            this.chkIncludeServerName.Text = "Include Server Name";
-            this.chkIncludeServerName.UseVisualStyleBackColor = true;
-
+            chkIncludeServerName.AutoSize = true;
+            chkIncludeServerName.Checked = true;
+            chkIncludeServerName.CheckState = CheckState.Checked;
+            chkIncludeServerName.Location = new Point(31, 192);
+            chkIncludeServerName.Margin = new Padding(5, 5, 5, 5);
+            chkIncludeServerName.Name = "chkIncludeServerName";
+            chkIncludeServerName.Size = new Size(214, 28);
+            chkIncludeServerName.TabIndex = 4;
+            chkIncludeServerName.Text = "Include Server Name";
+            chkIncludeServerName.UseVisualStyleBackColor = true;
             // 
             // chkIncludeDatabaseName
             // 
-            this.chkIncludeDatabaseName.AutoSize = true;
-            this.chkIncludeDatabaseName.Checked = true;
-            this.chkIncludeDatabaseName.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.chkIncludeDatabaseName.Location = new System.Drawing.Point(20, 150);
-            this.chkIncludeDatabaseName.Name = "chkIncludeDatabaseName";
-            this.chkIncludeDatabaseName.Size = new System.Drawing.Size(145, 19);
-            this.chkIncludeDatabaseName.TabIndex = 5;
-            this.chkIncludeDatabaseName.Text = "Include Database Name";
-            this.chkIncludeDatabaseName.UseVisualStyleBackColor = true;
-
+            chkIncludeDatabaseName.AutoSize = true;
+            chkIncludeDatabaseName.Checked = true;
+            chkIncludeDatabaseName.CheckState = CheckState.Checked;
+            chkIncludeDatabaseName.Location = new Point(31, 240);
+            chkIncludeDatabaseName.Margin = new Padding(5, 5, 5, 5);
+            chkIncludeDatabaseName.Name = "chkIncludeDatabaseName";
+            chkIncludeDatabaseName.Size = new Size(242, 28);
+            chkIncludeDatabaseName.TabIndex = 5;
+            chkIncludeDatabaseName.Text = "Include Database Name";
+            chkIncludeDatabaseName.UseVisualStyleBackColor = true;
             // 
             // btnPreviewFileName
             // 
-            this.btnPreviewFileName.Location = new System.Drawing.Point(20, 200);
-            this.btnPreviewFileName.Name = "btnPreviewFileName";
-            this.btnPreviewFileName.Size = new System.Drawing.Size(120, 30);
-            this.btnPreviewFileName.TabIndex = 6;
-            this.btnPreviewFileName.Text = "Preview Filename";
-            this.btnPreviewFileName.UseVisualStyleBackColor = true;
-            this.btnPreviewFileName.Click += new System.EventHandler(this.btnPreviewFileName_Click);
-
+            btnPreviewFileName.Location = new Point(31, 320);
+            btnPreviewFileName.Margin = new Padding(5, 5, 5, 5);
+            btnPreviewFileName.Name = "btnPreviewFileName";
+            btnPreviewFileName.Size = new Size(189, 48);
+            btnPreviewFileName.TabIndex = 6;
+            btnPreviewFileName.Text = "Preview Filename";
+            btnPreviewFileName.UseVisualStyleBackColor = true;
+            btnPreviewFileName.Click += btnPreviewFileName_Click;
             // 
             // lblFileNamePreview
             // 
-            this.lblFileNamePreview.AutoSize = true;
-            this.lblFileNamePreview.ForeColor = System.Drawing.Color.Blue;
-            this.lblFileNamePreview.Location = new System.Drawing.Point(20, 240);
-            this.lblFileNamePreview.Name = "lblFileNamePreview";
-            this.lblFileNamePreview.Size = new System.Drawing.Size(0, 15);
-            this.lblFileNamePreview.TabIndex = 7;
-
+            lblFileNamePreview.AutoSize = true;
+            lblFileNamePreview.ForeColor = Color.Blue;
+            lblFileNamePreview.Location = new Point(31, 384);
+            lblFileNamePreview.Margin = new Padding(5, 0, 5, 0);
+            lblFileNamePreview.Name = "lblFileNamePreview";
+            lblFileNamePreview.Size = new Size(0, 24);
+            lblFileNamePreview.TabIndex = 7;
             // 
             // btnSave
             // 
-            this.btnSave.Location = new System.Drawing.Point(297, 610);
-            this.btnSave.Name = "btnSave";
-            this.btnSave.Size = new System.Drawing.Size(90, 30);
-            this.btnSave.TabIndex = 1;
-            this.btnSave.Text = "Save";
-            this.btnSave.UseVisualStyleBackColor = true;
-            this.btnSave.Click += new System.EventHandler(this.btnSave_Click);
-
+            btnSave.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            btnSave.Location = new Point(467, 976);
+            btnSave.Margin = new Padding(5, 5, 5, 5);
+            btnSave.Name = "btnSave";
+            btnSave.Size = new Size(141, 48);
+            btnSave.TabIndex = 1;
+            btnSave.Text = "Save";
+            btnSave.UseVisualStyleBackColor = true;
+            btnSave.Click += btnSave_Click;
             // 
             // btnValidateAndSave
             // 
-            this.btnValidateAndSave.Location = new System.Drawing.Point(397, 610);
-            this.btnValidateAndSave.Name = "btnValidateAndSave";
-            this.btnValidateAndSave.Size = new System.Drawing.Size(90, 30);
-            this.btnValidateAndSave.TabIndex = 2;
-            this.btnValidateAndSave.Text = "Validate && Save";
-            this.btnValidateAndSave.UseVisualStyleBackColor = true;
-            this.btnValidateAndSave.Click += new System.EventHandler(this.btnValidateAndSave_Click);
-
+            btnValidateAndSave.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            btnValidateAndSave.Location = new Point(624, 976);
+            btnValidateAndSave.Margin = new Padding(5, 5, 5, 5);
+            btnValidateAndSave.Name = "btnValidateAndSave";
+            btnValidateAndSave.Size = new Size(141, 48);
+            btnValidateAndSave.TabIndex = 2;
+            btnValidateAndSave.Text = "Validate && Save";
+            btnValidateAndSave.UseVisualStyleBackColor = true;
+            btnValidateAndSave.Click += btnValidateAndSave_Click;
             // 
             // btnCancel
             // 
-            this.btnCancel.Location = new System.Drawing.Point(497, 610);
-            this.btnCancel.Name = "btnCancel";
-            this.btnCancel.Size = new System.Drawing.Size(75, 30);
-            this.btnCancel.TabIndex = 3;
-            this.btnCancel.Text = "Cancel";
-            this.btnCancel.UseVisualStyleBackColor = true;
-            this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
-
+            btnCancel.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            btnCancel.Location = new Point(781, 976);
+            btnCancel.Margin = new Padding(5, 5, 5, 5);
+            btnCancel.Name = "btnCancel";
+            btnCancel.Size = new Size(118, 48);
+            btnCancel.TabIndex = 3;
+            btnCancel.Text = "Cancel";
+            btnCancel.UseVisualStyleBackColor = true;
+            btnCancel.Click += btnCancel_Click;
             // 
             // ConfigurationForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(584, 661);
-            this.Controls.Add(this.tabControl);
-            this.Controls.Add(this.btnSave);
-            this.Controls.Add(this.btnValidateAndSave);
-            this.Controls.Add(this.btnCancel);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.MinimizeBox = false;
-            this.Name = "ConfigurationForm";
-            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "Backup Configuration";
-            ((System.ComponentModel.ISupportInitialize)(this.numMySqlPort)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numServerPort)).EndInit();
-            this.tabControl.ResumeLayout(false);
-            this.tabGeneral.ResumeLayout(false);
-            this.tabGeneral.PerformLayout();
-            this.tabMySQL.ResumeLayout(false);
-            this.tabMySQL.PerformLayout();
-            this.tabServer.ResumeLayout(false);
-            this.tabServer.PerformLayout();
-            this.tabNaming.ResumeLayout(false);
-            this.tabNaming.PerformLayout();
-            this.ResumeLayout(false);
+            AutoScaleDimensions = new SizeF(11F, 24F);
+            AutoScaleMode = AutoScaleMode.Font;
+            ClientSize = new Size(995, 1073);
+            Controls.Add(tabControl);
+            Controls.Add(btnSave);
+            Controls.Add(btnValidateAndSave);
+            Controls.Add(btnCancel);
+            FormBorderStyle = FormBorderStyle.Sizable;
+            Margin = new Padding(5, 5, 5, 5);
+            MaximizeBox = true;
+            MinimizeBox = true;
+            MinimumSize = new Size(800, 600);
+            Name = "ConfigurationForm";
+            StartPosition = FormStartPosition.CenterParent;
+            Text = "Backup Configuration";
+            tabControl.ResumeLayout(false);
+            tabGeneral.ResumeLayout(false);
+            tabGeneral.PerformLayout();
+            tabMySQL.ResumeLayout(false);
+            tabMySQL.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)numMySqlPort).EndInit();
+            tabServer.ResumeLayout(false);
+            tabServer.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)numServerPort).EndInit();
+            tabNaming.ResumeLayout(false);
+            tabNaming.PerformLayout();
+            ResumeLayout(false);
         }
 
         #endregion
