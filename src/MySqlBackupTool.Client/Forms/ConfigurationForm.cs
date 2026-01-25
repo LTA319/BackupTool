@@ -4,6 +4,8 @@ using MySqlBackupTool.Shared.Interfaces;
 using MySqlBackupTool.Shared.Models;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Threading;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 
 namespace MySqlBackupTool.Client.Forms;
 
@@ -69,8 +71,9 @@ public partial class ConfigurationForm : Form
     /// 构造函数执行以下操作：
     /// 1. 初始化依赖注入的服务
     /// 2. 设置当前配置对象和编辑模式
-    /// 3. 初始化窗体组件
-    /// 4. 加载配置数据到界面控件
+    /// 3. 确保STA线程状态（用于COM组件）
+    /// 4. 初始化窗体组件
+    /// 5. 加载配置数据到界面控件
     /// </remarks>
     public ConfigurationForm(IServiceProvider serviceProvider, BackupConfiguration? configuration = null)
     {
@@ -79,6 +82,26 @@ public partial class ConfigurationForm : Form
         _configRepository = serviceProvider.GetRequiredService<IBackupConfigurationRepository>();
         _currentConfiguration = configuration ?? new BackupConfiguration();
         _isEditing = configuration != null;
+
+        // 检查当前线程的STA状态（用于COM组件），但不尝试更改
+        try
+        {
+            var apartmentState = Thread.CurrentThread.GetApartmentState();
+            if (apartmentState != ApartmentState.STA)
+            {
+                _logger.LogWarning("Thread is in {ApartmentState} mode, not STA. File dialogs may have compatibility issues.", apartmentState);
+                // 不尝试更改线程状态，因为这在运行时通常会失败
+                // 文件对话框仍然可能工作，如果不工作会自动回退到备选方案
+            }
+            else
+            {
+                _logger.LogInformation("Thread is in STA mode, file dialogs should work properly.");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not check thread apartment state");
+        }
 
         InitializeComponent();
         InitializeForm();
@@ -474,16 +497,108 @@ public partial class ConfigurationForm : Form
     /// <param name="initialPath">初始路径，可选</param>
     /// <returns>用户选择的文件夹路径，如果取消则返回null</returns>
     /// <remarks>
-    /// 该方法实现了三层备选方案：
-    /// 1. 方法1：使用现代的SaveFileDialog方式（推荐）
-    /// 2. 方法2：使用传统的FolderBrowserDialog（备选）
-    /// 3. 方法3：手动输入对话框（最后备选）
+    /// 该方法实现了多层备选方案：
+    /// 1. 优先使用Designer中配置的openFileDialogDataDirectory
+    /// 2. 使用Windows Vista+的现代文件夹选择对话框
+    /// 3. 使用现代的SaveFileDialog方式（备选）
+    /// 4. 使用传统的FolderBrowserDialog（备选）
+    /// 5. 手动输入对话框（最后备选）
     /// 
     /// 这种设计是为了解决某些系统环境下文件夹对话框可能卡死的问题
+    /// 同时处理STA线程状态问题，确保COM组件正常工作
     /// </remarks>
     private string? ShowFolderDialogSafe(string description, string? initialPath = null)
     {
-        #region 方法1：使用SaveFileDialog方式
+        // 确保在UI线程上执行
+        if (this.InvokeRequired)
+        {
+            return (string?)this.Invoke(new Func<string, string?, string?>((desc, path) => 
+                ShowFolderDialogSafe(desc, path)), description, initialPath);
+        }
+
+        // 检查当前线程的单元状态，但不尝试更改
+        var apartmentState = Thread.CurrentThread.GetApartmentState();
+        if (apartmentState != ApartmentState.STA)
+        {
+            _logger.LogWarning("Current thread is in {ApartmentState} mode, not STA. File dialogs may have issues.", apartmentState);
+            // 不尝试更改线程状态，因为这在运行时通常会失败
+            // 直接尝试使用对话框，如果失败会自动回退到备选方案
+        }
+
+        #region 方法1：使用Designer中的openFileDialogDataDirectory
+
+        // 优先使用您在Designer中添加的openFileDialogDataDirectory
+        try
+        {
+            // 如果当前线程不是STA，尝试在STA线程中运行对话框
+            if (Thread.CurrentThread.GetApartmentState() != ApartmentState.STA)
+            {
+                _logger.LogInformation("Running openFileDialogDataDirectory in STA thread");
+                return RunDialogInSTAThread(() => ShowOpenFileDialog(description, initialPath));
+            }
+            else
+            {
+                return ShowOpenFileDialog(description, initialPath);
+            }
+        }
+        catch (System.Threading.ThreadStateException ex)
+        {
+            _logger.LogError(ex, "STA thread state exception in openFileDialogDataDirectory, trying alternative methods");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "openFileDialogDataDirectory failed, trying FolderBrowserDialog");
+        }
+
+        #endregion
+
+        #region 方法2：使用Windows Vista+现代文件夹对话框
+
+        // 尝试使用Windows Vista及以上版本的现代文件夹选择对话框
+        try
+        {
+            using var folderDialog = new FolderBrowserDialog();
+            folderDialog.Description = description;
+            folderDialog.UseDescriptionForTitle = true;
+            folderDialog.ShowNewFolderButton = true;
+            
+            // 设置初始路径
+            if (!string.IsNullOrEmpty(initialPath) && Directory.Exists(initialPath))
+            {
+                folderDialog.SelectedPath = initialPath;
+            }
+            else
+            {
+                // 设置为常见的MySQL数据目录
+                var commonPath = GetCommonMySqlDataPath();
+                if (!string.IsNullOrEmpty(commonPath))
+                {
+                    folderDialog.SelectedPath = commonPath;
+                }
+            }
+
+            // 使用Application.OpenForms[0]作为父窗体，避免this引起的问题
+            var parentForm = Application.OpenForms.Count > 0 ? Application.OpenForms[0] : null;
+            var result = parentForm != null ? folderDialog.ShowDialog(parentForm) : folderDialog.ShowDialog();
+            
+            if (result == DialogResult.OK && !string.IsNullOrEmpty(folderDialog.SelectedPath))
+            {
+                _logger.LogInformation("Folder selected via modern FolderBrowserDialog: {Path}", folderDialog.SelectedPath);
+                return folderDialog.SelectedPath;
+            }
+        }
+        catch (System.Threading.ThreadStateException ex)
+        {
+            _logger.LogError(ex, "STA thread state exception in modern FolderBrowserDialog, trying alternative methods");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Modern FolderBrowserDialog failed, trying SaveFileDialog");
+        }
+
+        #endregion
+
+        #region 方法3：使用SaveFileDialog方式
 
         // 尝试使用现代的SaveFileDialog方式
         // 这种方法在大多数系统上更稳定，不容易卡死
@@ -501,31 +616,7 @@ public partial class ConfigurationForm : Form
             dialog.AddExtension = false;
             
             // 设置初始目录
-            if (!string.IsNullOrEmpty(initialPath) && Directory.Exists(initialPath))
-            {
-                dialog.InitialDirectory = initialPath;
-            }
-            else
-            {
-                // 尝试常见的MySQL数据目录位置
-                var commonPaths = new[]
-                {
-                    @"C:\ProgramData\MySQL\MySQL Server 8.0\Data",
-                    @"C:\ProgramData\MySQL\MySQL Server 5.7\Data",
-                    @"C:\Program Files\MySQL\MySQL Server 8.0\data",
-                    @"C:\mysql\data",
-                    Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
-                };
-                
-                foreach (var path in commonPaths)
-                {
-                    if (Directory.Exists(path))
-                    {
-                        dialog.InitialDirectory = path;
-                        break;
-                    }
-                }
-            }
+            SetInitialDirectory(dialog, initialPath);
 
             var result = dialog.ShowDialog(this);
             if (result == DialogResult.OK)
@@ -535,22 +626,24 @@ public partial class ConfigurationForm : Form
                 return selectedDir;
             }
         }
+        catch (System.Threading.ThreadStateException ex)
+        {
+            _logger.LogError(ex, "STA thread state exception in SaveFileDialog, trying alternative methods");
+        }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "SaveFileDialog method failed, trying FolderBrowserDialog");
+            _logger.LogWarning(ex, "SaveFileDialog method failed, trying traditional FolderBrowserDialog");
         }
 
         #endregion
 
-        #region 方法2：使用FolderBrowserDialog
+        #region 方法4：使用传统FolderBrowserDialog
 
-        // 尝试传统的FolderBrowserDialog
-        // 如果SaveFileDialog失败，则使用这个备选方案
+        // 尝试传统的FolderBrowserDialog（作为最后的对话框尝试）
         try
         {
             using var folderDialog = new FolderBrowserDialog();
             folderDialog.Description = description;
-            folderDialog.UseDescriptionForTitle = true;
             folderDialog.ShowNewFolderButton = true;
             
             if (!string.IsNullOrEmpty(initialPath) && Directory.Exists(initialPath))
@@ -558,59 +651,179 @@ public partial class ConfigurationForm : Form
                 folderDialog.SelectedPath = initialPath;
             }
 
-            var result = folderDialog.ShowDialog(this);
+            var result = folderDialog.ShowDialog();
             if (result == DialogResult.OK)
             {
-                _logger.LogInformation("Folder selected via FolderBrowserDialog: {Path}", folderDialog.SelectedPath);
+                _logger.LogInformation("Folder selected via traditional FolderBrowserDialog: {Path}", folderDialog.SelectedPath);
                 return folderDialog.SelectedPath;
             }
         }
+        catch (System.Threading.ThreadStateException ex)
+        {
+            _logger.LogError(ex, "STA thread state exception in traditional FolderBrowserDialog, falling back to manual input");
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "FolderBrowserDialog also failed");
+            _logger.LogError(ex, "Traditional FolderBrowserDialog also failed");
         }
 
         #endregion
 
-        #region 方法3：手动输入对话框
+        #region 方法5：手动输入对话框
 
         // 如果所有对话框都失败，提供手动输入选项
+        return ShowManualInputDialog(description, initialPath);
+
+        #endregion
+    }
+
+    /// <summary>
+    /// 获取常见的MySQL数据目录路径
+    /// </summary>
+    /// <returns>存在的MySQL数据目录路径，如果都不存在则返回null</returns>
+    private string? GetCommonMySqlDataPath()
+    {
+        var commonPaths = new[]
+        {
+            @"C:\ProgramData\MySQL\MySQL Server 8.0\Data",
+            @"C:\ProgramData\MySQL\MySQL Server 5.7\Data",
+            @"C:\Program Files\MySQL\MySQL Server 8.0\data",
+            @"C:\Program Files\MySQL\MySQL Server 5.7\data",
+            @"C:\mysql\data",
+            @"C:\xampp\mysql\data",
+            @"C:\wamp64\bin\mysql\mysql8.0.31\data",
+            @"C:\wamp\bin\mysql\mysql5.7.36\data"
+        };
+        
+        foreach (var path in commonPaths)
+        {
+            if (Directory.Exists(path))
+            {
+                return path;
+            }
+        }
+        
+        return null;
+    }
+
+    /// <summary>
+    /// 设置对话框的初始目录
+    /// </summary>
+    /// <param name="dialog">文件对话框实例</param>
+    /// <param name="initialPath">初始路径</param>
+    private void SetInitialDirectory(FileDialog dialog, string? initialPath)
+    {
+        if (!string.IsNullOrEmpty(initialPath) && Directory.Exists(initialPath))
+        {
+            dialog.InitialDirectory = initialPath;
+        }
+        else
+        {
+            // 尝试常见的MySQL数据目录位置
+            var commonPaths = new[]
+            {
+                @"C:\ProgramData\MySQL\MySQL Server 8.0\Data",
+                @"C:\ProgramData\MySQL\MySQL Server 5.7\Data",
+                @"C:\Program Files\MySQL\MySQL Server 8.0\data",
+                @"C:\mysql\data",
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+            };
+            
+            foreach (var path in commonPaths)
+            {
+                if (Directory.Exists(path))
+                {
+                    dialog.InitialDirectory = path;
+                    break;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// 显示手动输入对话框
+    /// </summary>
+    /// <param name="description">描述文本</param>
+    /// <param name="initialPath">初始路径</param>
+    /// <returns>用户输入的路径</returns>
+    private string? ShowManualInputDialog(string description, string? initialPath)
+    {
+        // 首先尝试找到一个存在的常见MySQL路径作为默认值
+        var defaultPath = initialPath;
+        if (string.IsNullOrEmpty(defaultPath) || !Directory.Exists(defaultPath))
+        {
+            defaultPath = GetCommonMySqlDataPath() ?? @"C:\ProgramData\MySQL\MySQL Server 8.0\Data";
+        }
+
         // 这是最后的备选方案，确保用户始终能够输入路径
         var manualInput = MessageBox.Show(
-            "Unable to open folder selection dialog. Would you like to enter the path manually?\n\n" +
-            "Common MySQL data directory locations:\n" +
-            "• C:\\ProgramData\\MySQL\\MySQL Server 8.0\\Data\n" +
-            "• C:\\ProgramData\\MySQL\\MySQL Server 5.7\\Data\n" +
-            "• C:\\Program Files\\MySQL\\MySQL Server 8.0\\data",
-            "Folder Selection", 
+            $"Unable to open folder selection dialog due to threading issues.\n\n" +
+            $"Would you like to enter the MySQL data directory path manually?\n\n" +
+            $"Common MySQL data directory locations:\n" +
+            $"• C:\\ProgramData\\MySQL\\MySQL Server 8.0\\Data\n" +
+            $"• C:\\ProgramData\\MySQL\\MySQL Server 5.7\\Data\n" +
+            $"• C:\\Program Files\\MySQL\\MySQL Server 8.0\\data\n" +
+            $"• C:\\xampp\\mysql\\data\n" +
+            $"• C:\\wamp64\\bin\\mysql\\mysql8.0.31\\data\n\n" +
+            $"Click 'Yes' to enter path manually, or 'No' to cancel.",
+            "Manual Path Entry", 
             MessageBoxButtons.YesNo, 
             MessageBoxIcon.Question);
 
         if (manualInput == DialogResult.Yes)
         {
-            // 创建简单的输入对话框
+            // 创建改进的输入对话框
             var inputForm = new Form()
             {
-                Text = "Enter Directory Path",
-                Size = new Size(500, 150),
+                Text = "Enter MySQL Data Directory Path",
+                Size = new Size(600, 200),
                 StartPosition = FormStartPosition.CenterParent,
                 FormBorderStyle = FormBorderStyle.FixedDialog,
                 MaximizeBox = false,
                 MinimizeBox = false
             };
 
+            var label = new Label()
+            {
+                Text = "Please enter the full path to your MySQL data directory:",
+                Location = new Point(10, 10),
+                Size = new Size(560, 20)
+            };
+
             var textBox = new TextBox()
             {
-                Text = initialPath ?? @"C:\ProgramData\MySQL\MySQL Server 8.0\Data",
-                Location = new Point(10, 20),
-                Size = new Size(460, 25)
+                Text = defaultPath,
+                Location = new Point(10, 35),
+                Size = new Size(560, 25)
+            };
+
+            var browseButton = new Button()
+            {
+                Text = "Browse...",
+                Location = new Point(10, 70),
+                Size = new Size(80, 25)
+            };
+
+            var validateButton = new Button()
+            {
+                Text = "Validate",
+                Location = new Point(100, 70),
+                Size = new Size(80, 25)
+            };
+
+            var statusLabel = new Label()
+            {
+                Text = Directory.Exists(defaultPath) ? "✓ Path exists" : "⚠ Path does not exist",
+                Location = new Point(190, 75),
+                Size = new Size(200, 20),
+                ForeColor = Directory.Exists(defaultPath) ? Color.Green : Color.Orange
             };
 
             var okButton = new Button()
             {
                 Text = "OK",
                 DialogResult = DialogResult.OK,
-                Location = new Point(310, 60),
+                Location = new Point(420, 110),
                 Size = new Size(75, 25)
             };
 
@@ -618,11 +831,85 @@ public partial class ConfigurationForm : Form
             {
                 Text = "Cancel",
                 DialogResult = DialogResult.Cancel,
-                Location = new Point(395, 60),
+                Location = new Point(505, 110),
                 Size = new Size(75, 25)
             };
 
-            inputForm.Controls.AddRange(new Control[] { textBox, okButton, cancelButton });
+            // 浏览按钮事件（尝试简单的OpenFileDialog）
+            browseButton.Click += (s, e) =>
+            {
+                try
+                {
+                    using var openDialog = new OpenFileDialog();
+                    openDialog.Title = "Select any file in the MySQL data directory";
+                    openDialog.Filter = "All files (*.*)|*.*";
+                    openDialog.CheckFileExists = false;
+                    openDialog.CheckPathExists = true;
+                    
+                    if (!string.IsNullOrEmpty(textBox.Text) && Directory.Exists(textBox.Text))
+                    {
+                        openDialog.InitialDirectory = textBox.Text;
+                    }
+
+                    if (openDialog.ShowDialog(inputForm) == DialogResult.OK)
+                    {
+                        var selectedDir = Path.GetDirectoryName(openDialog.FileName);
+                        if (!string.IsNullOrEmpty(selectedDir))
+                        {
+                            textBox.Text = selectedDir;
+                            statusLabel.Text = "✓ Path exists";
+                            statusLabel.ForeColor = Color.Green;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Browse failed: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            };
+
+            // 验证按钮事件
+            validateButton.Click += (s, e) =>
+            {
+                var path = textBox.Text.Trim();
+                if (string.IsNullOrEmpty(path))
+                {
+                    statusLabel.Text = "⚠ Please enter a path";
+                    statusLabel.ForeColor = Color.Orange;
+                }
+                else if (Directory.Exists(path))
+                {
+                    statusLabel.Text = "✓ Path exists";
+                    statusLabel.ForeColor = Color.Green;
+                }
+                else
+                {
+                    statusLabel.Text = "✗ Path does not exist";
+                    statusLabel.ForeColor = Color.Red;
+                }
+            };
+
+            // 文本框变化事件
+            textBox.TextChanged += (s, e) =>
+            {
+                var path = textBox.Text.Trim();
+                if (Directory.Exists(path))
+                {
+                    statusLabel.Text = "✓ Path exists";
+                    statusLabel.ForeColor = Color.Green;
+                }
+                else if (!string.IsNullOrEmpty(path))
+                {
+                    statusLabel.Text = "⚠ Path does not exist";
+                    statusLabel.ForeColor = Color.Orange;
+                }
+                else
+                {
+                    statusLabel.Text = "";
+                }
+            };
+
+            inputForm.Controls.AddRange(new Control[] { label, textBox, browseButton, validateButton, statusLabel, okButton, cancelButton });
             inputForm.AcceptButton = okButton;
             inputForm.CancelButton = cancelButton;
 
@@ -638,14 +925,104 @@ public partial class ConfigurationForm : Form
                     }
                     else
                     {
-                        MessageBox.Show($"The directory '{enteredPath}' does not exist.", "Invalid Path", 
-                            MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        var createDir = MessageBox.Show(
+                            $"The directory '{enteredPath}' does not exist.\n\nWould you like to use this path anyway?\n\n" +
+                            $"Note: Make sure this is the correct MySQL data directory path.",
+                            "Directory Not Found", 
+                            MessageBoxButtons.YesNo, 
+                            MessageBoxIcon.Question);
+                        
+                        if (createDir == DialogResult.Yes)
+                        {
+                            _logger.LogInformation("Manual path entered (non-existent): {Path}", enteredPath);
+                            return enteredPath;
+                        }
                     }
                 }
             }
         }
 
-        #endregion
+        return null;
+    }
+
+    #endregion
+
+    #region 辅助方法
+
+    /// <summary>
+    /// 在STA线程中运行对话框
+    /// </summary>
+    /// <param name="dialogAction">对话框操作</param>
+    /// <returns>选择的路径</returns>
+    private string? RunDialogInSTAThread(Func<string?> dialogAction)
+    {
+        string? result = null;
+        Exception? exception = null;
+
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                result = dialogAction();
+            }
+            catch (Exception ex)
+            {
+                exception = ex;
+            }
+        });
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+
+        if (exception != null)
+        {
+            throw exception;
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// 显示OpenFileDialog用于选择文件夹
+    /// </summary>
+    /// <param name="description">描述</param>
+    /// <param name="initialPath">初始路径</param>
+    /// <returns>选择的文件夹路径</returns>
+    private string? ShowOpenFileDialog(string description, string? initialPath)
+    {
+        // 配置对话框用于选择文件夹
+        openFileDialogDataDirectory.Title = description;
+        openFileDialogDataDirectory.Filter = "All files (*.*)|*.*";
+        openFileDialogDataDirectory.FileName = "Select any file in this folder";
+        openFileDialogDataDirectory.CheckFileExists = false;
+        openFileDialogDataDirectory.CheckPathExists = true;
+        openFileDialogDataDirectory.Multiselect = false;
+        
+        // 设置初始目录
+        if (!string.IsNullOrEmpty(initialPath) && Directory.Exists(initialPath))
+        {
+            openFileDialogDataDirectory.InitialDirectory = initialPath;
+        }
+        else
+        {
+            var commonPath = GetCommonMySqlDataPath();
+            if (!string.IsNullOrEmpty(commonPath))
+            {
+                openFileDialogDataDirectory.InitialDirectory = commonPath;
+            }
+        }
+
+        var result = openFileDialogDataDirectory.ShowDialog();
+        if (result == DialogResult.OK)
+        {
+            var selectedDir = Path.GetDirectoryName(openFileDialogDataDirectory.FileName);
+            if (!string.IsNullOrEmpty(selectedDir))
+            {
+                _logger.LogInformation("Folder selected via openFileDialogDataDirectory: {Path}", selectedDir);
+                return selectedDir;
+            }
+        }
 
         return null;
     }

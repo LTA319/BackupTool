@@ -71,6 +71,7 @@ namespace MySqlBackupTool.Client.Forms
             btnSave = new Button();
             btnValidateAndSave = new Button();
             btnCancel = new Button();
+            openFileDialogDataDirectory = new OpenFileDialog();
             tabControl.SuspendLayout();
             tabGeneral.SuspendLayout();
             tabMySQL.SuspendLayout();
@@ -570,6 +571,10 @@ namespace MySqlBackupTool.Client.Forms
             btnCancel.UseVisualStyleBackColor = true;
             btnCancel.Click += btnCancel_Click;
             // 
+            // openFileDialogDataDirectory
+            // 
+            openFileDialogDataDirectory.FileName = "openFileDialogDataDirectory";
+            // 
             // ConfigurationForm
             // 
             AutoScaleDimensions = new SizeF(11F, 24F);
@@ -653,5 +658,6 @@ namespace MySqlBackupTool.Client.Forms
         private System.Windows.Forms.Button btnSave;
         private System.Windows.Forms.Button btnValidateAndSave;
         private System.Windows.Forms.Button btnCancel;
+        private OpenFileDialog openFileDialogDataDirectory;
     }
 }
