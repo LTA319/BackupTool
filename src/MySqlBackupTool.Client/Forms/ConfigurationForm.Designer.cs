@@ -88,7 +88,7 @@ namespace MySqlBackupTool.Client.Forms
             tabControl.Controls.Add(tabServer);
             tabControl.Controls.Add(tabNaming);
             tabControl.Location = new Point(19, 19);
-            tabControl.Margin = new Padding(5, 5, 5, 5);
+            tabControl.Margin = new Padding(5);
             tabControl.Name = "tabControl";
             tabControl.SelectedIndex = 0;
             tabControl.Size = new Size(880, 928);
@@ -100,9 +100,9 @@ namespace MySqlBackupTool.Client.Forms
             tabGeneral.Controls.Add(txtConfigName);
             tabGeneral.Controls.Add(chkIsActive);
             tabGeneral.Location = new Point(4, 33);
-            tabGeneral.Margin = new Padding(5, 5, 5, 5);
+            tabGeneral.Margin = new Padding(5);
             tabGeneral.Name = "tabGeneral";
-            tabGeneral.Padding = new Padding(5, 5, 5, 5);
+            tabGeneral.Padding = new Padding(5);
             tabGeneral.Size = new Size(872, 891);
             tabGeneral.TabIndex = 0;
             tabGeneral.Text = "General";
@@ -121,7 +121,7 @@ namespace MySqlBackupTool.Client.Forms
             // txtConfigName
             // 
             txtConfigName.Location = new Point(31, 80);
-            txtConfigName.Margin = new Padding(5, 5, 5, 5);
+            txtConfigName.Margin = new Padding(5);
             txtConfigName.MaxLength = 100;
             txtConfigName.Name = "txtConfigName";
             txtConfigName.Size = new Size(469, 30);
@@ -133,7 +133,7 @@ namespace MySqlBackupTool.Client.Forms
             chkIsActive.Checked = true;
             chkIsActive.CheckState = CheckState.Checked;
             chkIsActive.Location = new Point(31, 144);
-            chkIsActive.Margin = new Padding(5, 5, 5, 5);
+            chkIsActive.Margin = new Padding(5);
             chkIsActive.Name = "chkIsActive";
             chkIsActive.Size = new Size(228, 28);
             chkIsActive.TabIndex = 2;
@@ -158,9 +158,9 @@ namespace MySqlBackupTool.Client.Forms
             tabMySQL.Controls.Add(btnTestMySqlConnection);
             tabMySQL.Controls.Add(lblMySqlConnectionStatus);
             tabMySQL.Location = new Point(4, 33);
-            tabMySQL.Margin = new Padding(5, 5, 5, 5);
+            tabMySQL.Margin = new Padding(5);
             tabMySQL.Name = "tabMySQL";
-            tabMySQL.Padding = new Padding(5, 5, 5, 5);
+            tabMySQL.Padding = new Padding(5);
             tabMySQL.Size = new Size(872, 891);
             tabMySQL.TabIndex = 1;
             tabMySQL.Text = "MySQL";
@@ -179,7 +179,7 @@ namespace MySqlBackupTool.Client.Forms
             // txtMySqlUsername
             // 
             txtMySqlUsername.Location = new Point(31, 64);
-            txtMySqlUsername.Margin = new Padding(5, 5, 5, 5);
+            txtMySqlUsername.Margin = new Padding(5);
             txtMySqlUsername.MaxLength = 100;
             txtMySqlUsername.Name = "txtMySqlUsername";
             txtMySqlUsername.Size = new Size(312, 30);
@@ -198,7 +198,7 @@ namespace MySqlBackupTool.Client.Forms
             // txtMySqlPassword
             // 
             txtMySqlPassword.Location = new Point(31, 144);
-            txtMySqlPassword.Margin = new Padding(5, 5, 5, 5);
+            txtMySqlPassword.Margin = new Padding(5);
             txtMySqlPassword.MaxLength = 100;
             txtMySqlPassword.Name = "txtMySqlPassword";
             txtMySqlPassword.Size = new Size(312, 30);
@@ -218,11 +218,12 @@ namespace MySqlBackupTool.Client.Forms
             // txtServiceName
             // 
             txtServiceName.Location = new Point(31, 224);
-            txtServiceName.Margin = new Padding(5, 5, 5, 5);
+            txtServiceName.Margin = new Padding(5);
             txtServiceName.MaxLength = 100;
             txtServiceName.Name = "txtServiceName";
             txtServiceName.Size = new Size(312, 30);
             txtServiceName.TabIndex = 5;
+            txtServiceName.Text = "MySQL80";
             // 
             // lblDataDirectory
             // 
@@ -237,18 +238,19 @@ namespace MySqlBackupTool.Client.Forms
             // txtDataDirectory
             // 
             txtDataDirectory.Location = new Point(31, 304);
-            txtDataDirectory.Margin = new Padding(5, 5, 5, 5);
+            txtDataDirectory.Margin = new Padding(5);
             txtDataDirectory.MaxLength = 500;
             txtDataDirectory.Name = "txtDataDirectory";
             txtDataDirectory.Size = new Size(548, 30);
             txtDataDirectory.TabIndex = 7;
+            txtDataDirectory.Text = "C:\\ProgramData\\MySQL\\MySQL Server 8.0\\Data";
             // 
             // btnBrowseDataDirectory
             // 
             btnBrowseDataDirectory.Location = new Point(597, 304);
-            btnBrowseDataDirectory.Margin = new Padding(5, 5, 5, 5);
+            btnBrowseDataDirectory.Margin = new Padding(5);
             btnBrowseDataDirectory.Name = "btnBrowseDataDirectory";
-            btnBrowseDataDirectory.Size = new Size(118, 37);
+            btnBrowseDataDirectory.Size = new Size(129, 37);
             btnBrowseDataDirectory.TabIndex = 8;
             btnBrowseDataDirectory.Text = "Browse...";
             btnBrowseDataDirectory.UseVisualStyleBackColor = true;
@@ -267,7 +269,7 @@ namespace MySqlBackupTool.Client.Forms
             // txtMySqlHost
             // 
             txtMySqlHost.Location = new Point(31, 384);
-            txtMySqlHost.Margin = new Padding(5, 5, 5, 5);
+            txtMySqlHost.Margin = new Padding(5);
             txtMySqlHost.MaxLength = 255;
             txtMySqlHost.Name = "txtMySqlHost";
             txtMySqlHost.Size = new Size(233, 30);
@@ -286,7 +288,7 @@ namespace MySqlBackupTool.Client.Forms
             // numMySqlPort
             // 
             numMySqlPort.Location = new Point(314, 384);
-            numMySqlPort.Margin = new Padding(5, 5, 5, 5);
+            numMySqlPort.Margin = new Padding(5);
             numMySqlPort.Maximum = new decimal(new int[] { 65535, 0, 0, 0 });
             numMySqlPort.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
             numMySqlPort.Name = "numMySqlPort";
@@ -297,7 +299,7 @@ namespace MySqlBackupTool.Client.Forms
             // btnTestMySqlConnection
             // 
             btnTestMySqlConnection.Location = new Point(31, 432);
-            btnTestMySqlConnection.Margin = new Padding(5, 5, 5, 5);
+            btnTestMySqlConnection.Margin = new Padding(5);
             btnTestMySqlConnection.Name = "btnTestMySqlConnection";
             btnTestMySqlConnection.Size = new Size(189, 48);
             btnTestMySqlConnection.TabIndex = 13;
@@ -327,9 +329,9 @@ namespace MySqlBackupTool.Client.Forms
             tabServer.Controls.Add(btnTestServerConnection);
             tabServer.Controls.Add(lblServerConnectionStatus);
             tabServer.Location = new Point(4, 33);
-            tabServer.Margin = new Padding(5, 5, 5, 5);
+            tabServer.Margin = new Padding(5);
             tabServer.Name = "tabServer";
-            tabServer.Padding = new Padding(5, 5, 5, 5);
+            tabServer.Padding = new Padding(5);
             tabServer.Size = new Size(872, 891);
             tabServer.TabIndex = 2;
             tabServer.Text = "Target Server";
@@ -348,7 +350,7 @@ namespace MySqlBackupTool.Client.Forms
             // txtServerIP
             // 
             txtServerIP.Location = new Point(31, 64);
-            txtServerIP.Margin = new Padding(5, 5, 5, 5);
+            txtServerIP.Margin = new Padding(5);
             txtServerIP.MaxLength = 45;
             txtServerIP.Name = "txtServerIP";
             txtServerIP.Size = new Size(233, 30);
@@ -367,7 +369,7 @@ namespace MySqlBackupTool.Client.Forms
             // numServerPort
             // 
             numServerPort.Location = new Point(314, 64);
-            numServerPort.Margin = new Padding(5, 5, 5, 5);
+            numServerPort.Margin = new Padding(5);
             numServerPort.Maximum = new decimal(new int[] { 65535, 0, 0, 0 });
             numServerPort.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
             numServerPort.Name = "numServerPort";
@@ -381,7 +383,7 @@ namespace MySqlBackupTool.Client.Forms
             chkUseSSL.Checked = true;
             chkUseSSL.CheckState = CheckState.Checked;
             chkUseSSL.Location = new Point(31, 112);
-            chkUseSSL.Margin = new Padding(5, 5, 5, 5);
+            chkUseSSL.Margin = new Padding(5);
             chkUseSSL.Name = "chkUseSSL";
             chkUseSSL.Size = new Size(101, 28);
             chkUseSSL.TabIndex = 4;
@@ -401,7 +403,7 @@ namespace MySqlBackupTool.Client.Forms
             // txtTargetDirectory
             // 
             txtTargetDirectory.Location = new Point(31, 224);
-            txtTargetDirectory.Margin = new Padding(5, 5, 5, 5);
+            txtTargetDirectory.Margin = new Padding(5);
             txtTargetDirectory.MaxLength = 500;
             txtTargetDirectory.Name = "txtTargetDirectory";
             txtTargetDirectory.Size = new Size(626, 30);
@@ -410,7 +412,7 @@ namespace MySqlBackupTool.Client.Forms
             // btnTestServerConnection
             // 
             btnTestServerConnection.Location = new Point(31, 272);
-            btnTestServerConnection.Margin = new Padding(5, 5, 5, 5);
+            btnTestServerConnection.Margin = new Padding(5);
             btnTestServerConnection.Name = "btnTestServerConnection";
             btnTestServerConnection.Size = new Size(189, 48);
             btnTestServerConnection.TabIndex = 7;
@@ -439,9 +441,9 @@ namespace MySqlBackupTool.Client.Forms
             tabNaming.Controls.Add(btnPreviewFileName);
             tabNaming.Controls.Add(lblFileNamePreview);
             tabNaming.Location = new Point(4, 33);
-            tabNaming.Margin = new Padding(5, 5, 5, 5);
+            tabNaming.Margin = new Padding(5);
             tabNaming.Name = "tabNaming";
-            tabNaming.Padding = new Padding(5, 5, 5, 5);
+            tabNaming.Padding = new Padding(5);
             tabNaming.Size = new Size(872, 891);
             tabNaming.TabIndex = 3;
             tabNaming.Text = "File Naming";
@@ -460,7 +462,7 @@ namespace MySqlBackupTool.Client.Forms
             // txtNamingPattern
             // 
             txtNamingPattern.Location = new Point(31, 64);
-            txtNamingPattern.Margin = new Padding(5, 5, 5, 5);
+            txtNamingPattern.Margin = new Padding(5);
             txtNamingPattern.MaxLength = 200;
             txtNamingPattern.Name = "txtNamingPattern";
             txtNamingPattern.Size = new Size(626, 30);
@@ -479,7 +481,7 @@ namespace MySqlBackupTool.Client.Forms
             // txtDateFormat
             // 
             txtDateFormat.Location = new Point(31, 144);
-            txtDateFormat.Margin = new Padding(5, 5, 5, 5);
+            txtDateFormat.Margin = new Padding(5);
             txtDateFormat.MaxLength = 50;
             txtDateFormat.Name = "txtDateFormat";
             txtDateFormat.Size = new Size(312, 30);
@@ -491,7 +493,7 @@ namespace MySqlBackupTool.Client.Forms
             chkIncludeServerName.Checked = true;
             chkIncludeServerName.CheckState = CheckState.Checked;
             chkIncludeServerName.Location = new Point(31, 192);
-            chkIncludeServerName.Margin = new Padding(5, 5, 5, 5);
+            chkIncludeServerName.Margin = new Padding(5);
             chkIncludeServerName.Name = "chkIncludeServerName";
             chkIncludeServerName.Size = new Size(214, 28);
             chkIncludeServerName.TabIndex = 4;
@@ -504,7 +506,7 @@ namespace MySqlBackupTool.Client.Forms
             chkIncludeDatabaseName.Checked = true;
             chkIncludeDatabaseName.CheckState = CheckState.Checked;
             chkIncludeDatabaseName.Location = new Point(31, 240);
-            chkIncludeDatabaseName.Margin = new Padding(5, 5, 5, 5);
+            chkIncludeDatabaseName.Margin = new Padding(5);
             chkIncludeDatabaseName.Name = "chkIncludeDatabaseName";
             chkIncludeDatabaseName.Size = new Size(242, 28);
             chkIncludeDatabaseName.TabIndex = 5;
@@ -514,7 +516,7 @@ namespace MySqlBackupTool.Client.Forms
             // btnPreviewFileName
             // 
             btnPreviewFileName.Location = new Point(31, 320);
-            btnPreviewFileName.Margin = new Padding(5, 5, 5, 5);
+            btnPreviewFileName.Margin = new Padding(5);
             btnPreviewFileName.Name = "btnPreviewFileName";
             btnPreviewFileName.Size = new Size(189, 48);
             btnPreviewFileName.TabIndex = 6;
@@ -536,7 +538,7 @@ namespace MySqlBackupTool.Client.Forms
             // 
             btnSave.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
             btnSave.Location = new Point(467, 976);
-            btnSave.Margin = new Padding(5, 5, 5, 5);
+            btnSave.Margin = new Padding(5);
             btnSave.Name = "btnSave";
             btnSave.Size = new Size(141, 48);
             btnSave.TabIndex = 1;
@@ -548,7 +550,7 @@ namespace MySqlBackupTool.Client.Forms
             // 
             btnValidateAndSave.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
             btnValidateAndSave.Location = new Point(624, 976);
-            btnValidateAndSave.Margin = new Padding(5, 5, 5, 5);
+            btnValidateAndSave.Margin = new Padding(5);
             btnValidateAndSave.Name = "btnValidateAndSave";
             btnValidateAndSave.Size = new Size(141, 48);
             btnValidateAndSave.TabIndex = 2;
@@ -560,7 +562,7 @@ namespace MySqlBackupTool.Client.Forms
             // 
             btnCancel.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
             btnCancel.Location = new Point(781, 976);
-            btnCancel.Margin = new Padding(5, 5, 5, 5);
+            btnCancel.Margin = new Padding(5);
             btnCancel.Name = "btnCancel";
             btnCancel.Size = new Size(118, 48);
             btnCancel.TabIndex = 3;
@@ -577,10 +579,7 @@ namespace MySqlBackupTool.Client.Forms
             Controls.Add(btnSave);
             Controls.Add(btnValidateAndSave);
             Controls.Add(btnCancel);
-            FormBorderStyle = FormBorderStyle.Sizable;
-            Margin = new Padding(5, 5, 5, 5);
-            MaximizeBox = true;
-            MinimizeBox = true;
+            Margin = new Padding(5);
             MinimumSize = new Size(800, 600);
             Name = "ConfigurationForm";
             StartPosition = FormStartPosition.CenterParent;

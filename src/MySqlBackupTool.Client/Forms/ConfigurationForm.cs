@@ -61,8 +61,15 @@ public partial class ConfigurationForm : Form
             txtConfigName.Text = _currentConfiguration.Name;
             txtMySqlUsername.Text = _currentConfiguration.MySQLConnection.Username;
             txtMySqlPassword.Text = _currentConfiguration.MySQLConnection.Password;
-            txtServiceName.Text = _currentConfiguration.MySQLConnection.ServiceName;
-            txtDataDirectory.Text = _currentConfiguration.MySQLConnection.DataDirectoryPath;
+            
+            // Use BackupConfiguration level properties if available, otherwise fall back to MySQLConnection properties
+            txtServiceName.Text = !string.IsNullOrEmpty(_currentConfiguration.ServiceName) 
+                ? _currentConfiguration.ServiceName 
+                : _currentConfiguration.MySQLConnection.ServiceName;
+            txtDataDirectory.Text = !string.IsNullOrEmpty(_currentConfiguration.DataDirectoryPath) 
+                ? _currentConfiguration.DataDirectoryPath 
+                : _currentConfiguration.MySQLConnection.DataDirectoryPath;
+                
             txtMySqlHost.Text = _currentConfiguration.MySQLConnection.Host;
             numMySqlPort.Value = _currentConfiguration.MySQLConnection.Port;
 
@@ -91,6 +98,8 @@ public partial class ConfigurationForm : Form
         {
             // Save form data to configuration object
             _currentConfiguration.Name = txtConfigName.Text.Trim();
+            
+            // Set MySQL connection properties
             _currentConfiguration.MySQLConnection.Username = txtMySqlUsername.Text.Trim();
             _currentConfiguration.MySQLConnection.Password = txtMySqlPassword.Text;
             _currentConfiguration.MySQLConnection.ServiceName = txtServiceName.Text.Trim();
@@ -98,17 +107,49 @@ public partial class ConfigurationForm : Form
             _currentConfiguration.MySQLConnection.Host = txtMySqlHost.Text.Trim();
             _currentConfiguration.MySQLConnection.Port = (int)numMySqlPort.Value;
 
+            // Also set the BackupConfiguration level properties (these are required for validation)
+            _currentConfiguration.ServiceName = txtServiceName.Text.Trim();
+            _currentConfiguration.DataDirectoryPath = txtDataDirectory.Text.Trim();
+
+            // Set target server properties
             _currentConfiguration.TargetServer.IPAddress = txtServerIP.Text.Trim();
             _currentConfiguration.TargetServer.Port = (int)numServerPort.Value;
             _currentConfiguration.TargetServer.UseSSL = chkUseSSL.Checked;
             _currentConfiguration.TargetDirectory = txtTargetDirectory.Text.Trim();
 
-            _currentConfiguration.NamingStrategy.Pattern = txtNamingPattern.Text.Trim();
-            _currentConfiguration.NamingStrategy.DateFormat = txtDateFormat.Text.Trim();
+            // Set naming strategy properties with defaults if empty
+            _currentConfiguration.NamingStrategy.Pattern = !string.IsNullOrWhiteSpace(txtNamingPattern.Text.Trim()) 
+                ? txtNamingPattern.Text.Trim() 
+                : "{timestamp}_{database}_{server}.zip";
+            _currentConfiguration.NamingStrategy.DateFormat = !string.IsNullOrWhiteSpace(txtDateFormat.Text.Trim()) 
+                ? txtDateFormat.Text.Trim() 
+                : "yyyyMMdd_HHmmss";
             _currentConfiguration.NamingStrategy.IncludeServerName = chkIncludeServerName.Checked;
             _currentConfiguration.NamingStrategy.IncludeDatabaseName = chkIncludeDatabaseName.Checked;
 
             _currentConfiguration.IsActive = chkIsActive.Checked;
+
+            // Ensure all required fields have values
+            if (string.IsNullOrWhiteSpace(_currentConfiguration.Name))
+            {
+                throw new InvalidOperationException("Configuration name is required");
+            }
+            if (string.IsNullOrWhiteSpace(_currentConfiguration.ServiceName))
+            {
+                throw new InvalidOperationException("Service name is required");
+            }
+            if (string.IsNullOrWhiteSpace(_currentConfiguration.DataDirectoryPath))
+            {
+                throw new InvalidOperationException("Data directory path is required");
+            }
+            if (string.IsNullOrWhiteSpace(_currentConfiguration.TargetDirectory))
+            {
+                throw new InvalidOperationException("Target directory is required");
+            }
+            if (string.IsNullOrWhiteSpace(_currentConfiguration.TargetServer.IPAddress))
+            {
+                throw new InvalidOperationException("Target server IP address is required");
+            }
         }
         catch (Exception ex)
         {
@@ -232,18 +273,15 @@ public partial class ConfigurationForm : Form
     {
         try
         {
-            using var dialog = new FolderBrowserDialog();
-            dialog.Description = "Select MySQL Data Directory";
-            dialog.UseDescriptionForTitle = true;
+            // 禁用按钮防止重复点击
+            btnBrowseDataDirectory.Enabled = false;
+            btnBrowseDataDirectory.Text = "Browsing...";
             
-            if (!string.IsNullOrEmpty(txtDataDirectory.Text))
+            var selectedPath = ShowFolderDialogSafe("Select MySQL Data Directory", txtDataDirectory.Text);
+            if (!string.IsNullOrEmpty(selectedPath))
             {
-                dialog.SelectedPath = txtDataDirectory.Text;
-            }
-
-            if (dialog.ShowDialog() == DialogResult.OK)
-            {
-                txtDataDirectory.Text = dialog.SelectedPath;
+                txtDataDirectory.Text = selectedPath;
+                _logger.LogInformation("Selected MySQL data directory: {Path}", selectedPath);
             }
         }
         catch (Exception ex)
@@ -251,6 +289,169 @@ public partial class ConfigurationForm : Form
             _logger.LogError(ex, "Error browsing for data directory");
             MessageBox.Show($"Error browsing directory: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
+        finally
+        {
+            // 恢复按钮状态
+            btnBrowseDataDirectory.Enabled = true;
+            btnBrowseDataDirectory.Text = "Browse...";
+        }
+    }
+
+    /// <summary>
+    /// 安全地显示文件夹选择对话框，使用多种备选方案避免卡死
+    /// </summary>
+    private string? ShowFolderDialogSafe(string description, string? initialPath = null)
+    {
+        // 方法1：尝试使用现代的SaveFileDialog方式
+        try
+        {
+            using var dialog = new SaveFileDialog();
+            dialog.Title = description;
+            dialog.Filter = "Select Folder|*.folder";
+            dialog.FileName = "Select this folder";
+            dialog.CheckPathExists = true;
+            dialog.CheckFileExists = false;
+            dialog.CreatePrompt = false;
+            dialog.OverwritePrompt = false;
+            dialog.ValidateNames = false;
+            dialog.AddExtension = false;
+            
+            // 设置初始目录
+            if (!string.IsNullOrEmpty(initialPath) && Directory.Exists(initialPath))
+            {
+                dialog.InitialDirectory = initialPath;
+            }
+            else
+            {
+                // 尝试常见的MySQL数据目录位置
+                var commonPaths = new[]
+                {
+                    @"C:\ProgramData\MySQL\MySQL Server 8.0\Data",
+                    @"C:\ProgramData\MySQL\MySQL Server 5.7\Data",
+                    @"C:\Program Files\MySQL\MySQL Server 8.0\data",
+                    @"C:\mysql\data",
+                    Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                };
+                
+                foreach (var path in commonPaths)
+                {
+                    if (Directory.Exists(path))
+                    {
+                        dialog.InitialDirectory = path;
+                        break;
+                    }
+                }
+            }
+
+            var result = dialog.ShowDialog(this);
+            if (result == DialogResult.OK)
+            {
+                var selectedDir = Path.GetDirectoryName(dialog.FileName);
+                _logger.LogInformation("Folder selected via SaveFileDialog: {Path}", selectedDir);
+                return selectedDir;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "SaveFileDialog method failed, trying FolderBrowserDialog");
+        }
+
+        // 方法2：尝试传统的FolderBrowserDialog
+        try
+        {
+            using var folderDialog = new FolderBrowserDialog();
+            folderDialog.Description = description;
+            folderDialog.UseDescriptionForTitle = true;
+            folderDialog.ShowNewFolderButton = true;
+            
+            if (!string.IsNullOrEmpty(initialPath) && Directory.Exists(initialPath))
+            {
+                folderDialog.SelectedPath = initialPath;
+            }
+
+            var result = folderDialog.ShowDialog(this);
+            if (result == DialogResult.OK)
+            {
+                _logger.LogInformation("Folder selected via FolderBrowserDialog: {Path}", folderDialog.SelectedPath);
+                return folderDialog.SelectedPath;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "FolderBrowserDialog also failed");
+        }
+
+        // 方法3：如果所有对话框都失败，提供手动输入选项
+        var manualInput = MessageBox.Show(
+            "Unable to open folder selection dialog. Would you like to enter the path manually?\n\n" +
+            "Common MySQL data directory locations:\n" +
+            "• C:\\ProgramData\\MySQL\\MySQL Server 8.0\\Data\n" +
+            "• C:\\ProgramData\\MySQL\\MySQL Server 5.7\\Data\n" +
+            "• C:\\Program Files\\MySQL\\MySQL Server 8.0\\data",
+            "Folder Selection", 
+            MessageBoxButtons.YesNo, 
+            MessageBoxIcon.Question);
+
+        if (manualInput == DialogResult.Yes)
+        {
+            // 简单的输入对话框实现
+            var inputForm = new Form()
+            {
+                Text = "Enter Directory Path",
+                Size = new Size(500, 150),
+                StartPosition = FormStartPosition.CenterParent,
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                MaximizeBox = false,
+                MinimizeBox = false
+            };
+
+            var textBox = new TextBox()
+            {
+                Text = initialPath ?? @"C:\ProgramData\MySQL\MySQL Server 8.0\Data",
+                Location = new Point(10, 20),
+                Size = new Size(460, 25)
+            };
+
+            var okButton = new Button()
+            {
+                Text = "OK",
+                DialogResult = DialogResult.OK,
+                Location = new Point(310, 60),
+                Size = new Size(75, 25)
+            };
+
+            var cancelButton = new Button()
+            {
+                Text = "Cancel",
+                DialogResult = DialogResult.Cancel,
+                Location = new Point(395, 60),
+                Size = new Size(75, 25)
+            };
+
+            inputForm.Controls.AddRange(new Control[] { textBox, okButton, cancelButton });
+            inputForm.AcceptButton = okButton;
+            inputForm.CancelButton = cancelButton;
+
+            if (inputForm.ShowDialog(this) == DialogResult.OK)
+            {
+                var enteredPath = textBox.Text.Trim();
+                if (!string.IsNullOrEmpty(enteredPath))
+                {
+                    if (Directory.Exists(enteredPath))
+                    {
+                        _logger.LogInformation("Manual path entered and validated: {Path}", enteredPath);
+                        return enteredPath;
+                    }
+                    else
+                    {
+                        MessageBox.Show($"The directory '{enteredPath}' does not exist.", "Invalid Path", 
+                            MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 
     private void btnPreviewFileName_Click(object sender, EventArgs e)
@@ -292,6 +493,10 @@ public partial class ConfigurationForm : Form
             btnSave.Enabled = false;
             SaveConfigurationData();
 
+            // Debug: Log the configuration values before validation
+            _logger.LogInformation("Validating configuration: Name='{Name}', ServiceName='{ServiceName}', DataDirectory='{DataDirectory}'", 
+                _currentConfiguration.Name, _currentConfiguration.ServiceName, _currentConfiguration.DataDirectoryPath);
+
             // Validate configuration
             var validationContext = new ValidationContext(_currentConfiguration);
             var validationResults = new List<ValidationResult>();
@@ -299,6 +504,7 @@ public partial class ConfigurationForm : Form
             if (!Validator.TryValidateObject(_currentConfiguration, validationContext, validationResults, true))
             {
                 var errorMessage = string.Join("\n", validationResults.Select(r => r.ErrorMessage));
+                _logger.LogWarning("Configuration validation failed: {Errors}", errorMessage);
                 MessageBox.Show($"Validation failed:\n{errorMessage}", "Validation Error", 
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
@@ -321,6 +527,7 @@ public partial class ConfigurationForm : Form
             else
             {
                 var errorMessage = string.Join("\n", errors);
+                _logger.LogWarning("Repository validation failed: {Errors}", errorMessage);
                 MessageBox.Show($"Failed to save configuration:\n{errorMessage}", "Save Error", 
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
