@@ -28,18 +28,18 @@ namespace MySqlBackupTool.Client
         /// </summary>
         private void InitializeComponent()
         {
-            this.menuStrip = new MenuStrip();
-            this.fileToolStripMenuItem = new ToolStripMenuItem();
-            this.exitToolStripMenuItem = new ToolStripMenuItem();
-            this.toolsToolStripMenuItem = new ToolStripMenuItem();
-            this.configurationToolStripMenuItem = new ToolStripMenuItem();
-            this.backupMonitorToolStripMenuItem = new ToolStripMenuItem();
-            this.logBrowserToolStripMenuItem = new ToolStripMenuItem();
-            this.helpToolStripMenuItem = new ToolStripMenuItem();
-            this.aboutToolStripMenuItem = new ToolStripMenuItem();
-            this.statusStrip = new StatusStrip();
-            this.toolStripStatusLabel = new ToolStripStatusLabel();
-            this.lblWelcome = new Label();
+            this.menuStrip = new System.Windows.Forms.MenuStrip();
+            this.fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.configurationToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.backupMonitorToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.logBrowserToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.statusStrip = new System.Windows.Forms.StatusStrip();
+            this.toolStripStatusLabel = new System.Windows.Forms.ToolStripStatusLabel();
+            this.lblWelcome = new System.Windows.Forms.Label();
 
             this.menuStrip.SuspendLayout();
             this.statusStrip.SuspendLayout();
@@ -48,108 +48,120 @@ namespace MySqlBackupTool.Client
             // 
             // menuStrip
             // 
-            this.menuStrip.Items.AddRange(new ToolStripItem[] {
+            this.menuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
                 this.fileToolStripMenuItem,
                 this.toolsToolStripMenuItem,
                 this.helpToolStripMenuItem});
-            this.menuStrip.Location = new Point(0, 0);
-            this.menuStrip.Size = new Size(800, 24);
+            this.menuStrip.Location = new System.Drawing.Point(0, 0);
+            this.menuStrip.Name = "menuStrip";
+            this.menuStrip.Size = new System.Drawing.Size(800, 24);
             this.menuStrip.TabIndex = 0;
             this.menuStrip.Text = "menuStrip";
 
             // 
             // fileToolStripMenuItem
             // 
-            this.fileToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] {
+            this.fileToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
                 this.exitToolStripMenuItem});
-            this.fileToolStripMenuItem.Size = new Size(37, 20);
+            this.fileToolStripMenuItem.Name = "fileToolStripMenuItem";
+            this.fileToolStripMenuItem.Size = new System.Drawing.Size(37, 20);
             this.fileToolStripMenuItem.Text = "&File";
 
             // 
             // exitToolStripMenuItem
             // 
-            this.exitToolStripMenuItem.Size = new Size(93, 22);
+            this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
+            this.exitToolStripMenuItem.Size = new System.Drawing.Size(93, 22);
             this.exitToolStripMenuItem.Text = "E&xit";
-            this.exitToolStripMenuItem.Click += new EventHandler(this.exitToolStripMenuItem_Click);
+            this.exitToolStripMenuItem.Click += new System.EventHandler(this.exitToolStripMenuItem_Click);
 
             // 
             // toolsToolStripMenuItem
             // 
-            this.toolsToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] {
+            this.toolsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
                 this.configurationToolStripMenuItem,
                 this.backupMonitorToolStripMenuItem,
                 this.logBrowserToolStripMenuItem});
-            this.toolsToolStripMenuItem.Size = new Size(46, 20);
+            this.toolsToolStripMenuItem.Name = "toolsToolStripMenuItem";
+            this.toolsToolStripMenuItem.Size = new System.Drawing.Size(46, 20);
             this.toolsToolStripMenuItem.Text = "&Tools";
 
             // 
             // configurationToolStripMenuItem
             // 
-            this.configurationToolStripMenuItem.Size = new Size(180, 22);
+            this.configurationToolStripMenuItem.Name = "configurationToolStripMenuItem";
+            this.configurationToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.configurationToolStripMenuItem.Text = "&Configuration Management";
-            this.configurationToolStripMenuItem.Click += new EventHandler(this.configurationToolStripMenuItem_Click);
+            this.configurationToolStripMenuItem.Click += new System.EventHandler(this.configurationToolStripMenuItem_Click);
 
             // 
             // backupMonitorToolStripMenuItem
             // 
-            this.backupMonitorToolStripMenuItem.Size = new Size(180, 22);
+            this.backupMonitorToolStripMenuItem.Name = "backupMonitorToolStripMenuItem";
+            this.backupMonitorToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.backupMonitorToolStripMenuItem.Text = "&Backup Monitor";
-            this.backupMonitorToolStripMenuItem.Click += new EventHandler(this.backupMonitorToolStripMenuItem_Click);
+            this.backupMonitorToolStripMenuItem.Click += new System.EventHandler(this.backupMonitorToolStripMenuItem_Click);
 
             // 
             // logBrowserToolStripMenuItem
             // 
-            this.logBrowserToolStripMenuItem.Size = new Size(180, 22);
+            this.logBrowserToolStripMenuItem.Name = "logBrowserToolStripMenuItem";
+            this.logBrowserToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.logBrowserToolStripMenuItem.Text = "&Log Browser";
-            this.logBrowserToolStripMenuItem.Click += new EventHandler(this.logBrowserToolStripMenuItem_Click);
+            this.logBrowserToolStripMenuItem.Click += new System.EventHandler(this.logBrowserToolStripMenuItem_Click);
 
             // 
             // helpToolStripMenuItem
             // 
-            this.helpToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] {
+            this.helpToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
                 this.aboutToolStripMenuItem});
-            this.helpToolStripMenuItem.Size = new Size(44, 20);
+            this.helpToolStripMenuItem.Name = "helpToolStripMenuItem";
+            this.helpToolStripMenuItem.Size = new System.Drawing.Size(44, 20);
             this.helpToolStripMenuItem.Text = "&Help";
 
             // 
             // aboutToolStripMenuItem
             // 
-            this.aboutToolStripMenuItem.Size = new Size(107, 22);
+            this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
+            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(107, 22);
             this.aboutToolStripMenuItem.Text = "&About";
-            this.aboutToolStripMenuItem.Click += new EventHandler(this.aboutToolStripMenuItem_Click);
+            this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutToolStripMenuItem_Click);
 
             // 
             // statusStrip
             // 
-            this.statusStrip.Items.AddRange(new ToolStripItem[] {
+            this.statusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
                 this.toolStripStatusLabel});
-            this.statusStrip.Location = new Point(0, 428);
-            this.statusStrip.Size = new Size(800, 22);
+            this.statusStrip.Location = new System.Drawing.Point(0, 428);
+            this.statusStrip.Name = "statusStrip";
+            this.statusStrip.Size = new System.Drawing.Size(800, 22);
             this.statusStrip.TabIndex = 1;
             this.statusStrip.Text = "statusStrip";
 
             // 
             // toolStripStatusLabel
             // 
-            this.toolStripStatusLabel.Size = new Size(39, 17);
+            this.toolStripStatusLabel.Name = "toolStripStatusLabel";
+            this.toolStripStatusLabel.Size = new System.Drawing.Size(39, 17);
             this.toolStripStatusLabel.Text = "Ready";
 
             // 
             // lblWelcome
             // 
             this.lblWelcome.AutoSize = true;
-            this.lblWelcome.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point);
-            this.lblWelcome.Location = new Point(50, 50);
-            this.lblWelcome.Size = new Size(300, 21);
+            this.lblWelcome.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.lblWelcome.Location = new System.Drawing.Point(50, 50);
+            this.lblWelcome.Name = "lblWelcome";
+            this.lblWelcome.Size = new System.Drawing.Size(300, 21);
             this.lblWelcome.TabIndex = 2;
             this.lblWelcome.Text = "Welcome to MySQL Backup Tool";
 
             // 
             // FormMain
             // 
-            this.AutoScaleDimensions = new SizeF(7F, 15F);
-            this.AutoScaleMode = AutoScaleMode.Font;
-            this.ClientSize = new Size(800, 450);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.ClientSize = new System.Drawing.Size(800, 450);
             this.Controls.Add(this.lblWelcome);
             this.Controls.Add(this.statusStrip);
             this.Controls.Add(this.menuStrip);
@@ -166,17 +178,17 @@ namespace MySqlBackupTool.Client
 
         #endregion
 
-        private MenuStrip menuStrip;
-        private ToolStripMenuItem fileToolStripMenuItem;
-        private ToolStripMenuItem exitToolStripMenuItem;
-        private ToolStripMenuItem toolsToolStripMenuItem;
-        private ToolStripMenuItem configurationToolStripMenuItem;
-        private ToolStripMenuItem backupMonitorToolStripMenuItem;
-        private ToolStripMenuItem logBrowserToolStripMenuItem;
-        private ToolStripMenuItem helpToolStripMenuItem;
-        private ToolStripMenuItem aboutToolStripMenuItem;
-        private StatusStrip statusStrip;
-        private ToolStripStatusLabel toolStripStatusLabel;
-        private Label lblWelcome;
+        private System.Windows.Forms.MenuStrip menuStrip;
+        private System.Windows.Forms.ToolStripMenuItem fileToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exitToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem toolsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem configurationToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem backupMonitorToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem logBrowserToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem helpToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem aboutToolStripMenuItem;
+        private System.Windows.Forms.StatusStrip statusStrip;
+        private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel;
+        private System.Windows.Forms.Label lblWelcome;
     }
 }
