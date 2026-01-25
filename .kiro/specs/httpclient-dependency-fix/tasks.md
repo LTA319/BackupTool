@@ -87,7 +87,7 @@ This implementation plan addresses the dependency injection issue where Alerting
     - Log descriptive error messages with context
     - _Requirements: 6.2, 6.3_
   
-  - [-] 6.3 Add error handling for dependency resolution failures
+  - [x] 6.3 Add error handling for dependency resolution failures
     - Provide clear error messages for missing dependencies
     - Include dependency chain information in error messages
     - _Requirements: 6.1_
@@ -97,12 +97,12 @@ This implementation plan addresses the dependency injection issue where Alerting
     - **Validates: Requirements 6.1, 6.2, 6.3**
 
 - [ ] 7. Test cross-application compatibility
-  - [~] 7.1 Test service registration in client application context
+  - [x] 7.1 Test service registration in client application context
     - Verify HttpClient and AlertingService resolve correctly in client app
     - Test that Backup Monitor functionality works without DI errors
     - _Requirements: 4.1, 4.2, 5.1_
   
-  - [~] 7.2 Test service registration in server application context
+  - [-] 7.2 Test service registration in server application context
     - Verify HttpClient and AlertingService resolve correctly in server app
     - Ensure no conflicts with existing server-side services
     - _Requirements: 5.2, 5.4_

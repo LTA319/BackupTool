@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using MySqlBackupTool.Shared.Interfaces;
 using MySqlBackupTool.Shared.Models;
 using System.Diagnostics;
+using System.Text;
 
 namespace MySqlBackupTool.Shared.Services;
 

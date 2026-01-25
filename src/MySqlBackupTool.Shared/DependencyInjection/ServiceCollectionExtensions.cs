@@ -13,6 +13,7 @@ using MySqlBackupTool.Shared.Services;
 using Polly;
 using Polly.Extensions.Http;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 
 namespace MySqlBackupTool.Shared.DependencyInjection;
 
