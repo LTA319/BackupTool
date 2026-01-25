@@ -21,7 +21,7 @@ public interface IErrorRecoveryManager
     /// <param name="error">The compression exception that occurred</param>
     /// <param name="cancellationToken">Cancellation token for the recovery operation</param>
     /// <returns>Result of the recovery attempt</returns>
-    Task<RecoveryResult> HandleCompressionFailureAsync(CompressionException error, CancellationToken cancellationToken = default);
+    Task<RecoveryResult> HandleCompressionFailureAsync(CompressionException error, CancellationToken cancellationToken = default, ICompressionService? compressionService = null);
 
     /// <summary>
     /// Handles file transfer operation failures
@@ -94,7 +94,7 @@ public interface IErrorRecoveryManager
     /// <param name="filePaths">List of file paths to clean up</param>
     /// <param name="cancellationToken">Cancellation token for the cleanup operation</param>
     /// <returns>True if cleanup was successful, false otherwise</returns>
-    Task<bool> CleanupAfterErrorAsync(string operationId, IEnumerable<string> filePaths, CancellationToken cancellationToken = default);
+    Task<bool> CleanupAfterErrorAsync(string operationId, IEnumerable<string> filePaths, CancellationToken cancellationToken = default, ICompressionService? compressionService = null);
 
     /// <summary>
     /// Gets the current error recovery configuration

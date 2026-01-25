@@ -13,20 +13,20 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
 {
     private readonly ILogger<ErrorRecoveryManager> _logger;
     //private readonly IMySQLManager _mysqlManager;
-    private readonly ICompressionService _compressionService;
+    //private readonly ICompressionService _compressionService;
     private readonly IAlertingService? _alertingService;
     private ErrorRecoveryConfig _configuration;
 
     public ErrorRecoveryManager(
         ILogger<ErrorRecoveryManager> logger,
         //IMySQLManager mysqlManager,
-        ICompressionService compressionService,
+        //ICompressionService compressionService,
         ErrorRecoveryConfig? configuration = null,
         IAlertingService? alertingService = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
        // _mysqlManager = mysqlManager ?? throw new ArgumentNullException(nameof(mysqlManager));
-        _compressionService = compressionService ?? throw new ArgumentNullException(nameof(compressionService));
+       //_compressionService = compressionService ?? throw new ArgumentNullException(nameof(compressionService));
         _alertingService = alertingService;
         _configuration = configuration ?? new ErrorRecoveryConfig();
     }
@@ -85,7 +85,10 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
         }
     }
 
-    public async Task<RecoveryResult> HandleCompressionFailureAsync(CompressionException error, CancellationToken cancellationToken = default)
+    public async Task<RecoveryResult> HandleCompressionFailureAsync(
+        CompressionException error, 
+        CancellationToken cancellationToken = default,
+        ICompressionService? compressionService = null)
     {
         _logger.LogError(error, "Compression failure occurred for operation {OperationId}, source path {SourcePath}",
             error.OperationId, error.SourcePath);
@@ -94,11 +97,17 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
 
         try
         {
+            if (compressionService == null)
+            {
+                _logger.LogWarning("CompressionService not provided for compression failure recovery");
+                return RecoveryResult.Failed(RecoveryStrategy.ManualIntervention,
+                    "CompressionService not available");
+            }
             // Clean up any partial compression files
             if (!string.IsNullOrEmpty(error.TargetPath) && File.Exists(error.TargetPath))
             {
                 _logger.LogInformation("Cleaning up partial compression file: {TargetPath}", error.TargetPath);
-                await _compressionService.CleanupAsync(error.TargetPath);
+                await compressionService.CleanupAsync(error.TargetPath);
             }
 
             // If MySQL was stopped for this operation, ensure it's restarted
@@ -367,7 +376,10 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
         }, timeout, operationType, operationId, cancellationToken);
     }
 
-    public async Task<bool> CleanupAfterErrorAsync(string operationId, IEnumerable<string> filePaths, CancellationToken cancellationToken = default)
+    public async Task<bool> CleanupAfterErrorAsync(
+        string operationId, IEnumerable<string> filePaths, 
+        CancellationToken cancellationToken = default,
+        ICompressionService? compressionService = null)
     {
         if (!_configuration.CleanupTemporaryFilesOnError)
         {
@@ -388,7 +400,13 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
                 {
                     if (File.Exists(filePath))
                     {
-                        await _compressionService.CleanupAsync(filePath);
+                        if (compressionService == null)
+                        {
+                            _logger.LogWarning("CompressionService not provided for cleanup");
+                            return false;
+                        }
+
+                        await compressionService.CleanupAsync(filePath);
                         cleanedFiles.Add(filePath);
                         _logger.LogDebug("Cleaned up file: {FilePath}", filePath);
                     }

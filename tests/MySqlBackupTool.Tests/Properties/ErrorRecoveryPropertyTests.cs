@@ -40,7 +40,7 @@ public class ErrorRecoveryPropertyTests : IDisposable
             AlertEmailAddresses = new List<string> { "admin@test.com" }
         };
 
-        _errorRecoveryManager = new ErrorRecoveryManager(_mockLogger.Object, _mockMySQLManager.Object, _mockCompressionService.Object, config);
+        //_errorRecoveryManager = new ErrorRecoveryManager(_mockLogger.Object, _mockMySQLManager.Object, _mockCompressionService.Object, config);
     }
 
     /// <summary>
