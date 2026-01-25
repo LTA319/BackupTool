@@ -6,15 +6,41 @@ using MySqlBackupTool.Shared.Models;
 namespace MySqlBackupTool.Client.Forms;
 
 /// <summary>
-/// Form for managing the list of backup configurations
+/// 备份配置管理窗体
+/// 提供备份配置的列表显示、创建、编辑、删除、激活和停用功能
 /// </summary>
 public partial class ConfigurationListForm : Form
 {
+    #region 私有字段
+
+    /// <summary>
+    /// 依赖注入服务提供者，用于获取各种服务实例
+    /// </summary>
     private readonly IServiceProvider _serviceProvider;
+
+    /// <summary>
+    /// 日志记录器，用于记录配置列表窗体的操作和错误信息
+    /// </summary>
     private readonly ILogger<ConfigurationListForm> _logger;
+
+    /// <summary>
+    /// 备份配置仓储接口，用于配置的CRUD操作
+    /// </summary>
     private readonly IBackupConfigurationRepository _configRepository;
+
+    /// <summary>
+    /// 备份配置列表，存储从数据库加载的所有配置
+    /// </summary>
     private List<BackupConfiguration> _configurations = new();
 
+    #endregion
+
+    #region 构造函数
+
+    /// <summary>
+    /// 初始化ConfigurationListForm类的新实例
+    /// </summary>
+    /// <param name="serviceProvider">依赖注入服务提供者</param>
     public ConfigurationListForm(IServiceProvider serviceProvider)
     {
         _serviceProvider = serviceProvider;
@@ -25,26 +51,38 @@ public partial class ConfigurationListForm : Form
         InitializeForm();
     }
 
+    #endregion
+
+    #region 私有方法
+
+    /// <summary>
+    /// 初始化窗体的基本设置和属性
+    /// 设置窗体标题、大小、位置，配置数据网格并加载配置数据
+    /// </summary>
     private void InitializeForm()
     {
         try
         {
-            this.Text = "Backup Configurations";
+            this.Text = "备份配置管理";
             this.Size = new Size(800, 600);
             this.StartPosition = FormStartPosition.CenterParent;
 
             SetupDataGridView();
             LoadConfigurations();
             
-            _logger.LogInformation("Configuration list form initialized successfully");
+            _logger.LogInformation("配置列表窗体初始化成功");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error initializing configuration list form");
-            MessageBox.Show($"Error initializing form: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            _logger.LogError(ex, "初始化配置列表窗体时发生错误");
+            MessageBox.Show($"初始化窗体时发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 
+    /// <summary>
+    /// 设置数据网格视图的列和属性
+    /// 配置配置列表网格的显示格式和事件处理
+    /// </summary>
     private void SetupDataGridView()
     {
         dgvConfigurations.AutoGenerateColumns = false;
@@ -54,11 +92,11 @@ public partial class ConfigurationListForm : Form
         dgvConfigurations.AllowUserToAddRows = false;
         dgvConfigurations.AllowUserToDeleteRows = false;
 
-        // Add columns
+        // 添加列
         dgvConfigurations.Columns.Add(new DataGridViewTextBoxColumn
         {
             Name = "Name",
-            HeaderText = "Configuration Name",
+            HeaderText = "配置名称",
             DataPropertyName = "Name",
             Width = 200
         });
@@ -66,7 +104,7 @@ public partial class ConfigurationListForm : Form
         dgvConfigurations.Columns.Add(new DataGridViewTextBoxColumn
         {
             Name = "MySQLHost",
-            HeaderText = "MySQL Host",
+            HeaderText = "MySQL主机",
             DataPropertyName = "MySQLConnection.Host",
             Width = 120
         });
@@ -74,7 +112,7 @@ public partial class ConfigurationListForm : Form
         dgvConfigurations.Columns.Add(new DataGridViewTextBoxColumn
         {
             Name = "TargetServer",
-            HeaderText = "Target Server",
+            HeaderText = "目标服务器",
             DataPropertyName = "TargetServer.IPAddress",
             Width = 120
         });
@@ -82,7 +120,7 @@ public partial class ConfigurationListForm : Form
         dgvConfigurations.Columns.Add(new DataGridViewCheckBoxColumn
         {
             Name = "IsActive",
-            HeaderText = "Active",
+            HeaderText = "激活",
             DataPropertyName = "IsActive",
             Width = 60
         });
@@ -90,17 +128,76 @@ public partial class ConfigurationListForm : Form
         dgvConfigurations.Columns.Add(new DataGridViewTextBoxColumn
         {
             Name = "CreatedAt",
-            HeaderText = "Created",
+            HeaderText = "创建时间",
             DataPropertyName = "CreatedAt",
             Width = 120,
             DefaultCellStyle = new DataGridViewCellStyle { Format = "yyyy-MM-dd HH:mm" }
         });
 
-        // Handle cell formatting for nested properties
+        // 处理嵌套属性的单元格格式化
         dgvConfigurations.CellFormatting += DgvConfigurations_CellFormatting;
         dgvConfigurations.SelectionChanged += DgvConfigurations_SelectionChanged;
     }
 
+    /// <summary>
+    /// 异步加载所有备份配置
+    /// 从数据库获取配置列表并更新界面显示
+    /// </summary>
+    private async void LoadConfigurations()
+    {
+        try
+        {
+            btnRefresh.Enabled = false;
+            btnRefresh.Text = "加载中...";
+
+            _configurations = (await _configRepository.GetAllAsync()).ToList();
+            dgvConfigurations.DataSource = _configurations;
+
+            lblStatus.Text = $"已加载 {_configurations.Count} 个配置";
+            lblStatus.ForeColor = Color.Green;
+
+            _logger.LogInformation("已加载 {Count} 个配置", _configurations.Count);
+        }
+        catch (Exception ex)
+        {
+            lblStatus.Text = $"加载配置时发生错误: {ex.Message}";
+            lblStatus.ForeColor = Color.Red;
+            _logger.LogError(ex, "加载配置时发生错误");
+        }
+        finally
+        {
+            btnRefresh.Enabled = true;
+            btnRefresh.Text = "刷新";
+        }
+    }
+
+    #endregion
+
+    #region 公共方法
+
+    /// <summary>
+    /// 获取当前选中的备份配置
+    /// </summary>
+    /// <returns>选中的备份配置，如果没有选中则返回null</returns>
+    public BackupConfiguration? GetSelectedConfiguration()
+    {
+        if (dgvConfigurations.SelectedRows.Count > 0)
+        {
+            return dgvConfigurations.SelectedRows[0].DataBoundItem as BackupConfiguration;
+        }
+        return null;
+    }
+
+    #endregion
+
+    #region 事件处理程序
+
+    /// <summary>
+    /// 配置网格单元格格式化事件处理程序
+    /// 自定义显示嵌套属性的值（如MySQL主机和目标服务器）
+    /// </summary>
+    /// <param name="sender">事件发送者</param>
+    /// <param name="e">单元格格式化事件参数</param>
     private void DgvConfigurations_CellFormatting(object? sender, DataGridViewCellFormattingEventArgs e)
     {
         if (dgvConfigurations.Rows[e.RowIndex].DataBoundItem is BackupConfiguration config)
@@ -117,6 +214,12 @@ public partial class ConfigurationListForm : Form
         }
     }
 
+    /// <summary>
+    /// 配置网格选择变化事件处理程序
+    /// 根据选择状态和配置的激活状态更新按钮的可用性
+    /// </summary>
+    /// <param name="sender">事件发送者</param>
+    /// <param name="e">事件参数</param>
     private void DgvConfigurations_SelectionChanged(object? sender, EventArgs e)
     {
         var hasSelection = dgvConfigurations.SelectedRows.Count > 0;
@@ -132,34 +235,12 @@ public partial class ConfigurationListForm : Form
         }
     }
 
-    private async void LoadConfigurations()
-    {
-        try
-        {
-            btnRefresh.Enabled = false;
-            btnRefresh.Text = "Loading...";
-
-            _configurations = (await _configRepository.GetAllAsync()).ToList();
-            dgvConfigurations.DataSource = _configurations;
-
-            lblStatus.Text = $"Loaded {_configurations.Count} configuration(s)";
-            lblStatus.ForeColor = Color.Green;
-
-            _logger.LogInformation("Loaded {Count} configurations", _configurations.Count);
-        }
-        catch (Exception ex)
-        {
-            lblStatus.Text = $"Error loading configurations: {ex.Message}";
-            lblStatus.ForeColor = Color.Red;
-            _logger.LogError(ex, "Error loading configurations");
-        }
-        finally
-        {
-            btnRefresh.Enabled = true;
-            btnRefresh.Text = "Refresh";
-        }
-    }
-
+    /// <summary>
+    /// 新建按钮点击事件处理程序
+    /// 打开配置窗体创建新的备份配置
+    /// </summary>
+    /// <param name="sender">事件发送者</param>
+    /// <param name="e">事件参数</param>
     private void btnNew_Click(object sender, EventArgs e)
     {
         try
@@ -172,11 +253,17 @@ public partial class ConfigurationListForm : Form
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating new configuration");
-            MessageBox.Show($"Error creating configuration: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            _logger.LogError(ex, "创建新配置时发生错误");
+            MessageBox.Show($"创建配置时发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 
+    /// <summary>
+    /// 编辑按钮点击事件处理程序
+    /// 打开配置窗体编辑选中的备份配置
+    /// </summary>
+    /// <param name="sender">事件发送者</param>
+    /// <param name="e">事件参数</param>
     private void btnEdit_Click(object sender, EventArgs e)
     {
         try
@@ -196,11 +283,17 @@ public partial class ConfigurationListForm : Form
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error editing configuration");
-            MessageBox.Show($"Error editing configuration: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            _logger.LogError(ex, "编辑配置时发生错误");
+            MessageBox.Show($"编辑配置时发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 
+    /// <summary>
+    /// 删除按钮点击事件处理程序
+    /// 删除选中的备份配置（需要用户确认）
+    /// </summary>
+    /// <param name="sender">事件发送者</param>
+    /// <param name="e">事件参数</param>
     private async void btnDelete_Click(object sender, EventArgs e)
     {
         try
@@ -213,8 +306,8 @@ public partial class ConfigurationListForm : Form
                 return;
 
             var result = MessageBox.Show(
-                $"Are you sure you want to delete the configuration '{selectedConfig.Name}'?\n\nThis action cannot be undone.",
-                "Confirm Delete",
+                $"确定要删除配置 '{selectedConfig.Name}' 吗?\n\n此操作无法撤销。",
+                "确认删除",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Warning);
 
@@ -223,20 +316,26 @@ public partial class ConfigurationListForm : Form
                 await _configRepository.DeleteAsync(selectedConfig.Id);
                 LoadConfigurations();
                 
-                lblStatus.Text = $"Configuration '{selectedConfig.Name}' deleted successfully";
+                lblStatus.Text = $"配置 '{selectedConfig.Name}' 删除成功";
                 lblStatus.ForeColor = Color.Green;
                 
-                _logger.LogInformation("Deleted configuration: {Name}", selectedConfig.Name);
+                _logger.LogInformation("已删除配置: {Name}", selectedConfig.Name);
             }
         }
         catch (Exception ex)
         {
-            lblStatus.Text = $"Error deleting configuration: {ex.Message}";
+            lblStatus.Text = $"删除配置时发生错误: {ex.Message}";
             lblStatus.ForeColor = Color.Red;
-            _logger.LogError(ex, "Error deleting configuration");
+            _logger.LogError(ex, "删除配置时发生错误");
         }
     }
 
+    /// <summary>
+    /// 激活按钮点击事件处理程序
+    /// 激活选中的备份配置
+    /// </summary>
+    /// <param name="sender">事件发送者</param>
+    /// <param name="e">事件参数</param>
     private async void btnActivate_Click(object sender, EventArgs e)
     {
         try
@@ -252,24 +351,30 @@ public partial class ConfigurationListForm : Form
             if (success)
             {
                 LoadConfigurations();
-                lblStatus.Text = $"Configuration '{selectedConfig.Name}' activated";
+                lblStatus.Text = $"配置 '{selectedConfig.Name}' 已激活";
                 lblStatus.ForeColor = Color.Green;
-                _logger.LogInformation("Activated configuration: {Name}", selectedConfig.Name);
+                _logger.LogInformation("已激活配置: {Name}", selectedConfig.Name);
             }
             else
             {
-                lblStatus.Text = "Failed to activate configuration";
+                lblStatus.Text = "激活配置失败";
                 lblStatus.ForeColor = Color.Red;
             }
         }
         catch (Exception ex)
         {
-            lblStatus.Text = $"Error activating configuration: {ex.Message}";
+            lblStatus.Text = $"激活配置时发生错误: {ex.Message}";
             lblStatus.ForeColor = Color.Red;
-            _logger.LogError(ex, "Error activating configuration");
+            _logger.LogError(ex, "激活配置时发生错误");
         }
     }
 
+    /// <summary>
+    /// 停用按钮点击事件处理程序
+    /// 停用选中的备份配置
+    /// </summary>
+    /// <param name="sender">事件发送者</param>
+    /// <param name="e">事件参数</param>
     private async void btnDeactivate_Click(object sender, EventArgs e)
     {
         try
@@ -285,40 +390,45 @@ public partial class ConfigurationListForm : Form
             if (success)
             {
                 LoadConfigurations();
-                lblStatus.Text = $"Configuration '{selectedConfig.Name}' deactivated";
+                lblStatus.Text = $"配置 '{selectedConfig.Name}' 已停用";
                 lblStatus.ForeColor = Color.Green;
-                _logger.LogInformation("Deactivated configuration: {Name}", selectedConfig.Name);
+                _logger.LogInformation("已停用配置: {Name}", selectedConfig.Name);
             }
             else
             {
-                lblStatus.Text = "Failed to deactivate configuration";
+                lblStatus.Text = "停用配置失败";
                 lblStatus.ForeColor = Color.Red;
             }
         }
         catch (Exception ex)
         {
-            lblStatus.Text = $"Error deactivating configuration: {ex.Message}";
+            lblStatus.Text = $"停用配置时发生错误: {ex.Message}";
             lblStatus.ForeColor = Color.Red;
-            _logger.LogError(ex, "Error deactivating configuration");
+            _logger.LogError(ex, "停用配置时发生错误");
         }
     }
 
+    /// <summary>
+    /// 刷新按钮点击事件处理程序
+    /// 重新加载配置列表
+    /// </summary>
+    /// <param name="sender">事件发送者</param>
+    /// <param name="e">事件参数</param>
     private void btnRefresh_Click(object sender, EventArgs e)
     {
         LoadConfigurations();
     }
 
+    /// <summary>
+    /// 关闭按钮点击事件处理程序
+    /// 关闭配置列表窗体
+    /// </summary>
+    /// <param name="sender">事件发送者</param>
+    /// <param name="e">事件参数</param>
     private void btnClose_Click(object sender, EventArgs e)
     {
         this.Close();
     }
 
-    public BackupConfiguration? GetSelectedConfiguration()
-    {
-        if (dgvConfigurations.SelectedRows.Count > 0)
-        {
-            return dgvConfigurations.SelectedRows[0].DataBoundItem as BackupConfiguration;
-        }
-        return null;
-    }
+    #endregion
 }

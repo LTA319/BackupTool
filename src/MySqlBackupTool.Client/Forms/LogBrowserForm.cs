@@ -9,21 +9,66 @@ using System.Text;
 namespace MySqlBackupTool.Client.Forms;
 
 /// <summary>
-/// Form for browsing and searching backup logs
+/// 备份日志浏览器窗体
+/// 提供备份日志的浏览、搜索、过滤、查看详情和导出功能
 /// </summary>
 public partial class LogBrowserForm : Form
 {
+    #region 私有字段
+
+    /// <summary>
+    /// 依赖注入服务提供者，用于获取各种服务实例
+    /// </summary>
     private readonly IServiceProvider _serviceProvider;
+
+    /// <summary>
+    /// 日志记录器，用于记录日志浏览器窗体的操作和错误信息
+    /// </summary>
     private readonly ILogger<LogBrowserForm> _logger;
+
+    /// <summary>
+    /// 备份日志仓储接口，用于获取备份日志数据
+    /// </summary>
     private readonly IBackupLogRepository _logRepository;
+
+    /// <summary>
+    /// 备份配置仓储接口，用于获取配置信息
+    /// </summary>
     private readonly IBackupConfigurationRepository _configRepository;
+
+    /// <summary>
+    /// 备份报告服务，用于生成备份报告
+    /// </summary>
     private readonly BackupReportingService _reportingService;
-    
+
+    /// <summary>
+    /// 所有备份日志列表，存储从数据库加载的完整日志数据
+    /// </summary>
     private List<BackupLog> _allLogs = new();
+
+    /// <summary>
+    /// 过滤后的备份日志列表，根据用户设置的过滤条件筛选
+    /// </summary>
     private List<BackupLog> _filteredLogs = new();
+
+    /// <summary>
+    /// 备份配置列表，用于显示配置名称和过滤
+    /// </summary>
     private List<BackupConfiguration> _configurations = new();
+
+    /// <summary>
+    /// 当前选中的备份日志
+    /// </summary>
     private BackupLog? _selectedLog;
 
+    #endregion
+
+    #region 构造函数
+
+    /// <summary>
+    /// 初始化LogBrowserForm类的新实例
+    /// </summary>
+    /// <param name="serviceProvider">依赖注入服务提供者</param>
     public LogBrowserForm(IServiceProvider serviceProvider)
     {
         _serviceProvider = serviceProvider;
@@ -36,11 +81,19 @@ public partial class LogBrowserForm : Form
         InitializeForm();
     }
 
+    #endregion
+
+    #region 私有方法
+
+    /// <summary>
+    /// 初始化窗体的基本设置和属性
+    /// 设置窗体标题、大小、位置，配置数据网格、过滤器并加载数据
+    /// </summary>
     private void InitializeForm()
     {
         try
         {
-            this.Text = "Backup Log Browser";
+            this.Text = "备份日志浏览器";
             this.Size = new Size(1000, 700);
             this.StartPosition = FormStartPosition.CenterParent;
 
@@ -48,15 +101,19 @@ public partial class LogBrowserForm : Form
             SetupFilters();
             LoadData();
             
-            _logger.LogInformation("Log browser form initialized successfully");
+            _logger.LogInformation("日志浏览器窗体初始化成功");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error initializing log browser form");
-            MessageBox.Show($"Error initializing form: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            _logger.LogError(ex, "初始化日志浏览器窗体时发生错误");
+            MessageBox.Show($"初始化窗体时发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 
+    /// <summary>
+    /// 设置数据网格视图的列和属性
+    /// 配置日志列表网格的显示格式和事件处理
+    /// </summary>
     private void SetupDataGridView()
     {
         dgvLogs.AutoGenerateColumns = false;
@@ -66,18 +123,18 @@ public partial class LogBrowserForm : Form
         dgvLogs.AllowUserToAddRows = false;
         dgvLogs.AllowUserToDeleteRows = false;
 
-        // Add columns
+        // 添加列
         dgvLogs.Columns.Add(new DataGridViewTextBoxColumn
         {
             Name = "ConfigName",
-            HeaderText = "Configuration",
+            HeaderText = "配置名称",
             Width = 120
         });
 
         dgvLogs.Columns.Add(new DataGridViewTextBoxColumn
         {
             Name = "Status",
-            HeaderText = "Status",
+            HeaderText = "状态",
             DataPropertyName = "Status",
             Width = 100
         });
@@ -85,7 +142,7 @@ public partial class LogBrowserForm : Form
         dgvLogs.Columns.Add(new DataGridViewTextBoxColumn
         {
             Name = "StartTime",
-            HeaderText = "Start Time",
+            HeaderText = "开始时间",
             DataPropertyName = "StartTime",
             Width = 130,
             DefaultCellStyle = new DataGridViewCellStyle { Format = "yyyy-MM-dd HH:mm:ss" }
@@ -94,21 +151,21 @@ public partial class LogBrowserForm : Form
         dgvLogs.Columns.Add(new DataGridViewTextBoxColumn
         {
             Name = "Duration",
-            HeaderText = "Duration",
+            HeaderText = "持续时间",
             Width = 80
         });
 
         dgvLogs.Columns.Add(new DataGridViewTextBoxColumn
         {
             Name = "FileSize",
-            HeaderText = "File Size",
+            HeaderText = "文件大小",
             Width = 80
         });
 
         dgvLogs.Columns.Add(new DataGridViewTextBoxColumn
         {
             Name = "FilePath",
-            HeaderText = "File Path",
+            HeaderText = "文件路径",
             DataPropertyName = "FilePath",
             Width = 200
         });
@@ -116,36 +173,263 @@ public partial class LogBrowserForm : Form
         dgvLogs.Columns.Add(new DataGridViewTextBoxColumn
         {
             Name = "ErrorMessage",
-            HeaderText = "Error",
+            HeaderText = "错误信息",
             DataPropertyName = "ErrorMessage",
             Width = 150
         });
 
-        // Handle cell formatting and selection
+        // 处理单元格格式化和选择
         dgvLogs.CellFormatting += DgvLogs_CellFormatting;
         dgvLogs.SelectionChanged += DgvLogs_SelectionChanged;
         dgvLogs.RowPrePaint += DgvLogs_RowPrePaint;
     }
 
+    /// <summary>
+    /// 设置过滤器控件的初始值
+    /// 配置日期范围、状态和配置过滤器的默认选项
+    /// </summary>
     private void SetupFilters()
     {
-        // Setup date filters
+        // 设置日期过滤器
         dtpStartDate.Value = DateTime.Now.AddDays(-30);
         dtpEndDate.Value = DateTime.Now;
 
-        // Setup status filter
-        cmbStatus.Items.Add("All Statuses");
+        // 设置状态过滤器
+        cmbStatus.Items.Add("所有状态");
         foreach (BackupStatus status in Enum.GetValues<BackupStatus>())
         {
             cmbStatus.Items.Add(status.ToString());
         }
         cmbStatus.SelectedIndex = 0;
 
-        // Configuration filter will be populated when configurations are loaded
-        cmbConfiguration.Items.Add("All Configurations");
+        // 配置过滤器将在加载配置时填充
+        cmbConfiguration.Items.Add("所有配置");
         cmbConfiguration.SelectedIndex = 0;
     }
 
+    /// <summary>
+    /// 异步加载所有数据
+    /// 包括备份配置和日志数据
+    /// </summary>
+    private async void LoadData()
+    {
+        try
+        {
+            btnRefresh.Enabled = false;
+            btnRefresh.Text = "加载中...";
+            lblStatus.Text = "正在加载数据...";
+            lblStatus.ForeColor = Color.Blue;
+
+            // 加载配置
+            _configurations = (await _configRepository.GetAllAsync()).ToList();
+            
+            // 更新配置过滤器
+            cmbConfiguration.Items.Clear();
+            cmbConfiguration.Items.Add("所有配置");
+            foreach (var config in _configurations)
+            {
+                cmbConfiguration.Items.Add(config.Name);
+            }
+            cmbConfiguration.SelectedIndex = 0;
+
+            // 加载日志
+            await LoadLogs();
+
+            lblStatus.Text = $"已加载 {_allLogs.Count} 条日志记录";
+            lblStatus.ForeColor = Color.Green;
+            
+            _logger.LogInformation("已加载 {Count} 条日志记录", _allLogs.Count);
+        }
+        catch (Exception ex)
+        {
+            lblStatus.Text = $"加载数据时发生错误: {ex.Message}";
+            lblStatus.ForeColor = Color.Red;
+            _logger.LogError(ex, "加载日志数据时发生错误");
+        }
+        finally
+        {
+            btnRefresh.Enabled = true;
+            btnRefresh.Text = "刷新";
+        }
+    }
+
+    /// <summary>
+    /// 根据日期范围异步加载日志数据
+    /// </summary>
+    /// <returns>异步任务</returns>
+    private async Task LoadLogs()
+    {
+        var startDate = dtpStartDate.Value.Date;
+        var endDate = dtpEndDate.Value.Date.AddDays(1).AddTicks(-1);
+        
+        _allLogs = (await _logRepository.GetByDateRangeAsync(startDate, endDate)).ToList();
+        ApplyFilters();
+    }
+
+    /// <summary>
+    /// 应用用户设置的过滤条件
+    /// 根据状态、配置和搜索文本过滤日志列表
+    /// </summary>
+    private void ApplyFilters()
+    {
+        _filteredLogs = _allLogs.Where(log =>
+        {
+            // 状态过滤
+            if (cmbStatus.SelectedIndex > 0 && cmbStatus.SelectedItem != null)
+            {
+                var selectedStatus = (BackupStatus)Enum.Parse(typeof(BackupStatus), cmbStatus.SelectedItem.ToString()!);
+                if (log.Status != selectedStatus)
+                    return false;
+            }
+
+            // 配置过滤
+            if (cmbConfiguration.SelectedIndex > 0 && cmbConfiguration.SelectedItem != null)
+            {
+                var selectedConfigName = cmbConfiguration.SelectedItem.ToString()!;
+                var config = _configurations.FirstOrDefault(c => c.Name == selectedConfigName);
+                if (config == null || log.BackupConfigId != config.Id)
+                    return false;
+            }
+
+            // 搜索文本过滤
+            if (!string.IsNullOrWhiteSpace(txtSearch.Text))
+            {
+                var searchText = txtSearch.Text.ToLower();
+                var config = _configurations.FirstOrDefault(c => c.Id == log.BackupConfigId);
+                var configName = config?.Name?.ToLower() ?? "";
+                var filePath = log.FilePath?.ToLower() ?? "";
+                var errorMessage = log.ErrorMessage?.ToLower() ?? "";
+
+                if (!configName.Contains(searchText) && 
+                    !filePath.Contains(searchText) && 
+                    !errorMessage.Contains(searchText))
+                    return false;
+            }
+
+            return true;
+        }).ToList();
+
+        dgvLogs.DataSource = _filteredLogs;
+        lblFilteredCount.Text = $"显示 {_filteredLogs.Count} / {_allLogs.Count} 条记录";
+    }
+
+    /// <summary>
+    /// 异步加载选中日志的详细信息
+    /// 包括传输日志和错误信息
+    /// </summary>
+    private async void LoadLogDetails()
+    {
+        if (_selectedLog == null)
+        {
+            txtLogDetails.Clear();
+            return;
+        }
+
+        try
+        {
+            // 加载包含传输日志的详细日志
+            var detailedLog = await _logRepository.GetWithTransferLogsAsync(_selectedLog.Id);
+            if (detailedLog == null)
+            {
+                txtLogDetails.Text = "未找到日志详情。";
+                return;
+            }
+
+            var sb = new StringBuilder();
+            var config = _configurations.FirstOrDefault(c => c.Id == detailedLog.BackupConfigId);
+
+            sb.AppendLine("=== 备份日志详情 ===");
+            sb.AppendLine($"配置名称: {config?.Name ?? "未知"}");
+            sb.AppendLine($"状态: {detailedLog.Status}");
+            sb.AppendLine($"开始时间: {detailedLog.StartTime:yyyy-MM-dd HH:mm:ss}");
+            
+            if (detailedLog.EndTime.HasValue)
+            {
+                sb.AppendLine($"结束时间: {detailedLog.EndTime.Value:yyyy-MM-dd HH:mm:ss}");
+                sb.AppendLine($"持续时间: {detailedLog.Duration?.ToString(@"hh\:mm\:ss")}");
+            }
+
+            if (!string.IsNullOrEmpty(detailedLog.FilePath))
+            {
+                sb.AppendLine($"文件路径: {detailedLog.FilePath}");
+            }
+
+            if (detailedLog.FileSize.HasValue)
+            {
+                sb.AppendLine($"文件大小: {FormatFileSize(detailedLog.FileSize.Value)}");
+            }
+
+            if (!string.IsNullOrEmpty(detailedLog.ResumeToken))
+            {
+                sb.AppendLine($"恢复令牌: {detailedLog.ResumeToken}");
+            }
+
+            if (!string.IsNullOrEmpty(detailedLog.ErrorMessage))
+            {
+                sb.AppendLine();
+                sb.AppendLine("=== 错误信息 ===");
+                sb.AppendLine(detailedLog.ErrorMessage);
+            }
+
+            if (detailedLog.TransferLogs.Any())
+            {
+                sb.AppendLine();
+                sb.AppendLine("=== 传输日志 ===");
+                sb.AppendLine($"{"块号",-8} {"大小",-12} {"时间",-20} {"状态",-10}");
+                sb.AppendLine(new string('-', 60));
+
+                foreach (var transferLog in detailedLog.TransferLogs.OrderBy(t => t.ChunkIndex))
+                {
+                    sb.AppendLine($"{transferLog.ChunkIndex,-8} {FormatFileSize(transferLog.ChunkSize),-12} " +
+                                $"{transferLog.TransferTime:HH:mm:ss.fff},-20 {transferLog.Status,-10}");
+                    
+                    if (!string.IsNullOrEmpty(transferLog.ErrorMessage))
+                    {
+                        sb.AppendLine($"         错误: {transferLog.ErrorMessage}");
+                    }
+                }
+            }
+
+            txtLogDetails.Text = sb.ToString();
+        }
+        catch (Exception ex)
+        {
+            txtLogDetails.Text = $"加载日志详情时发生错误: {ex.Message}";
+            _logger.LogError(ex, "加载日志 {LogId} 的详情时发生错误", _selectedLog.Id);
+        }
+    }
+
+    /// <summary>
+    /// 格式化文件大小显示
+    /// 将字节数转换为可读的文件大小格式
+    /// </summary>
+    /// <param name="bytes">文件大小（字节）</param>
+    /// <returns>格式化的文件大小字符串</returns>
+    private static string FormatFileSize(long bytes)
+    {
+        if (bytes == 0) return "0 B";
+        
+        string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
+
+    #endregion
+
+    #region 事件处理程序
+
+    /// <summary>
+    /// 日志网格单元格格式化事件处理程序
+    /// 自定义显示配置名称、持续时间和文件大小
+    /// </summary>
+    /// <param name="sender">事件发送者</param>
+    /// <param name="e">单元格格式化事件参数</param>
     private void DgvLogs_CellFormatting(object? sender, DataGridViewCellFormattingEventArgs e)
     {
         if (dgvLogs.Rows[e.RowIndex].DataBoundItem is BackupLog log)
@@ -154,7 +438,7 @@ public partial class LogBrowserForm : Form
             {
                 case "ConfigName":
                     var config = _configurations.FirstOrDefault(c => c.Id == log.BackupConfigId);
-                    e.Value = config?.Name ?? "Unknown";
+                    e.Value = config?.Name ?? "未知";
                     break;
                 case "Duration":
                     var duration = log.Duration;
@@ -169,7 +453,7 @@ public partial class LogBrowserForm : Form
                     }
                     else
                     {
-                        e.Value = "N/A";
+                        e.Value = "不可用";
                     }
                     break;
                 case "FileSize":
@@ -179,13 +463,19 @@ public partial class LogBrowserForm : Form
                     }
                     else
                     {
-                        e.Value = "N/A";
+                        e.Value = "不可用";
                     }
                     break;
             }
         }
     }
 
+    /// <summary>
+    /// 日志网格行预绘制事件处理程序
+    /// 根据备份状态设置行的背景颜色
+    /// </summary>
+    /// <param name="sender">事件发送者</param>
+    /// <param name="e">行预绘制事件参数</param>
     private void DgvLogs_RowPrePaint(object? sender, DataGridViewRowPrePaintEventArgs e)
     {
         if (dgvLogs.Rows[e.RowIndex].DataBoundItem is BackupLog log)
@@ -215,6 +505,12 @@ public partial class LogBrowserForm : Form
         }
     }
 
+    /// <summary>
+    /// 日志网格选择变化事件处理程序
+    /// 更新选中的日志并加载详细信息
+    /// </summary>
+    /// <param name="sender">事件发送者</param>
+    /// <param name="e">事件参数</param>
     private void DgvLogs_SelectionChanged(object? sender, EventArgs e)
     {
         if (dgvLogs.SelectedRows.Count > 0)
@@ -233,182 +529,12 @@ public partial class LogBrowserForm : Form
         }
     }
 
-    private async void LoadData()
-    {
-        try
-        {
-            btnRefresh.Enabled = false;
-            btnRefresh.Text = "Loading...";
-            lblStatus.Text = "Loading data...";
-            lblStatus.ForeColor = Color.Blue;
-
-            // Load configurations
-            _configurations = (await _configRepository.GetAllAsync()).ToList();
-            
-            // Update configuration filter
-            cmbConfiguration.Items.Clear();
-            cmbConfiguration.Items.Add("All Configurations");
-            foreach (var config in _configurations)
-            {
-                cmbConfiguration.Items.Add(config.Name);
-            }
-            cmbConfiguration.SelectedIndex = 0;
-
-            // Load logs
-            await LoadLogs();
-
-            lblStatus.Text = $"Loaded {_allLogs.Count} log entries";
-            lblStatus.ForeColor = Color.Green;
-            
-            _logger.LogInformation("Loaded {Count} log entries", _allLogs.Count);
-        }
-        catch (Exception ex)
-        {
-            lblStatus.Text = $"Error loading data: {ex.Message}";
-            lblStatus.ForeColor = Color.Red;
-            _logger.LogError(ex, "Error loading log data");
-        }
-        finally
-        {
-            btnRefresh.Enabled = true;
-            btnRefresh.Text = "Refresh";
-        }
-    }
-
-    private async Task LoadLogs()
-    {
-        var startDate = dtpStartDate.Value.Date;
-        var endDate = dtpEndDate.Value.Date.AddDays(1).AddTicks(-1);
-        
-        _allLogs = (await _logRepository.GetByDateRangeAsync(startDate, endDate)).ToList();
-        ApplyFilters();
-    }
-
-    private void ApplyFilters()
-    {
-        _filteredLogs = _allLogs.Where(log =>
-        {
-            // Status filter
-            if (cmbStatus.SelectedIndex > 0 && cmbStatus.SelectedItem != null)
-            {
-                var selectedStatus = (BackupStatus)Enum.Parse(typeof(BackupStatus), cmbStatus.SelectedItem.ToString()!);
-                if (log.Status != selectedStatus)
-                    return false;
-            }
-
-            // Configuration filter
-            if (cmbConfiguration.SelectedIndex > 0 && cmbConfiguration.SelectedItem != null)
-            {
-                var selectedConfigName = cmbConfiguration.SelectedItem.ToString()!;
-                var config = _configurations.FirstOrDefault(c => c.Name == selectedConfigName);
-                if (config == null || log.BackupConfigId != config.Id)
-                    return false;
-            }
-
-            // Search text filter
-            if (!string.IsNullOrWhiteSpace(txtSearch.Text))
-            {
-                var searchText = txtSearch.Text.ToLower();
-                var config = _configurations.FirstOrDefault(c => c.Id == log.BackupConfigId);
-                var configName = config?.Name?.ToLower() ?? "";
-                var filePath = log.FilePath?.ToLower() ?? "";
-                var errorMessage = log.ErrorMessage?.ToLower() ?? "";
-
-                if (!configName.Contains(searchText) && 
-                    !filePath.Contains(searchText) && 
-                    !errorMessage.Contains(searchText))
-                    return false;
-            }
-
-            return true;
-        }).ToList();
-
-        dgvLogs.DataSource = _filteredLogs;
-        lblFilteredCount.Text = $"Showing {_filteredLogs.Count} of {_allLogs.Count} entries";
-    }
-
-    private async void LoadLogDetails()
-    {
-        if (_selectedLog == null)
-        {
-            txtLogDetails.Clear();
-            return;
-        }
-
-        try
-        {
-            // Load detailed log with transfer logs
-            var detailedLog = await _logRepository.GetWithTransferLogsAsync(_selectedLog.Id);
-            if (detailedLog == null)
-            {
-                txtLogDetails.Text = "Log details not found.";
-                return;
-            }
-
-            var sb = new StringBuilder();
-            var config = _configurations.FirstOrDefault(c => c.Id == detailedLog.BackupConfigId);
-
-            sb.AppendLine("=== BACKUP LOG DETAILS ===");
-            sb.AppendLine($"Configuration: {config?.Name ?? "Unknown"}");
-            sb.AppendLine($"Status: {detailedLog.Status}");
-            sb.AppendLine($"Start Time: {detailedLog.StartTime:yyyy-MM-dd HH:mm:ss}");
-            
-            if (detailedLog.EndTime.HasValue)
-            {
-                sb.AppendLine($"End Time: {detailedLog.EndTime.Value:yyyy-MM-dd HH:mm:ss}");
-                sb.AppendLine($"Duration: {detailedLog.Duration?.ToString(@"hh\:mm\:ss")}");
-            }
-
-            if (!string.IsNullOrEmpty(detailedLog.FilePath))
-            {
-                sb.AppendLine($"File Path: {detailedLog.FilePath}");
-            }
-
-            if (detailedLog.FileSize.HasValue)
-            {
-                sb.AppendLine($"File Size: {FormatFileSize(detailedLog.FileSize.Value)}");
-            }
-
-            if (!string.IsNullOrEmpty(detailedLog.ResumeToken))
-            {
-                sb.AppendLine($"Resume Token: {detailedLog.ResumeToken}");
-            }
-
-            if (!string.IsNullOrEmpty(detailedLog.ErrorMessage))
-            {
-                sb.AppendLine();
-                sb.AppendLine("=== ERROR MESSAGE ===");
-                sb.AppendLine(detailedLog.ErrorMessage);
-            }
-
-            if (detailedLog.TransferLogs.Any())
-            {
-                sb.AppendLine();
-                sb.AppendLine("=== TRANSFER LOGS ===");
-                sb.AppendLine($"{"Chunk",-8} {"Size",-12} {"Time",-20} {"Status",-10}");
-                sb.AppendLine(new string('-', 60));
-
-                foreach (var transferLog in detailedLog.TransferLogs.OrderBy(t => t.ChunkIndex))
-                {
-                    sb.AppendLine($"{transferLog.ChunkIndex,-8} {FormatFileSize(transferLog.ChunkSize),-12} " +
-                                $"{transferLog.TransferTime:HH:mm:ss.fff},-20 {transferLog.Status,-10}");
-                    
-                    if (!string.IsNullOrEmpty(transferLog.ErrorMessage))
-                    {
-                        sb.AppendLine($"         Error: {transferLog.ErrorMessage}");
-                    }
-                }
-            }
-
-            txtLogDetails.Text = sb.ToString();
-        }
-        catch (Exception ex)
-        {
-            txtLogDetails.Text = $"Error loading log details: {ex.Message}";
-            _logger.LogError(ex, "Error loading log details for log {LogId}", _selectedLog.Id);
-        }
-    }
-
+    /// <summary>
+    /// 过滤按钮点击事件处理程序
+    /// 根据设置的日期范围重新加载日志
+    /// </summary>
+    /// <param name="sender">事件发送者</param>
+    /// <param name="e">事件参数</param>
     private async void btnFilter_Click(object sender, EventArgs e)
     {
         try
@@ -417,11 +543,17 @@ public partial class LogBrowserForm : Form
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error applying filters");
-            MessageBox.Show($"Error applying filters: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            _logger.LogError(ex, "应用过滤器时发生错误");
+            MessageBox.Show($"应用过滤器时发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 
+    /// <summary>
+    /// 清除过滤器按钮点击事件处理程序
+    /// 重置所有过滤条件到默认值
+    /// </summary>
+    /// <param name="sender">事件发送者</param>
+    /// <param name="e">事件参数</param>
     private void btnClearFilters_Click(object sender, EventArgs e)
     {
         dtpStartDate.Value = DateTime.Now.AddDays(-30);
@@ -432,21 +564,45 @@ public partial class LogBrowserForm : Form
         ApplyFilters();
     }
 
+    /// <summary>
+    /// 搜索文本框文本变化事件处理程序
+    /// 实时应用搜索过滤
+    /// </summary>
+    /// <param name="sender">事件发送者</param>
+    /// <param name="e">事件参数</param>
     private void txtSearch_TextChanged(object sender, EventArgs e)
     {
         ApplyFilters();
     }
 
+    /// <summary>
+    /// 状态下拉框选择变化事件处理程序
+    /// 应用状态过滤
+    /// </summary>
+    /// <param name="sender">事件发送者</param>
+    /// <param name="e">事件参数</param>
     private void cmbStatus_SelectedIndexChanged(object sender, EventArgs e)
     {
         ApplyFilters();
     }
 
+    /// <summary>
+    /// 配置下拉框选择变化事件处理程序
+    /// 应用配置过滤
+    /// </summary>
+    /// <param name="sender">事件发送者</param>
+    /// <param name="e">事件参数</param>
     private void cmbConfiguration_SelectedIndexChanged(object sender, EventArgs e)
     {
         ApplyFilters();
     }
 
+    /// <summary>
+    /// 查看详情按钮点击事件处理程序
+    /// 打开日志详情窗体显示完整的日志信息
+    /// </summary>
+    /// <param name="sender">事件发送者</param>
+    /// <param name="e">事件参数</param>
     private void btnViewDetails_Click(object sender, EventArgs e)
     {
         if (_selectedLog == null)
@@ -459,17 +615,23 @@ public partial class LogBrowserForm : Form
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error showing log details");
-            MessageBox.Show($"Error showing details: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            _logger.LogError(ex, "显示日志详情时发生错误");
+            MessageBox.Show($"显示详情时发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 
+    /// <summary>
+    /// 生成报告按钮点击事件处理程序
+    /// 根据当前过滤条件生成备份报告
+    /// </summary>
+    /// <param name="sender">事件发送者</param>
+    /// <param name="e">事件参数</param>
     private async void btnGenerateReport_Click(object sender, EventArgs e)
     {
         try
         {
             btnGenerateReport.Enabled = false;
-            btnGenerateReport.Text = "Generating...";
+            btnGenerateReport.Text = "生成中...";
 
             var criteria = new ReportCriteria
             {
@@ -486,16 +648,22 @@ public partial class LogBrowserForm : Form
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating report");
-            MessageBox.Show($"Error generating report: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            _logger.LogError(ex, "生成报告时发生错误");
+            MessageBox.Show($"生成报告时发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
         finally
         {
             btnGenerateReport.Enabled = true;
-            btnGenerateReport.Text = "Generate Report";
+            btnGenerateReport.Text = "生成报告";
         }
     }
 
+    /// <summary>
+    /// 导出日志按钮点击事件处理程序
+    /// 将选中的日志详情导出到文本文件
+    /// </summary>
+    /// <param name="sender">事件发送者</param>
+    /// <param name="e">事件参数</param>
     private void btnExportLog_Click(object sender, EventArgs e)
     {
         if (_selectedLog == null)
@@ -504,45 +672,44 @@ public partial class LogBrowserForm : Form
         try
         {
             using var saveDialog = new SaveFileDialog();
-            saveDialog.Filter = "Text Files (*.txt)|*.txt|All Files (*.*)|*.*";
+            saveDialog.Filter = "文本文件 (*.txt)|*.txt|所有文件 (*.*)|*.*";
             saveDialog.FileName = $"backup_log_{_selectedLog.Id}_{_selectedLog.StartTime:yyyyMMdd_HHmmss}.txt";
 
             if (saveDialog.ShowDialog() == DialogResult.OK)
             {
                 File.WriteAllText(saveDialog.FileName, txtLogDetails.Text);
-                MessageBox.Show($"Log exported successfully to:\n{saveDialog.FileName}", "Export Complete", 
+                MessageBox.Show($"日志导出成功到:\n{saveDialog.FileName}", "导出完成", 
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error exporting log");
-            MessageBox.Show($"Error exporting log: {ex.Message}", "Export Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            _logger.LogError(ex, "导出日志时发生错误");
+            MessageBox.Show($"导出日志时发生错误: {ex.Message}", "导出错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 
+    /// <summary>
+    /// 刷新按钮点击事件处理程序
+    /// 重新加载所有数据
+    /// </summary>
+    /// <param name="sender">事件发送者</param>
+    /// <param name="e">事件参数</param>
     private void btnRefresh_Click(object sender, EventArgs e)
     {
         LoadData();
     }
 
+    /// <summary>
+    /// 关闭按钮点击事件处理程序
+    /// 关闭日志浏览器窗体
+    /// </summary>
+    /// <param name="sender">事件发送者</param>
+    /// <param name="e">事件参数</param>
     private void btnClose_Click(object sender, EventArgs e)
     {
         this.Close();
     }
 
-    private static string FormatFileSize(long bytes)
-    {
-        if (bytes == 0) return "0 B";
-        
-        string[] sizes = { "B", "KB", "MB", "GB", "TB" };
-        double len = bytes;
-        int order = 0;
-        while (len >= 1024 && order < sizes.Length - 1)
-        {
-            order++;
-            len = len / 1024;
-        }
-        return $"{len:0.##} {sizes[order]}";
-    }
+    #endregion
 }
