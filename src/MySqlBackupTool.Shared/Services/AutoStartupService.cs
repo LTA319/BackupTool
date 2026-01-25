@@ -13,7 +13,8 @@ public class AutoStartupService : IHostedService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<AutoStartupService> _logger;
-    private readonly TimeSpan _startupDelay = TimeSpan.FromMinutes(2); // Wait 2 minutes after startup
+    //private readonly TimeSpan _startupDelay = TimeSpan.FromMinutes(2); // Wait 2 minutes after startup
+    private readonly TimeSpan _startupDelay = TimeSpan.FromSeconds(10); // Wait 2 minutes after startup
 
     public AutoStartupService(
         IServiceProvider serviceProvider,

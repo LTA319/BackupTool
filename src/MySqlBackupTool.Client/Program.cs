@@ -59,7 +59,7 @@ internal static class Program
                 
                 // 添加备份调度服务（当前已禁用）
                 // 可根据需要重新启用备份调度功能
-                //services.AddBackupSchedulingServices();
+                services.AddBackupSchedulingServices();
             });
 
         // 构建主机实例
