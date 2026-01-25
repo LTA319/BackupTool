@@ -5,7 +5,8 @@ using MySqlBackupTool.Shared.Models;
 namespace MySqlBackupTool.Shared.Services;
 
 /// <summary>
-/// Orchestrates the complete backup workflow including MySQL management, compression, and file transfer
+/// 备份编排器，协调完整的备份工作流程，包括MySQL管理、压缩和文件传输
+/// 负责执行完整的备份流程：停止MySQL -> 压缩数据 -> 启动MySQL -> 验证连接 -> 传输文件
 /// </summary>
 public class BackupOrchestrator : IBackupOrchestrator
 {
@@ -15,6 +16,14 @@ public class BackupOrchestrator : IBackupOrchestrator
     private readonly IBackupLogService _backupLogService;
     private readonly ILogger<BackupOrchestrator> _logger;
 
+    /// <summary>
+    /// 构造函数，初始化备份编排器
+    /// </summary>
+    /// <param name="mysqlManager">MySQL管理器</param>
+    /// <param name="compressionService">压缩服务</param>
+    /// <param name="fileTransferClient">文件传输客户端</param>
+    /// <param name="backupLogService">备份日志服务</param>
+    /// <param name="logger">日志记录器</param>
     public BackupOrchestrator(
         IMySQLManager mysqlManager,
         ICompressionService compressionService,
@@ -30,8 +39,12 @@ public class BackupOrchestrator : IBackupOrchestrator
     }
 
     /// <summary>
-    /// Executes the complete backup workflow
+    /// 执行完整的备份工作流程
     /// </summary>
+    /// <param name="configuration">备份配置</param>
+    /// <param name="progress">进度报告器</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>备份结果</returns>
     public async Task<BackupResult> ExecuteBackupAsync(BackupConfiguration configuration, IProgress<BackupProgress>? progress = null, CancellationToken cancellationToken = default)
     {
         var operationId = Guid.NewGuid();
@@ -50,7 +63,7 @@ public class BackupOrchestrator : IBackupOrchestrator
 
         try
         {
-            // Validate configuration
+            // 验证配置
             var validationResult = await ValidateConfigurationAsync(configuration);
             if (!validationResult.IsValid)
             {
@@ -67,10 +80,10 @@ public class BackupOrchestrator : IBackupOrchestrator
                 };
             }
 
-            // Create backup log entry
+            // 创建备份日志条目
             backupLog = await _backupLogService.StartBackupAsync(configuration.Id);
 
-            // Step 1: Stop MySQL Instance
+            // 步骤1：停止MySQL实例
             backupProgress.CurrentStatus = BackupStatus.StoppingMySQL;
             backupProgress.CurrentOperation = "Stopping MySQL service";
             backupProgress.OverallProgress = 0.1;
@@ -100,7 +113,7 @@ public class BackupOrchestrator : IBackupOrchestrator
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            // Step 2: Compress Data Directory
+            // 步骤2：压缩数据目录
             backupProgress.CurrentStatus = BackupStatus.Compressing;
             backupProgress.CurrentOperation = "Compressing database files";
             backupProgress.OverallProgress = 0.2;
@@ -110,7 +123,7 @@ public class BackupOrchestrator : IBackupOrchestrator
             var compressionProgress = new Progress<CompressionProgress>(cp =>
             {
                 backupProgress.CurrentOperation = $"Compressing: {cp.CurrentFile}";
-                backupProgress.OverallProgress = 0.2 + (cp.Progress * 0.3); // 20% to 50%
+                backupProgress.OverallProgress = 0.2 + (cp.Progress * 0.3); // 20% 到 50%
                 progress?.Report(backupProgress);
             });
 
@@ -129,7 +142,7 @@ public class BackupOrchestrator : IBackupOrchestrator
             {
                 _logger.LogError(ex, "Compression failed for operation {OperationId}", operationId);
                 
-                // Attempt to restart MySQL before returning error
+                // 在返回错误前尝试重启MySQL
                 await RestartMySQLAsync(configuration.MySQLConnection.ServiceName, operationId);
                 await _backupLogService.CompleteBackupAsync(backupLog.Id, BackupStatus.Failed, errorMessage: $"Compression failed: {ex.Message}");
                 
@@ -145,7 +158,7 @@ public class BackupOrchestrator : IBackupOrchestrator
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            // Step 3: Start MySQL Instance
+            // 步骤3：启动MySQL实例
             backupProgress.CurrentStatus = BackupStatus.StartingMySQL;
             backupProgress.CurrentOperation = "Starting MySQL service";
             backupProgress.OverallProgress = 0.5;
@@ -161,7 +174,7 @@ public class BackupOrchestrator : IBackupOrchestrator
                 _logger.LogError("MySQL start failed for operation {OperationId}: {ServiceName}", 
                     operationId, configuration.MySQLConnection.ServiceName);
 
-                // Clean up compressed file
+                // 清理压缩文件
                 await CleanupTempFileAsync(compressedFilePath, operationId);
                 await _backupLogService.CompleteBackupAsync(backupLog.Id, BackupStatus.Failed, errorMessage: errorMessage);
                 
@@ -177,7 +190,7 @@ public class BackupOrchestrator : IBackupOrchestrator
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            // Step 4: Verify MySQL Availability
+            // 步骤4：验证MySQL可用性
             backupProgress.CurrentStatus = BackupStatus.Verifying;
             backupProgress.CurrentOperation = "Verifying MySQL availability";
             backupProgress.OverallProgress = 0.6;
@@ -191,7 +204,7 @@ public class BackupOrchestrator : IBackupOrchestrator
                 var errorMessage = "MySQL instance is not available after restart";
                 _logger.LogError("MySQL verification failed for operation {OperationId}", operationId);
 
-                // Clean up compressed file
+                // 清理压缩文件
                 await CleanupTempFileAsync(compressedFilePath, operationId);
                 await _backupLogService.CompleteBackupAsync(backupLog.Id, BackupStatus.Failed, errorMessage: errorMessage);
                 
@@ -207,7 +220,7 @@ public class BackupOrchestrator : IBackupOrchestrator
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            // Step 5: Transfer File
+            // 步骤5：传输文件
             backupProgress.CurrentStatus = BackupStatus.Transferring;
             backupProgress.CurrentOperation = "Transferring backup file";
             backupProgress.OverallProgress = 0.7;
@@ -238,7 +251,7 @@ public class BackupOrchestrator : IBackupOrchestrator
             {
                 _logger.LogError(ex, "File transfer failed for operation {OperationId}", operationId);
                 
-                // Clean up compressed file
+                // 清理压缩文件
                 await CleanupTempFileAsync(compressedFilePath, operationId);
                 await _backupLogService.CompleteBackupAsync(backupLog.Id, BackupStatus.Failed, errorMessage: $"File transfer failed: {ex.Message}");
                 
@@ -257,7 +270,7 @@ public class BackupOrchestrator : IBackupOrchestrator
                 _logger.LogError("File transfer failed for operation {OperationId}: {ErrorMessage}", 
                     operationId, transferResult.ErrorMessage);
 
-                // Clean up compressed file
+                // 清理压缩文件
                 await CleanupTempFileAsync(compressedFilePath, operationId);
                 await _backupLogService.CompleteBackupAsync(backupLog.Id, BackupStatus.Failed, errorMessage: transferResult.ErrorMessage ?? "Unknown transfer error");
                 
@@ -273,7 +286,7 @@ public class BackupOrchestrator : IBackupOrchestrator
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            // Step 6: Cleanup
+            // 步骤6：清理
             backupProgress.CurrentStatus = BackupStatus.Completed;
             backupProgress.CurrentOperation = "Cleaning up temporary files";
             backupProgress.OverallProgress = 0.9;
@@ -281,7 +294,7 @@ public class BackupOrchestrator : IBackupOrchestrator
 
             await CleanupTempFileAsync(compressedFilePath, operationId);
 
-            // Final progress update
+            // 最终进度更新
             backupProgress.OverallProgress = 1.0;
             backupProgress.CurrentOperation = "Backup completed successfully";
             progress?.Report(backupProgress);
@@ -289,7 +302,7 @@ public class BackupOrchestrator : IBackupOrchestrator
             var completedAt = DateTime.UtcNow;
             var duration = completedAt - startTime;
 
-            // Log successful completion
+            // 记录成功完成
             await _backupLogService.CompleteBackupAsync(backupLog.Id, BackupStatus.Completed, targetFileName, fileInfo.Length);
 
             _logger.LogInformation("Backup operation {OperationId} completed successfully in {Duration}", 
@@ -310,7 +323,7 @@ public class BackupOrchestrator : IBackupOrchestrator
         {
             _logger.LogWarning("Backup operation {OperationId} was cancelled", operationId);
             
-            // Ensure MySQL is restarted if operation was cancelled
+            // 确保在操作取消时重启MySQL
             await RestartMySQLAsync(configuration.MySQLConnection.ServiceName, operationId);
             await _backupLogService.CancelBackupAsync(backupLog?.Id ?? 0, "Operation was cancelled by user");
             
@@ -327,7 +340,7 @@ public class BackupOrchestrator : IBackupOrchestrator
         {
             _logger.LogError(ex, "Unexpected error during backup operation {OperationId}", operationId);
             
-            // Ensure MySQL is restarted if operation failed
+            // 确保在操作失败时重启MySQL
             await RestartMySQLAsync(configuration.MySQLConnection.ServiceName, operationId);
             await _backupLogService.CompleteBackupAsync(backupLog?.Id ?? 0, BackupStatus.Failed, errorMessage: $"Unexpected error: {ex.Message}");
             
@@ -343,8 +356,10 @@ public class BackupOrchestrator : IBackupOrchestrator
     }
 
     /// <summary>
-    /// Validates a backup configuration before execution
+    /// 在执行前验证备份配置
     /// </summary>
+    /// <param name="configuration">要验证的备份配置</param>
+    /// <returns>验证结果</returns>
     public async Task<BackupValidationResult> ValidateConfigurationAsync(BackupConfiguration configuration)
     {
         var result = new BackupValidationResult { IsValid = true };
@@ -353,7 +368,7 @@ public class BackupOrchestrator : IBackupOrchestrator
 
         try
         {
-            // Validate MySQL connection
+            // 验证MySQL连接
             if (configuration.MySQLConnection == null)
             {
                 errors.Add("MySQL connection information is required");
@@ -363,14 +378,14 @@ public class BackupOrchestrator : IBackupOrchestrator
                 var connectionValidation = configuration.MySQLConnection.Validate(new System.ComponentModel.DataAnnotations.ValidationContext(configuration.MySQLConnection));
                 errors.AddRange(connectionValidation.Select(v => v.ErrorMessage ?? "Unknown validation error"));
 
-                // Check if data directory exists
+                // 检查数据目录是否存在
                 if (!Directory.Exists(configuration.MySQLConnection.DataDirectoryPath))
                 {
                     errors.Add($"MySQL data directory not found: {configuration.MySQLConnection.DataDirectoryPath}");
                 }
             }
 
-            // Validate target server
+            // 验证目标服务器
             if (configuration.TargetServer == null)
             {
                 errors.Add("Target server information is required");
@@ -384,24 +399,24 @@ public class BackupOrchestrator : IBackupOrchestrator
                 }
             }
 
-            // Validate backup directory
+            // 验证备份目录
             if (string.IsNullOrWhiteSpace(configuration.TargetDirectory))
             {
                 errors.Add("Target directory is required");
             }
 
-            // Validate naming strategy
+            // 验证命名策略
             if (configuration.NamingStrategy == null)
             {
                 warnings.Add("No naming strategy specified, using default");
             }
 
-            // Check disk space (warning only)
+            // 检查磁盘空间（仅警告）
             try
             {
                 var tempPath = Path.GetTempPath();
                 var drive = new DriveInfo(Path.GetPathRoot(tempPath) ?? tempPath);
-                if (drive.AvailableFreeSpace < 1024 * 1024 * 1024) // Less than 1GB
+                if (drive.AvailableFreeSpace < 1024 * 1024 * 1024) // 少于1GB
                 {
                     warnings.Add($"Low disk space available for temporary files: {drive.AvailableFreeSpace / (1024 * 1024)} MB");
                 }
@@ -430,8 +445,10 @@ public class BackupOrchestrator : IBackupOrchestrator
     }
 
     /// <summary>
-    /// Attempts to restart MySQL service
+    /// 尝试重启MySQL服务
     /// </summary>
+    /// <param name="serviceName">服务名称</param>
+    /// <param name="operationId">操作ID</param>
     private async Task RestartMySQLAsync(string serviceName, Guid operationId)
     {
         try
@@ -459,8 +476,10 @@ public class BackupOrchestrator : IBackupOrchestrator
     }
 
     /// <summary>
-    /// Cleans up temporary backup file
+    /// 清理临时备份文件
     /// </summary>
+    /// <param name="filePath">文件路径</param>
+    /// <param name="operationId">操作ID</param>
     private async Task CleanupTempFileAsync(string filePath, Guid operationId)
     {
         try

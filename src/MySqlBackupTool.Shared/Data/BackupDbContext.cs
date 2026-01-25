@@ -5,27 +5,63 @@ using System.Text.Json;
 namespace MySqlBackupTool.Shared.Data;
 
 /// <summary>
-/// Entity Framework DbContext for the backup tool database
+/// 备份工具数据库的Entity Framework DbContext
+/// 提供对备份配置、计划、日志等实体的数据访问功能
 /// </summary>
 public class BackupDbContext : DbContext
 {
+    /// <summary>
+    /// 构造函数，初始化数据库上下文
+    /// </summary>
+    /// <param name="options">数据库上下文选项</param>
     public BackupDbContext(DbContextOptions<BackupDbContext> options) : base(options)
     {
     }
 
+    /// <summary>
+    /// 备份配置实体集合
+    /// </summary>
     public DbSet<BackupConfiguration> BackupConfigurations { get; set; }
+    
+    /// <summary>
+    /// 计划配置实体集合
+    /// </summary>
     public DbSet<ScheduleConfiguration> ScheduleConfigurations { get; set; }
+    
+    /// <summary>
+    /// 备份日志实体集合
+    /// </summary>
     public DbSet<BackupLog> BackupLogs { get; set; }
+    
+    /// <summary>
+    /// 传输日志实体集合
+    /// </summary>
     public DbSet<TransferLog> TransferLogs { get; set; }
+    
+    /// <summary>
+    /// 保留策略实体集合
+    /// </summary>
     public DbSet<RetentionPolicy> RetentionPolicies { get; set; }
+    
+    /// <summary>
+    /// 恢复令牌实体集合
+    /// </summary>
     public DbSet<ResumeToken> ResumeTokens { get; set; }
+    
+    /// <summary>
+    /// 恢复分块实体集合
+    /// </summary>
     public DbSet<ResumeChunk> ResumeChunks { get; set; }
 
+    /// <summary>
+    /// 配置实体模型和数据库映射关系
+    /// </summary>
+    /// <param name="modelBuilder">模型构建器</param>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Configure BackupConfiguration
+        // 配置备份配置实体
         modelBuilder.Entity<BackupConfiguration>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -35,7 +71,7 @@ public class BackupDbContext : DbContext
             entity.Property(e => e.TargetDirectory).IsRequired().HasMaxLength(500);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("datetime('now')");
 
-            // Configure complex properties as JSON
+            // 将复杂属性配置为JSON存储
             entity.Property(e => e.MySQLConnection)
                 .HasConversion(
                     v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
@@ -55,7 +91,7 @@ public class BackupDbContext : DbContext
                 );
         });
 
-        // Configure ScheduleConfiguration
+        // 配置计划配置实体
         modelBuilder.Entity<ScheduleConfiguration>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -63,14 +99,14 @@ public class BackupDbContext : DbContext
             entity.Property(e => e.ScheduleTime).IsRequired().HasMaxLength(50);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("datetime('now')");
 
-            // Configure relationship with BackupConfiguration
+            // 配置与备份配置的关系
             entity.HasOne(e => e.BackupConfiguration)
                 .WithMany()
                 .HasForeignKey(e => e.BackupConfigId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // Configure BackupLog
+        // 配置备份日志实体
         modelBuilder.Entity<BackupLog>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -79,20 +115,20 @@ public class BackupDbContext : DbContext
             entity.Property(e => e.FilePath).HasMaxLength(500);
             entity.Property(e => e.ResumeToken).HasMaxLength(100);
 
-            // Configure relationship with BackupConfiguration
+            // 配置与备份配置的关系
             entity.HasOne<BackupConfiguration>()
                 .WithMany()
                 .HasForeignKey(e => e.BackupConfigId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Configure relationship with TransferLogs
+            // 配置与传输日志的关系
             entity.HasMany(e => e.TransferLogs)
                 .WithOne(e => e.BackupLog)
                 .HasForeignKey(e => e.BackupLogId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // Configure TransferLog
+        // 配置传输日志实体
         modelBuilder.Entity<TransferLog>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -100,7 +136,7 @@ public class BackupDbContext : DbContext
             entity.Property(e => e.TransferTime).HasDefaultValueSql("datetime('now')");
         });
 
-        // Configure RetentionPolicy
+        // 配置保留策略实体
         modelBuilder.Entity<RetentionPolicy>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -109,7 +145,7 @@ public class BackupDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("datetime('now')");
         });
 
-        // Configure ResumeToken
+        // 配置恢复令牌实体
         modelBuilder.Entity<ResumeToken>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -122,33 +158,33 @@ public class BackupDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("datetime('now')");
             entity.Property(e => e.LastActivity).HasDefaultValueSql("datetime('now')");
 
-            // Configure relationship with BackupLog
+            // 配置与备份日志的关系
             entity.HasOne(e => e.BackupLog)
                 .WithMany()
                 .HasForeignKey(e => e.BackupLogId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            // Configure relationship with ResumeChunks
+            // 配置与恢复分块的关系
             entity.HasMany(e => e.CompletedChunks)
                 .WithOne(e => e.ResumeToken)
                 .HasForeignKey(e => e.ResumeTokenId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // Configure ResumeChunk
+        // 配置恢复分块实体
         modelBuilder.Entity<ResumeChunk>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.ChunkChecksum).HasMaxLength(32);
             entity.Property(e => e.CompletedAt).HasDefaultValueSql("datetime('now')");
 
-            // Create unique constraint on ResumeTokenId + ChunkIndex
+            // 在恢复令牌ID和分块索引上创建唯一约束
             entity.HasIndex(e => new { e.ResumeTokenId, e.ChunkIndex })
                 .IsUnique()
                 .HasDatabaseName("IX_ResumeChunk_TokenId_ChunkIndex");
         });
 
-        // Create indexes for better query performance
+        // 创建索引以提高查询性能
         modelBuilder.Entity<BackupLog>()
             .HasIndex(e => e.StartTime)
             .HasDatabaseName("IX_BackupLog_StartTime");
@@ -161,7 +197,7 @@ public class BackupDbContext : DbContext
             .HasIndex(e => e.IsActive)
             .HasDatabaseName("IX_BackupConfiguration_IsActive");
 
-        // Create indexes for resume tokens
+        // 为恢复令牌创建索引
         modelBuilder.Entity<ResumeToken>()
             .HasIndex(e => e.Token)
             .IsUnique()
@@ -179,7 +215,7 @@ public class BackupDbContext : DbContext
             .HasIndex(e => e.LastActivity)
             .HasDatabaseName("IX_ResumeToken_LastActivity");
 
-        // Create indexes for schedule configurations
+        // 为计划配置创建索引
         modelBuilder.Entity<ScheduleConfiguration>()
             .HasIndex(e => e.BackupConfigId)
             .HasDatabaseName("IX_ScheduleConfiguration_BackupConfigId");
@@ -194,7 +230,7 @@ public class BackupDbContext : DbContext
     }
 
     /// <summary>
-    /// Ensures the database is created and up to date
+    /// 确保数据库已创建并且是最新的
     /// </summary>
     public async Task EnsureDatabaseCreatedAsync()
     {
@@ -202,11 +238,11 @@ public class BackupDbContext : DbContext
     }
 
     /// <summary>
-    /// Seeds the database with default data if needed
+    /// 如果需要，为数据库填充默认数据
     /// </summary>
     public async Task SeedDefaultDataAsync()
     {
-        // Add default retention policy if none exists
+        // 如果不存在保留策略，则添加默认保留策略
         if (!await RetentionPolicies.AnyAsync())
         {
             var defaultPolicy = new RetentionPolicy

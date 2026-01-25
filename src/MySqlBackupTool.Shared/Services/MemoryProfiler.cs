@@ -7,7 +7,8 @@ using MySqlBackupTool.Shared.Models;
 namespace MySqlBackupTool.Shared.Services;
 
 /// <summary>
-/// Service for profiling memory usage during backup operations
+/// 内存分析器，用于分析备份操作期间的内存使用情况
+/// 提供内存快照、性能监控和资源使用统计功能
 /// </summary>
 public class MemoryProfiler : IMemoryProfiler, IDisposable
 {

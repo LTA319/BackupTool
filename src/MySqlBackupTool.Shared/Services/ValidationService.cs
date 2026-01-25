@@ -7,7 +7,8 @@ using MySqlBackupTool.Shared.Models;
 namespace MySqlBackupTool.Shared.Services
 {
     /// <summary>
-    /// Service for validating backup files and ensuring their integrity
+    /// 验证服务，用于验证备份文件并确保其完整性
+    /// 提供文件校验、压缩完整性检查、加密完整性检查等功能
     /// </summary>
     public class ValidationService : IValidationService
     {
@@ -16,6 +17,12 @@ namespace MySqlBackupTool.Shared.Services
         private readonly ICompressionService _compressionService;
         private const int DefaultBufferSize = 65536; // 64KB
         
+        /// <summary>
+        /// 构造函数，初始化验证服务
+        /// </summary>
+        /// <param name="loggingService">日志服务</param>
+        /// <param name="encryptionService">加密服务</param>
+        /// <param name="compressionService">压缩服务</param>
         public ValidationService(
             ILoggingService loggingService,
             IEncryptionService encryptionService,
@@ -27,8 +34,11 @@ namespace MySqlBackupTool.Shared.Services
         }
         
         /// <summary>
-        /// Validates a backup file for integrity and completeness
+        /// 验证备份文件的完整性和完整性
         /// </summary>
+        /// <param name="filePath">文件路径</param>
+        /// <param name="cancellationToken">取消令牌</param>
+        /// <returns>文件验证结果</returns>
         public async Task<FileValidationResult> ValidateBackupAsync(string filePath, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(filePath))
@@ -51,25 +61,25 @@ namespace MySqlBackupTool.Shared.Services
                 var fileInfo = new System.IO.FileInfo(filePath);
                 result.FileSize = fileInfo.Length;
                 
-                // Calculate checksum
+                // 计算校验和
                 result.Checksum = await CalculateChecksumAsync(filePath, ChecksumAlgorithm.SHA256, cancellationToken);
                 
-                // Perform basic file validation
+                // 执行基本文件验证
                 await ValidateFileBasicsAsync(result, cancellationToken);
                 
-                // Check if file is compressed
+                // 检查文件是否已压缩
                 if (await IsCompressedFileAsync(filePath))
                 {
                     await ValidateCompressionIntegrityAsync(result, cancellationToken);
                 }
                 
-                // Check if file is encrypted
+                // 检查文件是否已加密
                 if (await IsEncryptedFileAsync(filePath))
                 {
                     await ValidateEncryptionIntegrityAsync(result, cancellationToken);
                 }
                 
-                // Determine overall validation status
+                // 确定整体验证状态
                 result.IsValid = result.Issues.All(i => i.Severity != ValidationSeverity.Critical && i.Severity != ValidationSeverity.Error);
                 
                 result.ValidationDuration = DateTime.UtcNow - startTime;
@@ -98,8 +108,12 @@ namespace MySqlBackupTool.Shared.Services
         }
         
         /// <summary>
-        /// Validates file integrity using checksum comparison
+        /// 使用校验和比较验证文件完整性
         /// </summary>
+        /// <param name="filePath">文件路径</param>
+        /// <param name="expectedChecksum">期望的校验和</param>
+        /// <param name="algorithm">校验和算法</param>
+        /// <returns>如果文件完整性验证通过返回true，否则返回false</returns>
         public async Task<bool> ValidateIntegrityAsync(string filePath, string expectedChecksum, ChecksumAlgorithm algorithm = ChecksumAlgorithm.SHA256)
         {
             if (string.IsNullOrEmpty(filePath))
@@ -130,8 +144,12 @@ namespace MySqlBackupTool.Shared.Services
         }
         
         /// <summary>
-        /// Calculates checksum for a file
+        /// 计算文件的校验和
         /// </summary>
+        /// <param name="filePath">文件路径</param>
+        /// <param name="algorithm">校验和算法</param>
+        /// <param name="cancellationToken">取消令牌</param>
+        /// <returns>文件的校验和字符串</returns>
         public async Task<string> CalculateChecksumAsync(string filePath, ChecksumAlgorithm algorithm = ChecksumAlgorithm.SHA256, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(filePath))
@@ -147,8 +165,11 @@ namespace MySqlBackupTool.Shared.Services
         }
         
         /// <summary>
-        /// Generates a comprehensive validation report for a backup file
+        /// 为备份文件生成综合验证报告
         /// </summary>
+        /// <param name="filePath">文件路径</param>
+        /// <param name="cancellationToken">取消令牌</param>
+        /// <returns>详细的验证报告</returns>
         public async Task<ValidationReport> GenerateReportAsync(string filePath, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(filePath))
@@ -222,8 +243,11 @@ namespace MySqlBackupTool.Shared.Services
         }
         
         /// <summary>
-        /// Validates that a backup file can be successfully decompressed
+        /// 验证备份文件是否可以成功解压缩
         /// </summary>
+        /// <param name="filePath">文件路径</param>
+        /// <param name="cancellationToken">取消令牌</param>
+        /// <returns>如果可以成功解压缩返回true，否则返回false</returns>
         public async Task<bool> ValidateCompressionAsync(string filePath, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(filePath))
@@ -264,8 +288,12 @@ namespace MySqlBackupTool.Shared.Services
         }
         
         /// <summary>
-        /// Validates that an encrypted backup file can be decrypted with the provided password
+        /// 验证加密的备份文件是否可以使用提供的密码解密
         /// </summary>
+        /// <param name="filePath">文件路径</param>
+        /// <param name="password">解密密码</param>
+        /// <param name="cancellationToken">取消令牌</param>
+        /// <returns>如果可以成功解密返回true，否则返回false</returns>
         public async Task<bool> ValidateEncryptionAsync(string filePath, string password, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(filePath))
@@ -297,8 +325,13 @@ namespace MySqlBackupTool.Shared.Services
             }
         }
         
-        #region Private Helper Methods
+        #region 私有辅助方法
         
+        /// <summary>
+        /// 根据算法类型创建哈希算法实例
+        /// </summary>
+        /// <param name="algorithm">校验和算法</param>
+        /// <returns>哈希算法实例</returns>
         private static HashAlgorithm CreateHashAlgorithm(ChecksumAlgorithm algorithm)
         {
             return algorithm switch
@@ -311,6 +344,11 @@ namespace MySqlBackupTool.Shared.Services
             };
         }
         
+        /// <summary>
+        /// 验证文件基本属性（大小、年龄、权限等）
+        /// </summary>
+        /// <param name="result">验证结果对象</param>
+        /// <param name="cancellationToken">取消令牌</param>
         private async Task ValidateFileBasicsAsync(FileValidationResult result, CancellationToken cancellationToken)
         {
             var fileInfo = new System.IO.FileInfo(result.FilePath);
@@ -363,6 +401,11 @@ namespace MySqlBackupTool.Shared.Services
             }
         }
         
+        /// <summary>
+        /// 检查文件是否为压缩文件
+        /// </summary>
+        /// <param name="filePath">文件路径</param>
+        /// <returns>如果是压缩文件返回true，否则返回false</returns>
         private async Task<bool> IsCompressedFileAsync(string filePath)
         {
             try
@@ -391,6 +434,11 @@ namespace MySqlBackupTool.Shared.Services
             }
         }
         
+        /// <summary>
+        /// 检查文件是否为加密文件
+        /// </summary>
+        /// <param name="filePath">文件路径</param>
+        /// <returns>如果是加密文件返回true，否则返回false</returns>
         private async Task<bool> IsEncryptedFileAsync(string filePath)
         {
             try
@@ -414,6 +462,11 @@ namespace MySqlBackupTool.Shared.Services
             }
         }
         
+        /// <summary>
+        /// 验证压缩文件的完整性
+        /// </summary>
+        /// <param name="result">验证结果对象</param>
+        /// <param name="cancellationToken">取消令牌</param>
         private async Task ValidateCompressionIntegrityAsync(FileValidationResult result, CancellationToken cancellationToken)
         {
             try
@@ -442,6 +495,11 @@ namespace MySqlBackupTool.Shared.Services
             }
         }
         
+        /// <summary>
+        /// 验证加密文件的完整性
+        /// </summary>
+        /// <param name="result">验证结果对象</param>
+        /// <param name="cancellationToken">取消令牌</param>
         private async Task ValidateEncryptionIntegrityAsync(FileValidationResult result, CancellationToken cancellationToken)
         {
             try
@@ -478,6 +536,12 @@ namespace MySqlBackupTool.Shared.Services
             }
         }
         
+        /// <summary>
+        /// 验证压缩文件的详细信息
+        /// </summary>
+        /// <param name="filePath">文件路径</param>
+        /// <param name="cancellationToken">取消令牌</param>
+        /// <returns>压缩验证结果</returns>
         private async Task<CompressionValidationResult> ValidateCompressionDetailsAsync(string filePath, CancellationToken cancellationToken)
         {
             var result = new CompressionValidationResult
@@ -548,6 +612,12 @@ namespace MySqlBackupTool.Shared.Services
             return result;
         }
         
+        /// <summary>
+        /// 验证加密文件的详细信息
+        /// </summary>
+        /// <param name="filePath">文件路径</param>
+        /// <param name="cancellationToken">取消令牌</param>
+        /// <returns>加密验证结果</returns>
         private async Task<EncryptionValidationResult> ValidateEncryptionDetailsAsync(string filePath, CancellationToken cancellationToken)
         {
             var result = new EncryptionValidationResult
@@ -575,6 +645,12 @@ namespace MySqlBackupTool.Shared.Services
             return result;
         }
         
+        /// <summary>
+        /// 验证数据库内容
+        /// </summary>
+        /// <param name="filePath">文件路径</param>
+        /// <param name="cancellationToken">取消令牌</param>
+        /// <returns>数据库验证结果</returns>
         private async Task<DatabaseValidationResult> ValidateDatabaseContentAsync(string filePath, CancellationToken cancellationToken)
         {
             var result = new DatabaseValidationResult();
@@ -631,6 +707,11 @@ namespace MySqlBackupTool.Shared.Services
             return result;
         }
         
+        /// <summary>
+        /// 生成验证摘要
+        /// </summary>
+        /// <param name="report">验证报告</param>
+        /// <returns>验证摘要</returns>
         private ValidationSummary GenerateValidationSummary(ValidationReport report)
         {
             var summary = new ValidationSummary();
@@ -684,6 +765,13 @@ namespace MySqlBackupTool.Shared.Services
             return summary;
         }
         
+        /// <summary>
+        /// 计算置信度分数
+        /// </summary>
+        /// <param name="summary">验证摘要</param>
+        /// <param name="report">验证报告</param>
+        /// <param name="allIssues">所有问题列表</param>
+        /// <returns>置信度分数（0-100）</returns>
         private int CalculateConfidenceScore(ValidationSummary summary, ValidationReport report, List<ValidationIssue> allIssues)
         {
             var score = 100;
@@ -704,6 +792,12 @@ namespace MySqlBackupTool.Shared.Services
             return Math.Max(0, Math.Min(100, score));
         }
         
+        /// <summary>
+        /// 根据问题和报告生成建议
+        /// </summary>
+        /// <param name="issues">问题列表</param>
+        /// <param name="report">验证报告</param>
+        /// <returns>建议列表</returns>
         private List<string> GenerateRecommendations(List<ValidationIssue> issues, ValidationReport report)
         {
             var recommendations = new List<string>();

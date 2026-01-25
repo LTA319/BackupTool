@@ -7,17 +7,19 @@ using MySqlBackupTool.Shared.Models;
 namespace MySqlBackupTool.Shared.Services;
 
 /// <summary>
-/// Windows service-based MySQL instance manager
+/// 基于Windows服务的MySQL实例管理器
+/// 提供MySQL服务的启动、停止和连接验证功能
 /// </summary>
 public class MySQLManager : IMySQLManager, IBackupService
 {
     private readonly ILogger<MySQLManager> _logger;
     private readonly IMemoryProfiler? _memoryProfiler;
-    // Service operation timeouts
+    
+    // 服务操作超时时间
     private const int DefaultTimeoutSeconds = 30;
     private const int ServiceOperationTimeoutSeconds = 60;
     
-    // Connection retry configuration
+    // 连接重试配置
     private const int MaxConnectionRetries = 3;
     private const int BaseRetryDelayMs = 1000;
     private const int StatusCheckIntervalMs = 500;
@@ -25,6 +27,11 @@ public class MySQLManager : IMySQLManager, IBackupService
     private readonly TimeSpan _defaultTimeout = TimeSpan.FromSeconds(DefaultTimeoutSeconds);
     private readonly TimeSpan _serviceOperationTimeout = TimeSpan.FromSeconds(ServiceOperationTimeoutSeconds);
 
+    /// <summary>
+    /// 构造函数，初始化MySQL管理器
+    /// </summary>
+    /// <param name="logger">日志记录器</param>
+    /// <param name="memoryProfiler">内存分析器（可选）</param>
     public MySQLManager(ILogger<MySQLManager> logger, IMemoryProfiler? memoryProfiler = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -32,8 +39,10 @@ public class MySQLManager : IMySQLManager, IBackupService
     }
 
     /// <summary>
-    /// Stops a MySQL service instance with timeout and error recovery
+    /// 停止MySQL服务实例，支持超时和错误恢复
     /// </summary>
+    /// <param name="serviceName">要停止的服务名称</param>
+    /// <returns>如果成功停止返回true，否则返回false</returns>
     public async Task<bool> StopInstanceAsync(string serviceName)
     {
         if (string.IsNullOrWhiteSpace(serviceName))
@@ -52,7 +61,7 @@ public class MySQLManager : IMySQLManager, IBackupService
         {
             using var service = new ServiceController(serviceName);
             
-            // Check if service exists
+            // 检查服务是否存在
             try
             {
                 var status = service.Status;
@@ -67,7 +76,7 @@ public class MySQLManager : IMySQLManager, IBackupService
                 return false;
             }
 
-            // If already stopped, return success
+            // 如果已经停止，返回成功
             if (service.Status == ServiceControllerStatus.Stopped)
             {
                 _logger.LogInformation("MySQL service '{ServiceName}' is already stopped", serviceName);
@@ -76,7 +85,7 @@ public class MySQLManager : IMySQLManager, IBackupService
                 return true;
             }
 
-            // If stopping, wait for it to complete
+            // 如果正在停止，等待完成
             if (service.Status == ServiceControllerStatus.StopPending)
             {
                 _logger.LogInformation("MySQL service '{ServiceName}' is already stopping, waiting for completion", serviceName);
@@ -88,12 +97,12 @@ public class MySQLManager : IMySQLManager, IBackupService
                 return result;
             }
 
-            // Stop the service
+            // 停止服务
             _memoryProfiler?.RecordSnapshot(operationId, "SendStopCommand", "Sending stop command to service");
             service.Stop();
             _logger.LogInformation("Stop command sent to MySQL service '{ServiceName}'", serviceName);
 
-            // Wait for the service to stop
+            // 等待服务停止
             _memoryProfiler?.RecordSnapshot(operationId, "WaitingForStop", "Waiting for service to stop");
             await WaitForServiceStatusAsync(service, ServiceControllerStatus.Stopped, _serviceOperationTimeout);
 
@@ -137,8 +146,10 @@ public class MySQLManager : IMySQLManager, IBackupService
     }
 
     /// <summary>
-    /// Starts a MySQL service instance with timeout and error recovery
+    /// 启动MySQL服务实例，支持超时和错误恢复
     /// </summary>
+    /// <param name="serviceName">要启动的服务名称</param>
+    /// <returns>如果成功启动返回true，否则返回false</returns>
     public async Task<bool> StartInstanceAsync(string serviceName)
     {
         if (string.IsNullOrWhiteSpace(serviceName))

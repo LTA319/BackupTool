@@ -9,32 +9,40 @@ using MySqlBackupTool.Shared.Models;
 namespace MySqlBackupTool.Shared.Services;
 
 /// <summary>
-/// TCP-based file transfer client implementation
+/// 基于TCP的文件传输客户端实现
+/// 提供文件传输、断点续传、分块传输等功能
 /// </summary>
 public class FileTransferClient : IFileTransferClient, IFileTransferService
 {
     private readonly ILogger<FileTransferClient> _logger;
     private readonly IChecksumService _checksumService;
     private readonly IMemoryProfiler? _memoryProfiler;
-    // Optimized buffer sizes for different scenarios
-    private const int SmallFileBufferSize = 64 * 1024; // 64KB for files < 10MB
-    private const int LargeFileBufferSize = 1024 * 1024; // 1MB for files >= 10MB
-    private const int HugeFileBufferSize = 4 * 1024 * 1024; // 4MB for files >= 100MB
+    
+    // 针对不同场景优化的缓冲区大小
+    private const int SmallFileBufferSize = 64 * 1024; // 64KB 用于小于10MB的文件
+    private const int LargeFileBufferSize = 1024 * 1024; // 1MB 用于大于等于10MB的文件
+    private const int HugeFileBufferSize = 4 * 1024 * 1024; // 4MB 用于大于等于100MB的文件
     private const long LargeFileThreshold = 10 * 1024 * 1024; // 10MB
     private const long HugeFileThreshold = 100 * 1024 * 1024; // 100MB
     
-    // Network configuration constants
+    // 网络配置常量
     private const int MaxRetryAttempts = 3;
-    private const int BaseRetryDelayMs = 1000; // 1 second base delay
+    private const int BaseRetryDelayMs = 1000; // 1秒基础延迟
     private const int MaxChunkRetries = 3;
     private const int ChunkRetryDelayMs = 100;
     private const int NetworkTimeoutSeconds = 30;
-    private const int MinSocketBufferSize = 65536; // 64KB minimum
+    private const int MinSocketBufferSize = 65536; // 64KB最小值
     private const int SocketBufferMultiplier = 2;
     private const int TcpClientBufferSize = 1024 * 1024; // 1MB
-    private const int ProgressReportingDivisor = 20; // Report progress every 1/20th of chunks
-    private const int PeriodicFlushMultiplier = 10; // Flush every 10 buffer sizes
+    private const int ProgressReportingDivisor = 20; // 每1/20的分块报告进度
+    private const int PeriodicFlushMultiplier = 10; // 每10个缓冲区大小刷新一次
 
+    /// <summary>
+    /// 构造函数，初始化文件传输客户端
+    /// </summary>
+    /// <param name="logger">日志记录器</param>
+    /// <param name="checksumService">校验和服务</param>
+    /// <param name="memoryProfiler">内存分析器（可选）</param>
     public FileTransferClient(ILogger<FileTransferClient> logger, IChecksumService checksumService, IMemoryProfiler? memoryProfiler = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -43,8 +51,12 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     }
 
     /// <summary>
-    /// Transfers a file to a remote server
+    /// 将文件传输到远程服务器
     /// </summary>
+    /// <param name="filePath">要传输的文件路径</param>
+    /// <param name="config">传输配置</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>传输结果</returns>
     public async Task<TransferResult> TransferFileAsync(string filePath, TransferConfig config, CancellationToken cancellationToken = default)
     {
         var startTime = DateTime.UtcNow;
@@ -159,8 +171,11 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     }
 
     /// <summary>
-    /// Resumes an interrupted file transfer
+    /// 恢复中断的文件传输
     /// </summary>
+    /// <param name="resumeToken">恢复令牌</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>传输结果</returns>
     public async Task<TransferResult> ResumeTransferAsync(string resumeToken, CancellationToken cancellationToken = default)
     {
         var startTime = DateTime.UtcNow;
@@ -193,8 +208,13 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     }
 
     /// <summary>
-    /// Resumes an interrupted file transfer with full context
+    /// 使用完整上下文恢复中断的文件传输
     /// </summary>
+    /// <param name="resumeToken">恢复令牌</param>
+    /// <param name="filePath">文件路径</param>
+    /// <param name="config">传输配置</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>传输结果</returns>
     public async Task<TransferResult> ResumeTransferAsync(string resumeToken, string filePath, TransferConfig config, CancellationToken cancellationToken = default)
     {
         var startTime = DateTime.UtcNow;
@@ -304,8 +324,14 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     }
 
     /// <summary>
-    /// Performs file transfer with retry logic
+    /// 使用重试逻辑执行文件传输
     /// </summary>
+    /// <param name="filePath">文件路径</param>
+    /// <param name="request">传输请求</param>
+    /// <param name="config">传输配置</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <param name="operationId">操作标识符</param>
+    /// <returns>传输结果</returns>
     private async Task<TransferResult> TransferWithRetryAsync(string filePath, TransferRequest request, TransferConfig config, CancellationToken cancellationToken, string operationId)
     {
         Exception? lastException = null;
@@ -361,8 +387,14 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     }
 
     /// <summary>
-    /// Performs the actual file transfer with optimized network settings
+    /// 使用优化的网络设置执行实际的文件传输
     /// </summary>
+    /// <param name="filePath">文件路径</param>
+    /// <param name="request">传输请求</param>
+    /// <param name="config">传输配置</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <param name="operationId">操作标识符</param>
+    /// <returns>传输结果</returns>
     private async Task<TransferResult> PerformTransferAsync(string filePath, TransferRequest request, TransferConfig config, CancellationToken cancellationToken, string operationId)
     {
         using var tcpClient = new TcpClient();
@@ -455,8 +487,11 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     }
 
     /// <summary>
-    /// Sends the transfer request header to the server
+    /// 向服务器发送传输请求头
     /// </summary>
+    /// <param name="stream">网络流</param>
+    /// <param name="request">传输请求</param>
+    /// <param name="cancellationToken">取消令牌</param>
     private async Task SendTransferRequestAsync(NetworkStream stream, TransferRequest request, CancellationToken cancellationToken)
     {
         var requestJson = JsonSerializer.Serialize(request);
@@ -472,8 +507,11 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     }
 
     /// <summary>
-    /// Receives acknowledgment from server
+    /// 接收服务器的确认响应
     /// </summary>
+    /// <param name="stream">网络流</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>传输响应</returns>
     private async Task<TransferResponse> ReceiveAcknowledgmentAsync(NetworkStream stream, CancellationToken cancellationToken)
     {
         var lengthBuffer = new byte[4];
@@ -491,8 +529,15 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     }
 
     /// <summary>
-    /// Sends file data to the server
+    /// 向服务器发送文件数据
     /// </summary>
+    /// <param name="stream">网络流</param>
+    /// <param name="filePath">文件路径</param>
+    /// <param name="request">传输请求</param>
+    /// <param name="completedChunks">已完成的分块集合</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <param name="operationId">操作标识符</param>
+    /// <returns>传输的字节数</returns>
     private async Task<long> SendFileDataAsync(NetworkStream stream, string filePath, TransferRequest request, HashSet<int> completedChunks, CancellationToken cancellationToken, string operationId)
     {
         var fileInfo = new FileInfo(filePath);
@@ -517,8 +562,14 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     }
 
     /// <summary>
-    /// Sends file data directly without chunking with optimized buffer sizes
+    /// 使用优化的缓冲区大小直接发送文件数据（不分块）
     /// </summary>
+    /// <param name="stream">网络流</param>
+    /// <param name="filePath">文件路径</param>
+    /// <param name="request">传输请求</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <param name="operationId">操作标识符</param>
+    /// <returns>传输的字节数</returns>
     private async Task<long> SendFileDataDirectAsync(NetworkStream stream, string filePath, TransferRequest request, CancellationToken cancellationToken, string operationId)
     {
         using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
@@ -574,8 +625,15 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     }
 
     /// <summary>
-    /// Sends file data using chunking strategy with optimized performance
+    /// 使用分块策略发送文件数据，具有优化的性能
     /// </summary>
+    /// <param name="stream">网络流</param>
+    /// <param name="filePath">文件路径</param>
+    /// <param name="request">传输请求</param>
+    /// <param name="completedChunks">已完成的分块集合</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <param name="operationId">操作标识符</param>
+    /// <returns>传输的字节数</returns>
     private async Task<long> SendFileDataChunkedAsync(NetworkStream stream, string filePath, TransferRequest request, HashSet<int> completedChunks, CancellationToken cancellationToken, string operationId)
     {
         using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
@@ -658,8 +716,11 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     }
 
     /// <summary>
-    /// Sends a single chunk to the server with retry logic
+    /// 使用重试逻辑向服务器发送单个分块
     /// </summary>
+    /// <param name="stream">网络流</param>
+    /// <param name="chunk">分块数据</param>
+    /// <param name="cancellationToken">取消令牌</param>
     private async Task SendChunkWithRetryAsync(NetworkStream stream, ChunkData chunk, CancellationToken cancellationToken)
     {
         Exception? lastException = null;
@@ -689,8 +750,11 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     }
 
     /// <summary>
-    /// Sends a single chunk to the server
+    /// 向服务器发送单个分块
     /// </summary>
+    /// <param name="stream">网络流</param>
+    /// <param name="chunk">分块数据</param>
+    /// <param name="cancellationToken">取消令牌</param>
     private async Task SendChunkAsync(NetworkStream stream, ChunkData chunk, CancellationToken cancellationToken)
     {
         var chunkJson = JsonSerializer.Serialize(chunk);
@@ -711,8 +775,11 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     }
 
     /// <summary>
-    /// Receives acknowledgment for a chunk from server
+    /// 接收服务器对分块的确认响应
     /// </summary>
+    /// <param name="stream">网络流</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>分块结果</returns>
     private async Task<ChunkResult> ReceiveChunkAcknowledgmentAsync(NetworkStream stream, CancellationToken cancellationToken)
     {
         var lengthBuffer = new byte[4];
@@ -729,8 +796,11 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     }
 
     /// <summary>
-    /// Receives final confirmation from server
+    /// 接收服务器的最终确认
     /// </summary>
+    /// <param name="stream">网络流</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>传输响应</returns>
     private async Task<TransferResponse> ReceiveFinalConfirmationAsync(NetworkStream stream, CancellationToken cancellationToken)
     {
         var lengthBuffer = new byte[4];
@@ -748,8 +818,12 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     }
 
     /// <summary>
-    /// Reads exactly the specified number of bytes from the stream
+    /// 从流中精确读取指定数量的字节
     /// </summary>
+    /// <param name="stream">网络流</param>
+    /// <param name="buffer">缓冲区</param>
+    /// <param name="count">要读取的字节数</param>
+    /// <param name="cancellationToken">取消令牌</param>
     private async Task ReadExactlyAsync(NetworkStream stream, byte[] buffer, int count, CancellationToken cancellationToken)
     {
         int totalRead = 0;
@@ -763,8 +837,11 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     }
 
     /// <summary>
-    /// Creates file metadata including checksums
+    /// 创建包含校验和的文件元数据
     /// </summary>
+    /// <param name="filePath">文件路径</param>
+    /// <param name="targetFileName">目标文件名</param>
+    /// <returns>文件元数据</returns>
     private async Task<FileMetadata> CreateFileMetadataAsync(string filePath, string targetFileName)
     {
         var (md5, sha256, fileSize) = await _checksumService.CreateFileMetadataAsync(filePath);
@@ -780,8 +857,10 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     }
 
     /// <summary>
-    /// Gets optimal buffer size based on file size for maximum transfer efficiency
+    /// 根据文件大小获取最优缓冲区大小以实现最大传输效率
     /// </summary>
+    /// <param name="fileSize">文件大小</param>
+    /// <returns>最优缓冲区大小</returns>
     private int GetOptimalBufferSize(long fileSize)
     {
         if (fileSize >= HugeFileThreshold)

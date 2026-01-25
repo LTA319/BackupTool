@@ -3,36 +3,37 @@ using MySqlBackupTool.Shared.Models;
 namespace MySqlBackupTool.Shared.Interfaces;
 
 /// <summary>
-/// Interface for managing MySQL instance lifecycle operations
+/// MySQL实例生命周期管理操作接口
+/// 提供MySQL服务的启动、停止和连接验证功能
 /// </summary>
 public interface IMySQLManager
 {
     /// <summary>
-    /// Stops a MySQL service instance
+    /// 停止MySQL服务实例
     /// </summary>
-    /// <param name="serviceName">Name of the MySQL service to stop</param>
-    /// <returns>True if the service was successfully stopped, false otherwise</returns>
+    /// <param name="serviceName">要停止的MySQL服务名称</param>
+    /// <returns>如果服务成功停止返回true，否则返回false</returns>
     Task<bool> StopInstanceAsync(string serviceName);
 
     /// <summary>
-    /// Starts a MySQL service instance
+    /// 启动MySQL服务实例
     /// </summary>
-    /// <param name="serviceName">Name of the MySQL service to start</param>
-    /// <returns>True if the service was successfully started, false otherwise</returns>
+    /// <param name="serviceName">要启动的MySQL服务名称</param>
+    /// <returns>如果服务成功启动返回true，否则返回false</returns>
     Task<bool> StartInstanceAsync(string serviceName);
 
     /// <summary>
-    /// Verifies that a MySQL instance is available and accepting connections
+    /// 验证MySQL实例是否可用并接受连接
     /// </summary>
-    /// <param name="connection">Connection information for the MySQL instance</param>
-    /// <returns>True if the instance is available and accepting connections, false otherwise</returns>
+    /// <param name="connection">MySQL实例的连接信息</param>
+    /// <returns>如果实例可用并接受连接返回true，否则返回false</returns>
     Task<bool> VerifyInstanceAvailabilityAsync(MySQLConnectionInfo connection);
 
     /// <summary>
-    /// Verifies that a MySQL instance is available and accepting connections with configurable timeout
+    /// 验证MySQL实例是否可用并接受连接，支持可配置的超时时间
     /// </summary>
-    /// <param name="connection">Connection information for the MySQL instance</param>
-    /// <param name="timeoutSeconds">Connection timeout in seconds</param>
-    /// <returns>True if the instance is available and accepting connections, false otherwise</returns>
+    /// <param name="connection">MySQL实例的连接信息</param>
+    /// <param name="timeoutSeconds">连接超时时间（秒）</param>
+    /// <returns>如果实例可用并接受连接返回true，否则返回false</returns>
     Task<bool> VerifyInstanceAvailabilityAsync(MySQLConnectionInfo connection, int timeoutSeconds);
 }

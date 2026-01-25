@@ -3,51 +3,84 @@ using System.ComponentModel.DataAnnotations;
 namespace MySqlBackupTool.Shared.Models;
 
 /// <summary>
-/// Configuration settings for a backup operation
+/// 备份操作的配置设置
+/// 包含备份所需的所有配置信息，如MySQL连接、目标服务器、文件命名策略等
 /// </summary>
 public class BackupConfiguration : IValidatableObject
 {
+    /// <summary>
+    /// 配置ID，主键
+    /// </summary>
     public int Id { get; set; }
 
+    /// <summary>
+    /// 配置名称，必须唯一
+    /// </summary>
     [Required(ErrorMessage = "Configuration name is required")]
     [StringLength(100, MinimumLength = 1, ErrorMessage = "Configuration name must be between 1 and 100 characters")]
     [RegularExpression(@"^[a-zA-Z0-9\s\-_]+$", ErrorMessage = "Configuration name can only contain letters, numbers, spaces, hyphens, and underscores")]
     public string Name { get; set; } = string.Empty;
 
+    /// <summary>
+    /// MySQL连接信息
+    /// </summary>
     [Required(ErrorMessage = "MySQL connection information is required")]
     public MySQLConnectionInfo MySQLConnection { get; set; } = new();
 
+    /// <summary>
+    /// MySQL数据目录路径
+    /// </summary>
     [Required(ErrorMessage = "Data directory path is required")]
     [StringLength(500, MinimumLength = 1, ErrorMessage = "Data directory path must be between 1 and 500 characters")]
     public string DataDirectoryPath { get; set; } = string.Empty;
 
+    /// <summary>
+    /// MySQL服务名称
+    /// </summary>
     [Required(ErrorMessage = "MySQL service name is required")]
     [StringLength(100, MinimumLength = 1, ErrorMessage = "Service name must be between 1 and 100 characters")]
     [RegularExpression(@"^[a-zA-Z0-9\-_]+$", ErrorMessage = "Service name can only contain letters, numbers, hyphens, and underscores")]
     public string ServiceName { get; set; } = string.Empty;
 
+    /// <summary>
+    /// 目标服务器端点信息
+    /// </summary>
     [Required(ErrorMessage = "Target server endpoint is required")]
     public ServerEndpoint TargetServer { get; set; } = new();
 
+    /// <summary>
+    /// 目标目录路径
+    /// </summary>
     [Required(ErrorMessage = "Target directory is required")]
     [StringLength(500, MinimumLength = 1, ErrorMessage = "Target directory must be between 1 and 500 characters")]
     public string TargetDirectory { get; set; } = string.Empty;
 
+    /// <summary>
+    /// 文件命名策略
+    /// </summary>
     [Required(ErrorMessage = "File naming strategy is required")]
     public FileNamingStrategy NamingStrategy { get; set; } = new();
 
+    /// <summary>
+    /// 配置是否处于活跃状态
+    /// </summary>
     public bool IsActive { get; set; } = true;
 
+    /// <summary>
+    /// 配置创建时间
+    /// </summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>
-    /// Performs custom validation logic for the backup configuration
+    /// 对备份配置执行自定义验证逻辑
     /// </summary>
+    /// <param name="validationContext">验证上下文</param>
+    /// <returns>验证结果集合</returns>
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         var results = new List<ValidationResult>();
 
-        // Validate data directory path exists and is accessible
+        // 验证数据目录路径是否存在且可访问
         if (!string.IsNullOrWhiteSpace(DataDirectoryPath))
         {
             try
@@ -60,7 +93,7 @@ public class BackupConfiguration : IValidatableObject
                 }
                 else
                 {
-                    // Check if directory is readable
+                    // 检查目录是否可读
                     try
                     {
                         Directory.GetFiles(DataDirectoryPath);
@@ -81,12 +114,12 @@ public class BackupConfiguration : IValidatableObject
             }
         }
 
-        // Validate target directory path format
+        // 验证目标目录路径格式
         if (!string.IsNullOrWhiteSpace(TargetDirectory))
         {
             try
             {
-                // Check if path format is valid
+                // 检查路径格式是否有效
                 Path.GetFullPath(TargetDirectory);
             }
             catch (Exception ex) when (ex is ArgumentException || ex is NotSupportedException || ex is PathTooLongException)
@@ -97,8 +130,8 @@ public class BackupConfiguration : IValidatableObject
             }
         }
 
-        // Validate that configuration name is unique (this would typically be done at the repository level)
-        // For now, we'll add a placeholder for this validation
+        // 验证配置名称是否唯一（通常在仓储层完成）
+        // 现在我们为此验证添加一个占位符
         if (string.IsNullOrWhiteSpace(Name?.Trim()))
         {
             results.Add(new ValidationResult(
@@ -110,14 +143,14 @@ public class BackupConfiguration : IValidatableObject
     }
 
     /// <summary>
-    /// Validates all connection parameters for this configuration
+    /// 验证此配置的所有连接参数
     /// </summary>
-    /// <returns>True if all parameters are valid, false otherwise</returns>
+    /// <returns>包含验证状态和错误列表的元组</returns>
     public async Task<(bool IsValid, List<string> Errors)> ValidateConnectionParametersAsync()
     {
         var errors = new List<string>();
 
-        // Validate MySQL connection
+        // 验证MySQL连接
         if (MySQLConnection != null)
         {
             var (isValid, mysqlErrors) = await MySQLConnection.ValidateConnectionAsync();
@@ -127,7 +160,7 @@ public class BackupConfiguration : IValidatableObject
             }
         }
 
-        // Validate target server endpoint
+        // 验证目标服务器端点
         if (TargetServer != null)
         {
             var (isValid, serverErrors) = TargetServer.ValidateEndpoint();
@@ -137,7 +170,7 @@ public class BackupConfiguration : IValidatableObject
             }
         }
 
-        // Validate file naming strategy
+        // 验证文件命名策略
         if (NamingStrategy != null)
         {
             var (isValid, namingErrors) = NamingStrategy.ValidateStrategy();
