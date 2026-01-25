@@ -28,44 +28,46 @@ namespace MySqlBackupTool.Client.Forms
         /// </summary>
         private void InitializeComponent()
         {
-            this.txtDetails = new TextBox();
-            this.btnClose = new Button();
+            this.txtDetails = new System.Windows.Forms.TextBox();
+            this.btnClose = new System.Windows.Forms.Button();
 
             this.SuspendLayout();
 
             // 
             // txtDetails
             // 
-            this.txtDetails.Dock = DockStyle.Fill;
-            this.txtDetails.Font = new Font("Consolas", 9F, FontStyle.Regular, GraphicsUnit.Point);
-            this.txtDetails.Location = new Point(0, 0);
+            this.txtDetails.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.txtDetails.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.txtDetails.Location = new System.Drawing.Point(0, 0);
             this.txtDetails.Multiline = true;
+            this.txtDetails.Name = "txtDetails";
             this.txtDetails.ReadOnly = true;
-            this.txtDetails.ScrollBars = ScrollBars.Both;
-            this.txtDetails.Size = new Size(584, 411);
+            this.txtDetails.ScrollBars = System.Windows.Forms.ScrollBars.Both;
+            this.txtDetails.Size = new System.Drawing.Size(584, 411);
             this.txtDetails.TabIndex = 0;
 
             // 
             // btnClose
             // 
-            this.btnClose.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            this.btnClose.Location = new Point(497, 420);
-            this.btnClose.Size = new Size(75, 23);
+            this.btnClose.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnClose.Location = new System.Drawing.Point(497, 420);
+            this.btnClose.Name = "btnClose";
+            this.btnClose.Size = new System.Drawing.Size(75, 23);
             this.btnClose.TabIndex = 1;
             this.btnClose.Text = "Close";
             this.btnClose.UseVisualStyleBackColor = true;
-            this.btnClose.Click += new EventHandler(this.btnClose_Click);
+            this.btnClose.Click += new System.EventHandler(this.btnClose_Click);
 
             // 
             // LogDetailsForm
             // 
-            this.AutoScaleDimensions = new SizeF(7F, 15F);
-            this.AutoScaleMode = AutoScaleMode.Font;
-            this.ClientSize = new Size(584, 461);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.ClientSize = new System.Drawing.Size(584, 461);
             this.Controls.Add(this.txtDetails);
             this.Controls.Add(this.btnClose);
             this.Name = "LogDetailsForm";
-            this.StartPosition = FormStartPosition.CenterParent;
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Log Details";
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -73,7 +75,7 @@ namespace MySqlBackupTool.Client.Forms
 
         #endregion
 
-        private TextBox txtDetails;
-        private Button btnClose;
+        private System.Windows.Forms.TextBox txtDetails;
+        private System.Windows.Forms.Button btnClose;
     }
 }
