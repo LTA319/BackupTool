@@ -190,7 +190,16 @@ public static class ServiceCollectionExtensions
         .AddPolicyHandler(GetRetryPolicy(configuration))
         .AddPolicyHandler(GetTimeoutPolicy(configuration));
         
-        services.AddScoped<IAlertingService, AlertingService>();
+        // Register IAlertingService using the HttpClient-configured AlertingService
+        services.AddScoped<IAlertingService>(serviceProvider =>
+        {
+            var logger = serviceProvider.GetRequiredService<ILogger<AlertingService>>();
+            var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
+            var httpClient = httpClientFactory.CreateClient(nameof(AlertingService));
+            var alertingConfig = serviceProvider.GetService<AlertingConfig>();
+            
+            return new AlertingService(logger, httpClient, alertingConfig);
+        });
 
         // Add authentication services
         services.AddScoped<IAuthenticationService, AuthenticationService>();

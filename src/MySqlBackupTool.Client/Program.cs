@@ -27,8 +27,8 @@ internal static class Program
                 // Add client-specific services
                 services.AddClientServices();
                 
-                // Add backup scheduling services
-                services.AddBackupSchedulingServices();
+                // DO NOT add background services for now - they cause startup blocking
+                // services.AddBackupSchedulingServices();
             });
 
         var host = hostBuilder.Build();
@@ -42,11 +42,16 @@ internal static class Program
             var logger = host.Services.GetRequiredService<ILogger<FormMain>>();
             logger.LogInformation("MySQL Backup Tool Client starting...");
 
+            logger.LogInformation("Starting host services...");
             // Start the host services (background services, etc.)
             await host.StartAsync();
 
+            logger.LogInformation("Host services started, creating main form...");
+
             // Run the Windows Forms application
-            Application.Run(new FormMain(host.Services));
+            using var mainForm = new FormMain(host.Services);
+            logger.LogInformation("Main form created, starting application...");
+            Application.Run(mainForm);
         }
         catch (Exception ex)
         {

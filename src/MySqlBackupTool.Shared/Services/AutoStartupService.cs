@@ -30,25 +30,27 @@ public class AutoStartupService : IHostedService
     {
         _logger.LogInformation("Auto-startup service starting");
 
-        // Delay startup to allow system to stabilize
-        try
+        // Start the initialization in the background without blocking
+        _ = Task.Run(async () =>
         {
-            await Task.Delay(_startupDelay, cancellationToken);
-        }
-        catch (TaskCanceledException)
-        {
-            _logger.LogInformation("Auto-startup service cancelled during startup delay");
-            return;
-        }
+            try
+            {
+                // Delay startup to allow system to stabilize
+                await Task.Delay(_startupDelay, cancellationToken);
+                await InitializeAutoStartupBackupsAsync(cancellationToken);
+            }
+            catch (TaskCanceledException)
+            {
+                _logger.LogInformation("Auto-startup service cancelled during startup delay");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during auto-startup initialization");
+            }
+        }, cancellationToken);
 
-        try
-        {
-            await InitializeAutoStartupBackupsAsync(cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during auto-startup initialization");
-        }
+        // Return immediately to not block application startup
+        _logger.LogInformation("Auto-startup service initialization scheduled");
     }
 
     /// <summary>
@@ -65,21 +67,21 @@ public class AutoStartupService : IHostedService
     /// </summary>
     private async Task InitializeAutoStartupBackupsAsync(CancellationToken cancellationToken)
     {
-        using var scope = _serviceProvider.CreateScope();
-        var backupConfigRepository = scope.ServiceProvider.GetService<IBackupConfigurationRepository>();
-        var scheduleRepository = scope.ServiceProvider.GetService<IScheduleConfigurationRepository>();
-        var orchestrator = scope.ServiceProvider.GetService<IBackupOrchestrator>();
-
-        if (backupConfigRepository == null || scheduleRepository == null || orchestrator == null)
-        {
-            _logger.LogError("Required services not available for auto-startup initialization");
-            return;
-        }
-
-        _logger.LogInformation("Checking for auto-startup backup configurations");
-
         try
         {
+            using var scope = _serviceProvider.CreateScope();
+            var backupConfigRepository = scope.ServiceProvider.GetService<IBackupConfigurationRepository>();
+            var scheduleRepository = scope.ServiceProvider.GetService<IScheduleConfigurationRepository>();
+            var orchestrator = scope.ServiceProvider.GetService<IBackupOrchestrator>();
+
+            if (backupConfigRepository == null || scheduleRepository == null || orchestrator == null)
+            {
+                _logger.LogWarning("Required services not available for auto-startup initialization. This is normal for client applications.");
+                return;
+            }
+
+            _logger.LogInformation("Checking for auto-startup backup configurations");
+
             // Get all active backup configurations
             var activeConfigs = (await backupConfigRepository.GetActiveConfigurationsAsync()).ToList();
             _logger.LogInformation("Found {Count} active backup configurations", activeConfigs.Count);
