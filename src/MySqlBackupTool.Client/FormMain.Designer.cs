@@ -35,6 +35,8 @@ namespace MySqlBackupTool.Client
             this.configurationToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.backupMonitorToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.logBrowserToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
+            this.testDatabaseConnectionToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.statusStrip = new System.Windows.Forms.StatusStrip();
@@ -81,7 +83,9 @@ namespace MySqlBackupTool.Client
             this.toolsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
                 this.configurationToolStripMenuItem,
                 this.backupMonitorToolStripMenuItem,
-                this.logBrowserToolStripMenuItem});
+                this.logBrowserToolStripMenuItem,
+                this.toolStripSeparator1,
+                this.testDatabaseConnectionToolStripMenuItem});
             this.toolsToolStripMenuItem.Name = "toolsToolStripMenuItem";
             this.toolsToolStripMenuItem.Size = new System.Drawing.Size(46, 20);
             this.toolsToolStripMenuItem.Text = "&Tools";
@@ -90,7 +94,7 @@ namespace MySqlBackupTool.Client
             // configurationToolStripMenuItem
             // 
             this.configurationToolStripMenuItem.Name = "configurationToolStripMenuItem";
-            this.configurationToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.configurationToolStripMenuItem.Size = new System.Drawing.Size(220, 22);
             this.configurationToolStripMenuItem.Text = "&Configuration Management";
             this.configurationToolStripMenuItem.Click += new System.EventHandler(this.configurationToolStripMenuItem_Click);
 
@@ -98,7 +102,7 @@ namespace MySqlBackupTool.Client
             // backupMonitorToolStripMenuItem
             // 
             this.backupMonitorToolStripMenuItem.Name = "backupMonitorToolStripMenuItem";
-            this.backupMonitorToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.backupMonitorToolStripMenuItem.Size = new System.Drawing.Size(220, 22);
             this.backupMonitorToolStripMenuItem.Text = "&Backup Monitor";
             this.backupMonitorToolStripMenuItem.Click += new System.EventHandler(this.backupMonitorToolStripMenuItem_Click);
 
@@ -106,9 +110,23 @@ namespace MySqlBackupTool.Client
             // logBrowserToolStripMenuItem
             // 
             this.logBrowserToolStripMenuItem.Name = "logBrowserToolStripMenuItem";
-            this.logBrowserToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.logBrowserToolStripMenuItem.Size = new System.Drawing.Size(220, 22);
             this.logBrowserToolStripMenuItem.Text = "&Log Browser";
             this.logBrowserToolStripMenuItem.Click += new System.EventHandler(this.logBrowserToolStripMenuItem_Click);
+
+            // 
+            // toolStripSeparator1
+            // 
+            this.toolStripSeparator1.Name = "toolStripSeparator1";
+            this.toolStripSeparator1.Size = new System.Drawing.Size(217, 6);
+
+            // 
+            // testDatabaseConnectionToolStripMenuItem
+            // 
+            this.testDatabaseConnectionToolStripMenuItem.Name = "testDatabaseConnectionToolStripMenuItem";
+            this.testDatabaseConnectionToolStripMenuItem.Size = new System.Drawing.Size(220, 22);
+            this.testDatabaseConnectionToolStripMenuItem.Text = "&Test Database Connection";
+            this.testDatabaseConnectionToolStripMenuItem.Click += new System.EventHandler(this.testDatabaseConnectionToolStripMenuItem_Click);
 
             // 
             // helpToolStripMenuItem
@@ -185,6 +203,8 @@ namespace MySqlBackupTool.Client
         private System.Windows.Forms.ToolStripMenuItem configurationToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem backupMonitorToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem logBrowserToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
+        private System.Windows.Forms.ToolStripMenuItem testDatabaseConnectionToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem helpToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem aboutToolStripMenuItem;
         private System.Windows.Forms.StatusStrip statusStrip;

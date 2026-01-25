@@ -63,14 +63,79 @@ public partial class FormMain : Form
     {
         try
         {
-            using var monitorForm = new BackupMonitorForm(_serviceProvider);
-            monitorForm.ShowDialog();
+            // using var monitorForm = new BackupMonitorForm(_serviceProvider);
+            // monitorForm.ShowDialog();
+            // Test database connection before opening monitor form
+            _ = TestDatabaseAndOpenMonitor();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error opening backup monitor");
             MessageBox.Show($"Error opening backup monitor: {ex.Message}", 
                 "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+    
+    private async Task TestDatabaseAndOpenMonitor()
+    {
+        try
+        {
+            // Show loading message
+            this.Cursor = Cursors.WaitCursor;
+            this.Text = "MySQL Backup Tool - Client (Testing database connection...)";
+            
+            // Test database connection
+            var testResult = await DatabaseConnectionTest.TestDatabaseConnectionAsync();
+            
+            if (!testResult.Success)
+            {
+                _logger.LogWarning("Database connection test failed: {Error}", testResult.Message);
+                
+                var result = MessageBox.Show(
+                    $"Database connection test failed:\n\n{testResult.Message}\n\n" +
+                    "Would you like to attempt automatic repair?",
+                    "Database Connection Issue",
+                    MessageBoxButtons.YesNoCancel,
+                    MessageBoxIcon.Warning);
+                
+                if (result == DialogResult.Yes)
+                {
+                    this.Text = "MySQL Backup Tool - Client (Repairing database...)";
+                    var repairResult = await DatabaseConnectionTest.RepairDatabaseAsync();
+                    
+                    MessageBox.Show(repairResult.ToString(), 
+                        repairResult.Success ? "Database Repair Complete" : "Database Repair Failed",
+                        MessageBoxButtons.OK,
+                        repairResult.Success ? MessageBoxIcon.Information : MessageBoxIcon.Error);
+                    
+                    if (!repairResult.Success)
+                        return;
+                }
+                else if (result == DialogResult.Cancel)
+                {
+                    return;
+                }
+                // If No, continue anyway
+            }
+            else
+            {
+                _logger.LogInformation("Database connection test passed in {Time}ms", 
+                    testResult.TotalTime.TotalMilliseconds);
+            }
+            
+            // Open monitor form
+            using var monitorForm = new BackupMonitorForm(_serviceProvider);
+            monitorForm.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during database test or opening backup monitor");
+            MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        finally
+        {
+            this.Cursor = Cursors.Default;
+            this.Text = "MySQL Backup Tool - Client";
         }
     }
 
@@ -92,6 +157,112 @@ public partial class FormMain : Form
     private void exitToolStripMenuItem_Click(object sender, EventArgs e)
     {
         this.Close();
+    }
+
+    private async void testDatabaseConnectionToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            this.Cursor = Cursors.WaitCursor;
+            toolStripStatusLabel.Text = "Testing database connection...";
+            
+            var testResult = await DatabaseConnectionTest.TestDatabaseConnectionAsync();
+            
+            var form = new Form
+            {
+                Text = testResult.Success ? "Database Test - Success" : "Database Test - Failed",
+                Size = new Size(600, 500),
+                StartPosition = FormStartPosition.CenterParent,
+                MaximizeBox = true,
+                MinimizeBox = false
+            };
+            
+            var textBox = new TextBox
+            {
+                Multiline = true,
+                ScrollBars = ScrollBars.Both,
+                Dock = DockStyle.Fill,
+                Font = new Font("Consolas", 9),
+                ReadOnly = true,
+                Text = testResult.ToString()
+            };
+            
+            var buttonPanel = new Panel
+            {
+                Height = 40,
+                Dock = DockStyle.Bottom
+            };
+            
+            var closeButton = new Button
+            {
+                Text = "Close",
+                Size = new Size(75, 23),
+                Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
+                Location = new Point(buttonPanel.Width - 85, 8),
+                DialogResult = DialogResult.OK
+            };
+            
+            if (!testResult.Success)
+            {
+                var repairButton = new Button
+                {
+                    Text = "Repair Database",
+                    Size = new Size(100, 23),
+                    Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
+                    Location = new Point(buttonPanel.Width - 195, 8)
+                };
+                
+                repairButton.Click += async (s, args) =>
+                {
+                    try
+                    {
+                        repairButton.Enabled = false;
+                        repairButton.Text = "Repairing...";
+                        
+                        var repairResult = await DatabaseConnectionTest.RepairDatabaseAsync();
+                        textBox.Text = repairResult.ToString();
+                        
+                        if (repairResult.Success)
+                        {
+                            form.Text = "Database Repair - Success";
+                            repairButton.Visible = false;
+                        }
+                        else
+                        {
+                            repairButton.Text = "Repair Database";
+                            repairButton.Enabled = true;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Error during repair: {ex.Message}", "Repair Error", 
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        repairButton.Text = "Repair Database";
+                        repairButton.Enabled = true;
+                    }
+                };
+                
+                buttonPanel.Controls.Add(repairButton);
+            }
+            
+            buttonPanel.Controls.Add(closeButton);
+            form.Controls.Add(textBox);
+            form.Controls.Add(buttonPanel);
+            form.AcceptButton = closeButton;
+            
+            form.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error testing database connection");
+            MessageBox.Show($"Error testing database connection: {ex.Message}", 
+                "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        finally
+        {
+            this.Cursor = Cursors.Default;
+            toolStripStatusLabel.Text = "Ready";
+        }
     }
 
     private void aboutToolStripMenuItem_Click(object sender, EventArgs e)

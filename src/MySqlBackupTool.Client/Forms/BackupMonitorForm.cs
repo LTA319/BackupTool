@@ -22,6 +22,7 @@ public partial class BackupMonitorForm : Form
     private CancellationTokenSource? _currentBackupCancellation;
     private BackupProgress? _currentProgress;
     private System.Windows.Forms.Timer? _refreshTimer;
+    private bool _refreshInProgress = false;
 
     public BackupMonitorForm(IServiceProvider serviceProvider)
     {
@@ -47,7 +48,9 @@ public partial class BackupMonitorForm : Form
 
             SetupDataGridViews();
             SetupRefreshTimer();
-            LoadData();
+            
+            // Load data asynchronously to avoid blocking UI thread
+            _ = LoadDataAsync();
             
             _logger.LogInformation("Backup monitor form initialized successfully");
         }
@@ -222,32 +225,120 @@ public partial class BackupMonitorForm : Form
         btnCancelBackup.Enabled = hasSelection && _currentBackupCancellation != null;
     }
 
-    private async void LoadData()
+    private async Task LoadDataAsync()
     {
         try
         {
+            // Show loading status
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => {
+                    lblStatus.Text = "Loading data...";
+                    lblStatus.ForeColor = Color.Blue;
+                }));
+            }
+            else
+            {
+                lblStatus.Text = "Loading data...";
+                lblStatus.ForeColor = Color.Blue;
+            }
+
             await LoadConfigurations();
             await LoadRunningBackups();
-            UpdateStatus();
+            
+            // Update UI on main thread
+            if (InvokeRequired)
+            {
+                Invoke(new Action(UpdateStatus));
+            }
+            else
+            {
+                UpdateStatus();
+            }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading data");
-            lblStatus.Text = $"Error loading data: {ex.Message}";
-            lblStatus.ForeColor = Color.Red;
+            
+            // Update UI on main thread
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => {
+                    lblStatus.Text = $"Error loading data: {ex.Message}";
+                    lblStatus.ForeColor = Color.Red;
+                }));
+            }
+            else
+            {
+                lblStatus.Text = $"Error loading data: {ex.Message}";
+                lblStatus.ForeColor = Color.Red;
+            }
         }
+    }
+
+    private async void LoadData()
+    {
+        await LoadDataAsync();
     }
 
     private async Task LoadConfigurations()
     {
-        _configurations = (await _configRepository.GetActiveConfigurationsAsync()).ToList();
-        dgvConfigurations.DataSource = _configurations;
+        try
+        {
+            // Add timeout to prevent hanging
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            _configurations = (await _configRepository.GetActiveConfigurationsAsync()).ToList();
+            
+            // Update UI on main thread
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => dgvConfigurations.DataSource = _configurations));
+            }
+            else
+            {
+                dgvConfigurations.DataSource = _configurations;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Loading configurations timed out after 10 seconds");
+            throw new TimeoutException("Loading configurations timed out. Please check database connection.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading configurations from database");
+            throw;
+        }
     }
 
     private async Task LoadRunningBackups()
     {
-        _runningBackups = (await _logRepository.GetRunningBackupsAsync()).ToList();
-        dgvRunningBackups.DataSource = _runningBackups;
+        try
+        {
+            // Add timeout to prevent hanging
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            _runningBackups = (await _logRepository.GetRunningBackupsAsync()).ToList();
+            
+            // Update UI on main thread
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => dgvRunningBackups.DataSource = _runningBackups));
+            }
+            else
+            {
+                dgvRunningBackups.DataSource = _runningBackups;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Loading running backups timed out after 10 seconds");
+            throw new TimeoutException("Loading running backups timed out. Please check database connection.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading running backups from database");
+            throw;
+        }
     }
 
     private void UpdateStatus()
@@ -280,6 +371,12 @@ public partial class BackupMonitorForm : Form
 
     private async void RefreshTimer_Tick(object? sender, EventArgs e)
     {
+        // Prevent overlapping refresh operations
+        if (_refreshInProgress)
+            return;
+            
+        _refreshInProgress = true;
+        
         try
         {
             await LoadRunningBackups();
@@ -288,6 +385,13 @@ public partial class BackupMonitorForm : Form
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error refreshing data");
+            // Don't show error message box during automatic refresh to avoid spam
+            lblStatus.Text = $"Refresh error: {ex.Message}";
+            lblStatus.ForeColor = Color.Red;
+        }
+        finally
+        {
+            _refreshInProgress = false;
         }
     }
 

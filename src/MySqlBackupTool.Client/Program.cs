@@ -27,8 +27,8 @@ internal static class Program
                 // Add client-specific services
                 services.AddClientServices();
                 
-                // DO NOT add background services for now - they cause startup blocking
-                // services.AddBackupSchedulingServices();
+                // Add backup scheduling services (re-enabled)
+                //services.AddBackupSchedulingServices();
             });
 
         var host = hostBuilder.Build();
