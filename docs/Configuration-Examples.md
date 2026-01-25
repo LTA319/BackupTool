@@ -164,13 +164,25 @@ Large enterprise with multiple MySQL servers, centralized backup storage, and co
     "FromAddress": "backup-system@enterprise.com",
     "FromName": "Enterprise Backup System"
   },
-  "AlertingConfig": {
+  "Alerting": {
     "EnableAlerting": true,
+    "BaseUrl": "https://api.enterprise.com",
+    "TimeoutSeconds": 45,
+    "MaxRetryAttempts": 5,
+    "EnableCircuitBreaker": true,
+    "DefaultHeaders": {
+      "X-API-Key": "enterprise_api_key_here",
+      "User-Agent": "MySqlBackupTool/2.0"
+    },
     "MinimumSeverity": "Warning",
     "MaxAlertsPerHour": 100,
     "NotificationTimeout": "00:01:00",
     "Email": {
       "Enabled": true,
+      "SmtpServer": "smtp.enterprise.com",
+      "SmtpPort": 587,
+      "UseSsl": true,
+      "FromAddress": "backup-system@enterprise.com",
       "Recipients": [
         "dba-team@enterprise.com",
         "ops-team@enterprise.com",
@@ -182,9 +194,14 @@ Large enterprise with multiple MySQL servers, centralized backup storage, and co
       "Url": "https://monitoring.enterprise.com/webhooks/backup-alerts",
       "HttpMethod": "POST",
       "ContentType": "application/json",
-      "Headers": {
-        "X-API-Key": "webhook_api_key_here"
-      }
+      "AuthToken": "webhook_auth_token_here"
+    },
+    "FileLog": {
+      "Enabled": true,
+      "LogDirectory": "logs/alerts",
+      "FileNamePattern": "alerts_{yyyy-MM-dd}.log",
+      "MaxFileSizeMB": 10,
+      "MaxFileCount": 30
     }
   },
   "Logging": {
@@ -888,6 +905,267 @@ volumes:
       "NotificationEmails": ["admin@customer-b.com"]
     }
   ]
+}
+```
+
+---
+
+## AlertingConfig Configuration Reference
+
+The AlertingConfig section provides comprehensive configuration options for the alerting system, including HTTP client settings, retry policies, and multiple notification channels.
+
+### Complete AlertingConfig Example
+
+```json
+{
+  "Alerting": {
+    "EnableAlerting": true,
+    "BaseUrl": "https://api.monitoring.com",
+    "TimeoutSeconds": 30,
+    "MaxRetryAttempts": 3,
+    "EnableCircuitBreaker": false,
+    "DefaultHeaders": {
+      "X-API-Key": "your_api_key_here",
+      "User-Agent": "MySqlBackupTool/1.0",
+      "Accept": "application/json"
+    },
+    "MinimumSeverity": "Error",
+    "MaxAlertsPerHour": 50,
+    "NotificationTimeout": "00:00:30",
+    "Email": {
+      "Enabled": true,
+      "SmtpServer": "smtp.gmail.com",
+      "SmtpPort": 587,
+      "UseSsl": true,
+      "FromAddress": "backup@company.com",
+      "Recipients": [
+        "admin@company.com",
+        "ops@company.com"
+      ]
+    },
+    "Webhook": {
+      "Enabled": false,
+      "Url": "https://hooks.slack.com/services/YOUR/WEBHOOK/URL",
+      "HttpMethod": "POST",
+      "ContentType": "application/json",
+      "AuthToken": "optional_auth_token"
+    },
+    "FileLog": {
+      "Enabled": true,
+      "LogDirectory": "logs/alerts",
+      "FileNamePattern": "alerts_{yyyy-MM-dd}.log",
+      "MaxFileSizeMB": 10,
+      "MaxFileCount": 30
+    }
+  }
+}
+```
+
+### Configuration Properties
+
+#### Core Settings
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `EnableAlerting` | boolean | `true` | Enable or disable the entire alerting system |
+| `BaseUrl` | string | `null` | Base URL for HTTP requests (optional) |
+| `TimeoutSeconds` | integer | `30` | HTTP client timeout in seconds (1-300) |
+| `MaxRetryAttempts` | integer | `3` | Maximum retry attempts for failed HTTP requests (0-10) |
+| `EnableCircuitBreaker` | boolean | `false` | Enable circuit breaker pattern for HTTP requests |
+| `MinimumSeverity` | string | `"Error"` | Minimum alert severity level (`Debug`, `Info`, `Warning`, `Error`, `Critical`) |
+| `MaxAlertsPerHour` | integer | `50` | Maximum alerts per hour to prevent spam (1-1000) |
+| `NotificationTimeout` | string | `"00:00:30"` | Timeout for individual notification attempts |
+
+#### HTTP Client Settings
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `DefaultHeaders` | object | `{}` | Default HTTP headers to include in all requests |
+
+**DefaultHeaders Example:**
+```json
+{
+  "DefaultHeaders": {
+    "X-API-Key": "your_api_key",
+    "User-Agent": "MySqlBackupTool/1.0",
+    "Accept": "application/json",
+    "Authorization": "Bearer your_token"
+  }
+}
+```
+
+#### Email Configuration
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `Email.Enabled` | boolean | `false` | Enable email notifications |
+| `Email.SmtpServer` | string | `""` | SMTP server hostname |
+| `Email.SmtpPort` | integer | `587` | SMTP server port (1-65535) |
+| `Email.UseSsl` | boolean | `true` | Use SSL/TLS for SMTP connection |
+| `Email.FromAddress` | string | `""` | Sender email address |
+| `Email.Recipients` | array | `[]` | List of recipient email addresses |
+
+#### Webhook Configuration
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `Webhook.Enabled` | boolean | `false` | Enable webhook notifications |
+| `Webhook.Url` | string | `""` | Webhook URL endpoint |
+| `Webhook.HttpMethod` | string | `"POST"` | HTTP method (`POST`, `PUT`, `PATCH`) |
+| `Webhook.ContentType` | string | `"application/json"` | Content-Type header for webhook requests |
+| `Webhook.AuthToken` | string | `""` | Optional authentication token |
+
+#### File Logging Configuration
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `FileLog.Enabled` | boolean | `true` | Enable file logging for alerts |
+| `FileLog.LogDirectory` | string | `"logs/alerts"` | Directory for alert log files |
+| `FileLog.FileNamePattern` | string | `"alerts_{yyyy-MM-dd}.log"` | File name pattern with date placeholders |
+| `FileLog.MaxFileSizeMB` | integer | `10` | Maximum file size in MB before rotation |
+| `FileLog.MaxFileCount` | integer | `30` | Maximum number of log files to retain |
+
+### Configuration Examples by Scenario
+
+#### Development Environment
+```json
+{
+  "Alerting": {
+    "EnableAlerting": false,
+    "MinimumSeverity": "Debug",
+    "FileLog": {
+      "Enabled": true,
+      "LogDirectory": "logs/dev-alerts",
+      "MaxFileCount": 5
+    }
+  }
+}
+```
+
+#### Production Environment with Email Only
+```json
+{
+  "Alerting": {
+    "EnableAlerting": true,
+    "TimeoutSeconds": 45,
+    "MaxRetryAttempts": 5,
+    "MinimumSeverity": "Warning",
+    "MaxAlertsPerHour": 100,
+    "Email": {
+      "Enabled": true,
+      "SmtpServer": "smtp.company.com",
+      "SmtpPort": 587,
+      "UseSsl": true,
+      "FromAddress": "backup-alerts@company.com",
+      "Recipients": [
+        "dba-team@company.com",
+        "ops-team@company.com"
+      ]
+    },
+    "FileLog": {
+      "Enabled": true,
+      "LogDirectory": "/var/log/backup-alerts",
+      "MaxFileSizeMB": 50,
+      "MaxFileCount": 90
+    }
+  }
+}
+```
+
+#### High-Volume Environment with Webhook Integration
+```json
+{
+  "Alerting": {
+    "EnableAlerting": true,
+    "BaseUrl": "https://api.monitoring.company.com",
+    "TimeoutSeconds": 60,
+    "MaxRetryAttempts": 3,
+    "EnableCircuitBreaker": true,
+    "DefaultHeaders": {
+      "X-API-Key": "prod_api_key_here",
+      "X-Environment": "production"
+    },
+    "MinimumSeverity": "Error",
+    "MaxAlertsPerHour": 200,
+    "Webhook": {
+      "Enabled": true,
+      "Url": "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX",
+      "HttpMethod": "POST",
+      "ContentType": "application/json"
+    },
+    "Email": {
+      "Enabled": true,
+      "SmtpServer": "smtp.company.com",
+      "SmtpPort": 587,
+      "UseSsl": true,
+      "FromAddress": "critical-alerts@company.com",
+      "Recipients": ["oncall@company.com"]
+    }
+  }
+}
+```
+
+### Configuration Validation
+
+The system automatically validates all configuration values and provides fallbacks:
+
+- **Invalid timeout values**: Reset to 30 seconds with warning
+- **Invalid retry attempts**: Capped at 10 attempts with warning  
+- **Invalid URLs**: Cleared with warning, HTTP operations disabled
+- **Invalid email addresses**: Removed from recipients list with warning
+- **Missing required fields**: Logged as warnings, functionality may be limited
+
+### Environment Variable Overrides
+
+Configuration values can be overridden using environment variables:
+
+```bash
+# Override timeout
+export Alerting__TimeoutSeconds=60
+
+# Override email settings
+export Alerting__Email__SmtpServer=smtp.newserver.com
+export Alerting__Email__SmtpPort=465
+
+# Override webhook URL
+export Alerting__Webhook__Url=https://new-webhook-url.com
+```
+
+### Troubleshooting
+
+#### Common Issues
+
+1. **AlertingService cannot be resolved**
+   - Ensure HttpClient is registered in DI container
+   - Check that AlertingConfig is properly bound
+
+2. **HTTP requests timing out**
+   - Increase `TimeoutSeconds` value
+   - Check network connectivity to `BaseUrl`
+   - Verify retry policy settings
+
+3. **Email notifications not working**
+   - Verify SMTP server settings
+   - Check firewall rules for SMTP port
+   - Validate email addresses in Recipients list
+
+4. **Webhook notifications failing**
+   - Verify webhook URL is accessible
+   - Check authentication token if required
+   - Review webhook endpoint logs
+
+#### Logging
+
+Enable detailed logging to troubleshoot issues:
+
+```json
+{
+  "Logging": {
+    "LogLevel": {
+      "MySqlBackupTool.Shared.Services.AlertingService": "Debug",
+      "System.Net.Http.HttpClient": "Information"
+    }
+  }
 }
 ```
 

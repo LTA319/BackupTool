@@ -102,7 +102,7 @@ This implementation plan addresses the dependency injection issue where Alerting
     - Test that Backup Monitor functionality works without DI errors
     - _Requirements: 4.1, 4.2, 5.1_
   
-  - [-] 7.2 Test service registration in server application context
+  - [x] 7.2 Test service registration in server application context
     - Verify HttpClient and AlertingService resolve correctly in server app
     - Ensure no conflicts with existing server-side services
     - _Requirements: 5.2, 5.4_
@@ -116,12 +116,12 @@ This implementation plan addresses the dependency injection issue where Alerting
     - **Validates: Requirements 5.4**
 
 - [ ] 8. Integration testing and validation
-  - [~] 8.1 Create integration test for complete AlertingService functionality
+  - [x] 8.1 Create integration test for complete AlertingService functionality
     - Test AlertingService can be created and used for HTTP operations
     - Verify all dependencies are properly injected and functional
     - _Requirements: 4.2, 4.3_
   
-  - [~] 8.2 Test Backup Monitor integration
+  - [x] 8.2 Test Backup Monitor integration
     - Verify Backup Monitor can open without dependency injection errors
     - Test that AlertingService functions correctly within Backup Monitor
     - _Requirements: 4.1, 4.2_
@@ -131,18 +131,18 @@ This implementation plan addresses the dependency injection issue where Alerting
     - **Validates: Requirements 2.1, 2.4**
 
 - [ ] 9. Final checkpoint and documentation
-  - [~] 9.1 Verify all tests pass and functionality works end-to-end
+  - [x] 9.1 Verify all tests pass and functionality works end-to-end
     - Run all unit tests and property tests
     - Verify Backup Monitor opens successfully
     - Test AlertingService HTTP operations work correctly
   
-  - [~] 9.2 Update configuration documentation
+  - [x] 9.2 Update configuration documentation
     - Document new AlertingConfig configuration section
     - Provide examples of configuration values
     - Document default values and fallback behavior
     - _Requirements: 3.4, 6.3_
 
-- [~] 10. Final checkpoint - Ensure all tests pass
+- [x] 10. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

@@ -164,9 +164,46 @@
     "FromAddress": "backup-system@enterprise.com",
     "FromName": "企业备份系统"
   },
-  "AlertingConfig": {
+  "Alerting": {
     "EnableAlerting": true,
+    "BaseUrl": "https://api.enterprise.com",
+    "TimeoutSeconds": 45,
+    "MaxRetryAttempts": 5,
+    "EnableCircuitBreaker": true,
+    "DefaultHeaders": {
+      "X-API-Key": "enterprise_api_key_here",
+      "User-Agent": "MySqlBackupTool/2.0"
+    },
     "MinimumSeverity": "Warning",
+    "MaxAlertsPerHour": 100,
+    "NotificationTimeout": "00:01:00",
+    "Email": {
+      "Enabled": true,
+      "SmtpServer": "smtp.enterprise.com",
+      "SmtpPort": 587,
+      "UseSsl": true,
+      "FromAddress": "backup-system@enterprise.com",
+      "Recipients": [
+        "dba-team@enterprise.com",
+        "ops-team@enterprise.com",
+        "backup-admin@enterprise.com"
+      ]
+    },
+    "Webhook": {
+      "Enabled": true,
+      "Url": "https://monitoring.enterprise.com/webhooks/backup-alerts",
+      "HttpMethod": "POST",
+      "ContentType": "application/json",
+      "AuthToken": "webhook_auth_token_here"
+    },
+    "FileLog": {
+      "Enabled": true,
+      "LogDirectory": "logs/alerts",
+      "FileNamePattern": "alerts_{yyyy-MM-dd}.log",
+      "MaxFileSizeMB": 10,
+      "MaxFileCount": 30
+    }
+  },
     "MaxAlertsPerHour": 100,
     "NotificationTimeout": "00:01:00",
     "Email": {
@@ -888,6 +925,267 @@ volumes:
       "NotificationEmails": ["admin@customer-b.com"]
     }
   ]
+}
+```
+
+---
+
+## AlertingConfig 配置参考
+
+AlertingConfig 部分为警报系统提供全面的配置选项，包括 HTTP 客户端设置、重试策略和多种通知渠道。
+
+### 完整的 AlertingConfig 示例
+
+```json
+{
+  "Alerting": {
+    "EnableAlerting": true,
+    "BaseUrl": "https://api.monitoring.com",
+    "TimeoutSeconds": 30,
+    "MaxRetryAttempts": 3,
+    "EnableCircuitBreaker": false,
+    "DefaultHeaders": {
+      "X-API-Key": "your_api_key_here",
+      "User-Agent": "MySqlBackupTool/1.0",
+      "Accept": "application/json"
+    },
+    "MinimumSeverity": "Error",
+    "MaxAlertsPerHour": 50,
+    "NotificationTimeout": "00:00:30",
+    "Email": {
+      "Enabled": true,
+      "SmtpServer": "smtp.gmail.com",
+      "SmtpPort": 587,
+      "UseSsl": true,
+      "FromAddress": "backup@company.com",
+      "Recipients": [
+        "admin@company.com",
+        "ops@company.com"
+      ]
+    },
+    "Webhook": {
+      "Enabled": false,
+      "Url": "https://hooks.slack.com/services/YOUR/WEBHOOK/URL",
+      "HttpMethod": "POST",
+      "ContentType": "application/json",
+      "AuthToken": "optional_auth_token"
+    },
+    "FileLog": {
+      "Enabled": true,
+      "LogDirectory": "logs/alerts",
+      "FileNamePattern": "alerts_{yyyy-MM-dd}.log",
+      "MaxFileSizeMB": 10,
+      "MaxFileCount": 30
+    }
+  }
+}
+```
+
+### 配置属性
+
+#### 核心设置
+
+| 属性 | 类型 | 默认值 | 描述 |
+|------|------|--------|------|
+| `EnableAlerting` | boolean | `true` | 启用或禁用整个警报系统 |
+| `BaseUrl` | string | `null` | HTTP 请求的基础 URL（可选） |
+| `TimeoutSeconds` | integer | `30` | HTTP 客户端超时时间（秒，1-300） |
+| `MaxRetryAttempts` | integer | `3` | 失败 HTTP 请求的最大重试次数（0-10） |
+| `EnableCircuitBreaker` | boolean | `false` | 为 HTTP 请求启用断路器模式 |
+| `MinimumSeverity` | string | `"Error"` | 最小警报严重级别（`Debug`、`Info`、`Warning`、`Error`、`Critical`） |
+| `MaxAlertsPerHour` | integer | `50` | 每小时最大警报数量以防止垃圾信息（1-1000） |
+| `NotificationTimeout` | string | `"00:00:30"` | 单个通知尝试的超时时间 |
+
+#### HTTP 客户端设置
+
+| 属性 | 类型 | 默认值 | 描述 |
+|------|------|--------|------|
+| `DefaultHeaders` | object | `{}` | 所有请求中包含的默认 HTTP 头 |
+
+**DefaultHeaders 示例：**
+```json
+{
+  "DefaultHeaders": {
+    "X-API-Key": "your_api_key",
+    "User-Agent": "MySqlBackupTool/1.0",
+    "Accept": "application/json",
+    "Authorization": "Bearer your_token"
+  }
+}
+```
+
+#### 邮件配置
+
+| 属性 | 类型 | 默认值 | 描述 |
+|------|------|--------|------|
+| `Email.Enabled` | boolean | `false` | 启用邮件通知 |
+| `Email.SmtpServer` | string | `""` | SMTP 服务器主机名 |
+| `Email.SmtpPort` | integer | `587` | SMTP 服务器端口（1-65535） |
+| `Email.UseSsl` | boolean | `true` | 为 SMTP 连接使用 SSL/TLS |
+| `Email.FromAddress` | string | `""` | 发件人邮箱地址 |
+| `Email.Recipients` | array | `[]` | 收件人邮箱地址列表 |
+
+#### Webhook 配置
+
+| 属性 | 类型 | 默认值 | 描述 |
+|------|------|--------|------|
+| `Webhook.Enabled` | boolean | `false` | 启用 webhook 通知 |
+| `Webhook.Url` | string | `""` | Webhook URL 端点 |
+| `Webhook.HttpMethod` | string | `"POST"` | HTTP 方法（`POST`、`PUT`、`PATCH`） |
+| `Webhook.ContentType` | string | `"application/json"` | webhook 请求的 Content-Type 头 |
+| `Webhook.AuthToken` | string | `""` | 可选的身份验证令牌 |
+
+#### 文件日志配置
+
+| 属性 | 类型 | 默认值 | 描述 |
+|------|------|--------|------|
+| `FileLog.Enabled` | boolean | `true` | 启用警报文件日志 |
+| `FileLog.LogDirectory` | string | `"logs/alerts"` | 警报日志文件目录 |
+| `FileLog.FileNamePattern` | string | `"alerts_{yyyy-MM-dd}.log"` | 带日期占位符的文件名模式 |
+| `FileLog.MaxFileSizeMB` | integer | `10` | 轮转前的最大文件大小（MB） |
+| `FileLog.MaxFileCount` | integer | `30` | 保留的最大日志文件数量 |
+
+### 按场景的配置示例
+
+#### 开发环境
+```json
+{
+  "Alerting": {
+    "EnableAlerting": false,
+    "MinimumSeverity": "Debug",
+    "FileLog": {
+      "Enabled": true,
+      "LogDirectory": "logs/dev-alerts",
+      "MaxFileCount": 5
+    }
+  }
+}
+```
+
+#### 仅邮件的生产环境
+```json
+{
+  "Alerting": {
+    "EnableAlerting": true,
+    "TimeoutSeconds": 45,
+    "MaxRetryAttempts": 5,
+    "MinimumSeverity": "Warning",
+    "MaxAlertsPerHour": 100,
+    "Email": {
+      "Enabled": true,
+      "SmtpServer": "smtp.company.com",
+      "SmtpPort": 587,
+      "UseSsl": true,
+      "FromAddress": "backup-alerts@company.com",
+      "Recipients": [
+        "dba-team@company.com",
+        "ops-team@company.com"
+      ]
+    },
+    "FileLog": {
+      "Enabled": true,
+      "LogDirectory": "/var/log/backup-alerts",
+      "MaxFileSizeMB": 50,
+      "MaxFileCount": 90
+    }
+  }
+}
+```
+
+#### 带 Webhook 集成的高容量环境
+```json
+{
+  "Alerting": {
+    "EnableAlerting": true,
+    "BaseUrl": "https://api.monitoring.company.com",
+    "TimeoutSeconds": 60,
+    "MaxRetryAttempts": 3,
+    "EnableCircuitBreaker": true,
+    "DefaultHeaders": {
+      "X-API-Key": "prod_api_key_here",
+      "X-Environment": "production"
+    },
+    "MinimumSeverity": "Error",
+    "MaxAlertsPerHour": 200,
+    "Webhook": {
+      "Enabled": true,
+      "Url": "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX",
+      "HttpMethod": "POST",
+      "ContentType": "application/json"
+    },
+    "Email": {
+      "Enabled": true,
+      "SmtpServer": "smtp.company.com",
+      "SmtpPort": 587,
+      "UseSsl": true,
+      "FromAddress": "critical-alerts@company.com",
+      "Recipients": ["oncall@company.com"]
+    }
+  }
+}
+```
+
+### 配置验证
+
+系统自动验证所有配置值并提供回退：
+
+- **无效的超时值**：重置为 30 秒并发出警告
+- **无效的重试次数**：限制为最多 10 次并发出警告
+- **无效的 URL**：清除并发出警告，HTTP 操作被禁用
+- **无效的邮箱地址**：从收件人列表中移除并发出警告
+- **缺少必需字段**：记录为警告，功能可能受限
+
+### 环境变量覆盖
+
+可以使用环境变量覆盖配置值：
+
+```bash
+# 覆盖超时时间
+export Alerting__TimeoutSeconds=60
+
+# 覆盖邮件设置
+export Alerting__Email__SmtpServer=smtp.newserver.com
+export Alerting__Email__SmtpPort=465
+
+# 覆盖 webhook URL
+export Alerting__Webhook__Url=https://new-webhook-url.com
+```
+
+### 故障排除
+
+#### 常见问题
+
+1. **AlertingService 无法解析**
+   - 确保 HttpClient 已在 DI 容器中注册
+   - 检查 AlertingConfig 是否正确绑定
+
+2. **HTTP 请求超时**
+   - 增加 `TimeoutSeconds` 值
+   - 检查到 `BaseUrl` 的网络连接
+   - 验证重试策略设置
+
+3. **邮件通知不工作**
+   - 验证 SMTP 服务器设置
+   - 检查 SMTP 端口的防火墙规则
+   - 验证收件人列表中的邮箱地址
+
+4. **Webhook 通知失败**
+   - 验证 webhook URL 是否可访问
+   - 如果需要，检查身份验证令牌
+   - 查看 webhook 端点日志
+
+#### 日志记录
+
+启用详细日志记录以排除问题：
+
+```json
+{
+  "Logging": {
+    "LogLevel": {
+      "MySqlBackupTool.Shared.Services.AlertingService": "Debug",
+      "System.Net.Http.HttpClient": "Information"
+    }
+  }
 }
 ```
 
