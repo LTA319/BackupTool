@@ -28,158 +28,155 @@ namespace MySqlBackupTool.Client.Forms
         /// </summary>
         private void InitializeComponent()
         {
-            this.dgvConfigurations = new System.Windows.Forms.DataGridView();
-            this.btnNew = new System.Windows.Forms.Button();
-            this.btnEdit = new System.Windows.Forms.Button();
-            this.btnDelete = new System.Windows.Forms.Button();
-            this.btnActivate = new System.Windows.Forms.Button();
-            this.btnDeactivate = new System.Windows.Forms.Button();
-            this.btnRefresh = new System.Windows.Forms.Button();
-            this.btnClose = new System.Windows.Forms.Button();
-            this.lblStatus = new System.Windows.Forms.Label();
-            this.panelButtons = new System.Windows.Forms.Panel();
-
-            ((System.ComponentModel.ISupportInitialize)(this.dgvConfigurations)).BeginInit();
-            this.panelButtons.SuspendLayout();
-            this.SuspendLayout();
-
+            dgvConfigurations = new DataGridView();
+            btnNew = new Button();
+            btnEdit = new Button();
+            btnDelete = new Button();
+            btnActivate = new Button();
+            btnDeactivate = new Button();
+            btnRefresh = new Button();
+            btnClose = new Button();
+            lblStatus = new Label();
+            panelButtons = new Panel();
+            ((System.ComponentModel.ISupportInitialize)dgvConfigurations).BeginInit();
+            panelButtons.SuspendLayout();
+            SuspendLayout();
             // 
             // dgvConfigurations
             // 
-            this.dgvConfigurations.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.dgvConfigurations.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dgvConfigurations.Location = new System.Drawing.Point(12, 12);
-            this.dgvConfigurations.Name = "dgvConfigurations";
-            this.dgvConfigurations.Size = new System.Drawing.Size(760, 450);
-            this.dgvConfigurations.TabIndex = 0;
-
-            // 
-            // panelButtons
-            // 
-            this.panelButtons.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.panelButtons.Controls.Add(this.btnNew);
-            this.panelButtons.Controls.Add(this.btnEdit);
-            this.panelButtons.Controls.Add(this.btnDelete);
-            this.panelButtons.Controls.Add(this.btnActivate);
-            this.panelButtons.Controls.Add(this.btnDeactivate);
-            this.panelButtons.Controls.Add(this.btnRefresh);
-            this.panelButtons.Controls.Add(this.btnClose);
-            this.panelButtons.Location = new System.Drawing.Point(12, 480);
-            this.panelButtons.Name = "panelButtons";
-            this.panelButtons.Size = new System.Drawing.Size(760, 50);
-            this.panelButtons.TabIndex = 1;
-
+            dgvConfigurations.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            dgvConfigurations.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dgvConfigurations.Location = new Point(19, 19);
+            dgvConfigurations.Margin = new Padding(5, 5, 5, 5);
+            dgvConfigurations.Name = "dgvConfigurations";
+            dgvConfigurations.RowHeadersWidth = 62;
+            dgvConfigurations.Size = new Size(1419, 521);
+            dgvConfigurations.TabIndex = 0;
             // 
             // btnNew
             // 
-            this.btnNew.Location = new System.Drawing.Point(0, 10);
-            this.btnNew.Name = "btnNew";
-            this.btnNew.Size = new System.Drawing.Size(80, 30);
-            this.btnNew.TabIndex = 0;
-            this.btnNew.Text = "New";
-            this.btnNew.UseVisualStyleBackColor = true;
-            this.btnNew.Click += new System.EventHandler(this.btnNew_Click);
-
+            btnNew.Location = new Point(0, 16);
+            btnNew.Margin = new Padding(5, 5, 5, 5);
+            btnNew.Name = "btnNew";
+            btnNew.Size = new Size(126, 48);
+            btnNew.TabIndex = 0;
+            btnNew.Text = "New";
+            btnNew.UseVisualStyleBackColor = true;
+            btnNew.Click += btnNew_Click;
             // 
             // btnEdit
             // 
-            this.btnEdit.Enabled = false;
-            this.btnEdit.Location = new System.Drawing.Point(90, 10);
-            this.btnEdit.Name = "btnEdit";
-            this.btnEdit.Size = new System.Drawing.Size(80, 30);
-            this.btnEdit.TabIndex = 1;
-            this.btnEdit.Text = "Edit";
-            this.btnEdit.UseVisualStyleBackColor = true;
-            this.btnEdit.Click += new System.EventHandler(this.btnEdit_Click);
-
+            btnEdit.Enabled = false;
+            btnEdit.Location = new Point(141, 16);
+            btnEdit.Margin = new Padding(5, 5, 5, 5);
+            btnEdit.Name = "btnEdit";
+            btnEdit.Size = new Size(126, 48);
+            btnEdit.TabIndex = 1;
+            btnEdit.Text = "Edit";
+            btnEdit.UseVisualStyleBackColor = true;
+            btnEdit.Click += btnEdit_Click;
             // 
             // btnDelete
             // 
-            this.btnDelete.Enabled = false;
-            this.btnDelete.Location = new System.Drawing.Point(180, 10);
-            this.btnDelete.Name = "btnDelete";
-            this.btnDelete.Size = new System.Drawing.Size(80, 30);
-            this.btnDelete.TabIndex = 2;
-            this.btnDelete.Text = "Delete";
-            this.btnDelete.UseVisualStyleBackColor = true;
-            this.btnDelete.Click += new System.EventHandler(this.btnDelete_Click);
-
+            btnDelete.Enabled = false;
+            btnDelete.Location = new Point(283, 16);
+            btnDelete.Margin = new Padding(5, 5, 5, 5);
+            btnDelete.Name = "btnDelete";
+            btnDelete.Size = new Size(126, 48);
+            btnDelete.TabIndex = 2;
+            btnDelete.Text = "Delete";
+            btnDelete.UseVisualStyleBackColor = true;
+            btnDelete.Click += btnDelete_Click;
             // 
             // btnActivate
             // 
-            this.btnActivate.Enabled = false;
-            this.btnActivate.Location = new System.Drawing.Point(280, 10);
-            this.btnActivate.Name = "btnActivate";
-            this.btnActivate.Size = new System.Drawing.Size(80, 30);
-            this.btnActivate.TabIndex = 3;
-            this.btnActivate.Text = "Activate";
-            this.btnActivate.UseVisualStyleBackColor = true;
-            this.btnActivate.Click += new System.EventHandler(this.btnActivate_Click);
-
+            btnActivate.Enabled = false;
+            btnActivate.Location = new Point(440, 16);
+            btnActivate.Margin = new Padding(5, 5, 5, 5);
+            btnActivate.Name = "btnActivate";
+            btnActivate.Size = new Size(126, 48);
+            btnActivate.TabIndex = 3;
+            btnActivate.Text = "Activate";
+            btnActivate.UseVisualStyleBackColor = true;
+            btnActivate.Click += btnActivate_Click;
             // 
             // btnDeactivate
             // 
-            this.btnDeactivate.Enabled = false;
-            this.btnDeactivate.Location = new System.Drawing.Point(370, 10);
-            this.btnDeactivate.Name = "btnDeactivate";
-            this.btnDeactivate.Size = new System.Drawing.Size(80, 30);
-            this.btnDeactivate.TabIndex = 4;
-            this.btnDeactivate.Text = "Deactivate";
-            this.btnDeactivate.UseVisualStyleBackColor = true;
-            this.btnDeactivate.Click += new System.EventHandler(this.btnDeactivate_Click);
-
+            btnDeactivate.Enabled = false;
+            btnDeactivate.Location = new Point(581, 16);
+            btnDeactivate.Margin = new Padding(5, 5, 5, 5);
+            btnDeactivate.Name = "btnDeactivate";
+            btnDeactivate.Size = new Size(126, 48);
+            btnDeactivate.TabIndex = 4;
+            btnDeactivate.Text = "Deactivate";
+            btnDeactivate.UseVisualStyleBackColor = true;
+            btnDeactivate.Click += btnDeactivate_Click;
             // 
             // btnRefresh
             // 
-            this.btnRefresh.Location = new System.Drawing.Point(480, 10);
-            this.btnRefresh.Name = "btnRefresh";
-            this.btnRefresh.Size = new System.Drawing.Size(80, 30);
-            this.btnRefresh.TabIndex = 5;
-            this.btnRefresh.Text = "Refresh";
-            this.btnRefresh.UseVisualStyleBackColor = true;
-            this.btnRefresh.Click += new System.EventHandler(this.btnRefresh_Click);
-
+            btnRefresh.Location = new Point(754, 16);
+            btnRefresh.Margin = new Padding(5, 5, 5, 5);
+            btnRefresh.Name = "btnRefresh";
+            btnRefresh.Size = new Size(126, 48);
+            btnRefresh.TabIndex = 5;
+            btnRefresh.Text = "Refresh";
+            btnRefresh.UseVisualStyleBackColor = true;
+            btnRefresh.Click += btnRefresh_Click;
             // 
             // btnClose
             // 
-            this.btnClose.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnClose.Location = new System.Drawing.Point(680, 10);
-            this.btnClose.Name = "btnClose";
-            this.btnClose.Size = new System.Drawing.Size(80, 30);
-            this.btnClose.TabIndex = 6;
-            this.btnClose.Text = "Close";
-            this.btnClose.UseVisualStyleBackColor = true;
-            this.btnClose.Click += new System.EventHandler(this.btnClose_Click);
-
+            btnClose.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            btnClose.Location = new Point(1294, 16);
+            btnClose.Margin = new Padding(5, 5, 5, 5);
+            btnClose.Name = "btnClose";
+            btnClose.Size = new Size(126, 48);
+            btnClose.TabIndex = 6;
+            btnClose.Text = "Close";
+            btnClose.UseVisualStyleBackColor = true;
+            btnClose.Click += btnClose_Click;
             // 
             // lblStatus
             // 
-            this.lblStatus.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.lblStatus.AutoSize = true;
-            this.lblStatus.Location = new System.Drawing.Point(12, 545);
-            this.lblStatus.Name = "lblStatus";
-            this.lblStatus.Size = new System.Drawing.Size(0, 15);
-            this.lblStatus.TabIndex = 2;
-
+            lblStatus.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            lblStatus.AutoSize = true;
+            lblStatus.Location = new Point(19, 673);
+            lblStatus.Margin = new Padding(5, 0, 5, 0);
+            lblStatus.Name = "lblStatus";
+            lblStatus.Size = new Size(0, 24);
+            lblStatus.TabIndex = 2;
+            // 
+            // panelButtons
+            // 
+            panelButtons.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            panelButtons.Controls.Add(btnNew);
+            panelButtons.Controls.Add(btnEdit);
+            panelButtons.Controls.Add(btnDelete);
+            panelButtons.Controls.Add(btnActivate);
+            panelButtons.Controls.Add(btnDeactivate);
+            panelButtons.Controls.Add(btnRefresh);
+            panelButtons.Controls.Add(btnClose);
+            panelButtons.Location = new Point(19, 569);
+            panelButtons.Margin = new Padding(5, 5, 5, 5);
+            panelButtons.Name = "panelButtons";
+            panelButtons.Size = new Size(1419, 80);
+            panelButtons.TabIndex = 1;
             // 
             // ConfigurationListForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(784, 571);
-            this.Controls.Add(this.dgvConfigurations);
-            this.Controls.Add(this.panelButtons);
-            this.Controls.Add(this.lblStatus);
-            this.Name = "ConfigurationListForm";
-            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "Backup Configurations";
-            ((System.ComponentModel.ISupportInitialize)(this.dgvConfigurations)).EndInit();
-            this.panelButtons.ResumeLayout(false);
-            this.ResumeLayout(false);
-            this.PerformLayout();
+            AutoScaleDimensions = new SizeF(11F, 24F);
+            AutoScaleMode = AutoScaleMode.Font;
+            ClientSize = new Size(1457, 715);
+            Controls.Add(dgvConfigurations);
+            Controls.Add(panelButtons);
+            Controls.Add(lblStatus);
+            Margin = new Padding(5, 5, 5, 5);
+            Name = "ConfigurationListForm";
+            StartPosition = FormStartPosition.CenterParent;
+            Text = "Backup Configurations";
+            ((System.ComponentModel.ISupportInitialize)dgvConfigurations).EndInit();
+            panelButtons.ResumeLayout(false);
+            ResumeLayout(false);
+            PerformLayout();
         }
 
         #endregion
