@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Logging;
 using MySqlBackupTool.Shared.Interfaces;
 using MySqlBackupTool.Shared.Models;
+using System.ServiceProcess;
+using System.Text;
 
 namespace MySqlBackupTool.Shared.Services;
 
@@ -12,6 +14,7 @@ public class BackupOrchestrator : IBackupOrchestrator
 {
     private readonly IMySQLManager _mysqlManager;
     private readonly ICompressionService _compressionService;
+    private readonly IServiceChecker _serviceChecker;
     private readonly IFileTransferClient _fileTransferClient;
     private readonly IBackupLogService _backupLogService;
     private readonly ILogger<BackupOrchestrator> _logger;
@@ -27,12 +30,14 @@ public class BackupOrchestrator : IBackupOrchestrator
     public BackupOrchestrator(
         IMySQLManager mysqlManager,
         ICompressionService compressionService,
+        IServiceChecker serviceChecker,
         IFileTransferClient fileTransferClient,
         IBackupLogService backupLogService,
         ILogger<BackupOrchestrator> logger)
     {
         _mysqlManager = mysqlManager ?? throw new ArgumentNullException(nameof(mysqlManager));
         _compressionService = compressionService ?? throw new ArgumentNullException(nameof(compressionService));
+        _serviceChecker = serviceChecker ?? throw new ArgumentNullException(nameof(serviceChecker));
         _fileTransferClient = fileTransferClient ?? throw new ArgumentNullException(nameof(fileTransferClient));
         _backupLogService = backupLogService ?? throw new ArgumentNullException(nameof(backupLogService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -83,6 +88,37 @@ public class BackupOrchestrator : IBackupOrchestrator
             // 创建备份日志条目
             backupLog = await _backupLogService.StartBackupAsync(configuration.Id);
 
+            //服务检查
+            var serviceCheckResult = await _serviceChecker.CheckServiceAsync(configuration.MySQLConnection.ServiceName);
+            if (!serviceCheckResult.Exists)
+            {
+                var errorMessage = BuildServiceNotFoundMessage(configuration.MySQLConnection.ServiceName, serviceCheckResult);
+                _logger.LogError("Service not found: {ServiceName}", configuration.MySQLConnection.ServiceName);
+                return new BackupResult
+                {
+                    OperationId = operationId,
+                    Success = false,
+                    ErrorMessage = $"Service Check Result: {errorMessage}",
+                    CompletedAt = DateTime.UtcNow,
+                    Duration = DateTime.UtcNow - startTime
+                };
+            }
+
+            if (!serviceCheckResult.CanBeBackedUp)
+            {
+                var errorMessage = BuildServiceCannotBackupMessage(serviceCheckResult);
+                _logger.LogError("Service cannot be backed up: {ServiceName}, Status: {Status}, CanStop: {CanStop}",
+                    configuration.MySQLConnection.ServiceName, serviceCheckResult.Status, serviceCheckResult.CanStop);
+                return new BackupResult
+                {
+                    OperationId = operationId,
+                    Success = false,
+                    ErrorMessage = $"Service Check Result: {errorMessage}",
+                    CompletedAt = DateTime.UtcNow,
+                    Duration = DateTime.UtcNow - startTime
+                };
+            }
+
             // 步骤1：停止MySQL实例
             backupProgress.CurrentStatus = BackupStatus.StoppingMySQL;
             backupProgress.CurrentOperation = "Stopping MySQL service";
@@ -93,11 +129,43 @@ public class BackupOrchestrator : IBackupOrchestrator
                 configuration.MySQLConnection.ServiceName, operationId);
 
             var stopResult = await _mysqlManager.StopInstanceAsync(configuration.MySQLConnection.ServiceName);
+
             if (!stopResult)
             {
-                var errorMessage = $"Failed to stop MySQL service: {configuration.MySQLConnection.ServiceName}";
+                // 检查服务是否存在
+                var serviceExists = await ServiceExistsAsync(configuration.MySQLConnection.ServiceName);
+
+                string errorMessage;
+                if (!serviceExists)
+                {
+                    // 服务不存在，建议可能的服务名
+                    var suggestions = await SuggestServiceNamesAsync();
+                    errorMessage = $"MySQL服务 '{configuration.MySQLConnection.ServiceName}' 不存在。\n\n" +
+                                  "可能的原因:\n" +
+                                  "1. MySQL未安装或服务名称不正确\n" +
+                                  "2. 常见的MySQL服务名: MySQL, MySQL80, MySQL57, MariaDB\n\n" +
+                                 $"检测到的MySQL服务: {(suggestions.Any() ? string.Join(", ", suggestions) : "无")}";
+                }
+                else
+                {
+                    // 服务存在但无法停止
+                    errorMessage = $"无法停止MySQL服务 '{configuration.MySQLConnection.ServiceName}'。\n\n" +
+                                  "可能的原因:\n" +
+                                  "1. 权限不足 - 请以管理员身份运行此程序\n" +
+                                  "2. 有其他程序正在使用MySQL数据库\n" +
+                                  "3. 服务可能处于不可停止的状态\n\n" +
+                                  "建议的操作:\n" +
+                                  "1. 关闭所有MySQL客户端程序（如MySQL Workbench, phpMyAdmin等）\n" +
+                                  "2. 在服务管理器中手动停止MySQL服务\n" +
+                                  "3. 以管理员身份重新启动此程序";
+                }
+
+                //var errorMessage = $"Failed to stop MySQL service: {configuration.MySQLConnection.ServiceName}";
                 _logger.LogError("MySQL stop failed for operation {OperationId}: {ServiceName}", 
                     operationId, configuration.MySQLConnection.ServiceName);
+
+                // 记录详细错误
+                await LogServiceDetailsAsync(configuration.MySQLConnection.ServiceName);
 
                 await _backupLogService.CompleteBackupAsync(backupLog.Id, BackupStatus.Failed, errorMessage: errorMessage);
                 
@@ -353,6 +421,129 @@ public class BackupOrchestrator : IBackupOrchestrator
                 Duration = DateTime.UtcNow - startTime
             };
         }
+    }
+
+    // 辅助方法
+    private async Task<bool> ServiceExistsAsync(string serviceName)
+    {
+        return await Task.Run(() =>
+        {
+            try
+            {
+                using var service = new ServiceController(serviceName);
+                var status = service.Status; // 这行会抛出异常如果服务不存在
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        });
+    }
+
+    private async Task<List<string>> SuggestServiceNamesAsync()
+    {
+        return await Task.Run(() =>
+        {
+            var suggestions = new List<string>();
+            try
+            {
+                var services = ServiceController.GetServices();
+                var mysqlServices = services.Where(s =>
+                    s.ServiceName.Contains("mysql", StringComparison.OrdinalIgnoreCase) ||
+                    s.ServiceName.Contains("mariadb", StringComparison.OrdinalIgnoreCase))
+                    .Select(s => s.ServiceName)
+                    .ToList();
+
+                suggestions.AddRange(mysqlServices);
+            }
+            catch
+            {
+                // 忽略错误
+            }
+            return suggestions;
+        });
+    }
+
+    private async Task LogServiceDetailsAsync(string serviceName)
+    {
+        try
+        {
+            using var service = new ServiceController(serviceName);
+            _logger.LogInformation("Service details - Name: {ServiceName}, DisplayName: {DisplayName}, Status: {Status}, Type: {ServiceType}, CanStop: {CanStop}",
+                service.ServiceName, service.DisplayName, service.Status, service.ServiceType, service.CanStop);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not get service details for: {ServiceName}", serviceName);
+        }
+    }
+    private string BuildServiceNotFoundMessage(string serviceName, ServiceCheckResult result)
+    {
+        var suggestions = _serviceChecker.ListMySQLServicesAsync().Result;
+
+        var sb = new StringBuilder();
+        sb.AppendLine($"MySQL服务 '{serviceName}' 不存在。");
+        sb.AppendLine();
+        sb.AppendLine("可能的原因：");
+        sb.AppendLine("1. MySQL未正确安装");
+        sb.AppendLine("2. 服务名称不正确");
+        sb.AppendLine("3. 服务被禁用或删除");
+        sb.AppendLine();
+
+        if (suggestions.Any())
+        {
+            sb.AppendLine("检测到的MySQL服务：");
+            foreach (var service in suggestions)
+            {
+                sb.AppendLine($"  • {service.ServiceName} ({service.DisplayName}) - {service.StatusDescription}");
+            }
+        }
+        else
+        {
+            sb.AppendLine("未检测到任何MySQL服务。请确保MySQL已安装并运行。");
+        }
+
+        return sb.ToString();
+    }
+
+    private string BuildServiceCannotBackupMessage(ServiceCheckResult result)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"无法备份服务 '{result.ServiceName}'。");
+        sb.AppendLine($"状态: {result.Status}");
+
+        if (result.CanStop == false)
+        {
+            sb.AppendLine("原因: 服务配置为不可停止");
+            if (!string.IsNullOrEmpty(result.AccessError))
+            {
+                sb.AppendLine($"权限错误: {result.AccessError}");
+                sb.AppendLine("建议: 请以管理员身份运行此程序");
+            }
+        }
+        else if (result.DependentServices.Any())
+        {
+            sb.AppendLine($"警告: 有 {result.DependentServices.Length} 个程序依赖此服务");
+            sb.AppendLine("依赖程序:");
+            foreach (var dep in result.DependentServices.Take(5))
+            {
+                sb.AppendLine($"  • {dep}");
+            }
+            if (result.DependentServices.Length > 5)
+            {
+                sb.AppendLine($"  ... 以及 {result.DependentServices.Length - 5} 个其他程序");
+            }
+        }
+
+        if (!string.IsNullOrEmpty(result.BackupAdvice))
+        {
+            sb.AppendLine();
+            sb.AppendLine("建议:");
+            sb.AppendLine(result.BackupAdvice);
+        }
+
+        return sb.ToString();
     }
 
     /// <summary>

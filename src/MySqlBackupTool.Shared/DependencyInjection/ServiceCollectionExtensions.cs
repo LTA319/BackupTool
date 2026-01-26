@@ -401,7 +401,10 @@ public static class ServiceCollectionExtensions
     {
         // Add backup scheduler service
         services.AddScoped<IBackupScheduler, BackupSchedulerService>();
-        
+
+        //添加服务检查
+        services.AddSingleton<IServiceChecker, ServiceChecker>();
+
         // Add the scheduler as a hosted service for background execution
         services.AddHostedService<BackupSchedulerService>();
         

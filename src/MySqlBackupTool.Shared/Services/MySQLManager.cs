@@ -1,8 +1,9 @@
-using System.Diagnostics;
-using System.ServiceProcess;
 using Microsoft.Extensions.Logging;
 using MySqlBackupTool.Shared.Interfaces;
 using MySqlBackupTool.Shared.Models;
+using System.Diagnostics;
+using System.ServiceProcess;
+using System.Text;
 
 namespace MySqlBackupTool.Shared.Services;
 
@@ -59,68 +60,85 @@ public class MySQLManager : IMySQLManager, IBackupService
 
         try
         {
-            using var service = new ServiceController(serviceName);
+            // 首先尝试使用ServiceController
+            var result = await StopUsingServiceControllerAsync(serviceName, operationId);
+            if (result)
+            {
+                _memoryProfiler?.StopProfiling(operationId);
+                return true;
+            }
+
+            // 如果ServiceController失败，尝试命令行方式
+            _logger.LogWarning("ServiceController method failed, trying command line method for service: {ServiceName}", serviceName);
+            _memoryProfiler?.RecordSnapshot(operationId, "Fallback", "Falling back to command line method");
+
+            result = await StopUsingCommandLineAsync(serviceName, operationId);
+
+            _memoryProfiler?.StopProfiling(operationId);
+            return result;
+
+            //using var service = new ServiceController(serviceName);
             
-            // 检查服务是否存在
-            try
-            {
-                var status = service.Status;
-                _logger.LogDebug("Current service status: {Status}", status);
-                _memoryProfiler?.RecordSnapshot(operationId, "StatusCheck", $"Service status: {status}");
-            }
-            catch (InvalidOperationException ex)
-            {
-                _logger.LogError(ex, "MySQL service '{ServiceName}' not found", serviceName);
-                _memoryProfiler?.RecordSnapshot(operationId, "Error", "Service not found");
-                _memoryProfiler?.StopProfiling(operationId);
-                return false;
-            }
+            //// 检查服务是否存在
+            //try
+            //{
+            //    var status = service.Status;
+            //    _logger.LogDebug("Current service status: {Status}", status);
+            //    _memoryProfiler?.RecordSnapshot(operationId, "StatusCheck", $"Service status: {status}");
+            //}
+            //catch (InvalidOperationException ex)
+            //{
+            //    _logger.LogError(ex, "MySQL service '{ServiceName}' not found", serviceName);
+            //    _memoryProfiler?.RecordSnapshot(operationId, "Error", "Service not found");
+            //    _memoryProfiler?.StopProfiling(operationId);
+            //    return false;
+            //}
 
-            // 如果已经停止，返回成功
-            if (service.Status == ServiceControllerStatus.Stopped)
-            {
-                _logger.LogInformation("MySQL service '{ServiceName}' is already stopped", serviceName);
-                _memoryProfiler?.RecordSnapshot(operationId, "AlreadyStopped", "Service already in stopped state");
-                _memoryProfiler?.StopProfiling(operationId);
-                return true;
-            }
+            //// 如果已经停止，返回成功
+            //if (service.Status == ServiceControllerStatus.Stopped)
+            //{
+            //    _logger.LogInformation("MySQL service '{ServiceName}' is already stopped", serviceName);
+            //    _memoryProfiler?.RecordSnapshot(operationId, "AlreadyStopped", "Service already in stopped state");
+            //    _memoryProfiler?.StopProfiling(operationId);
+            //    return true;
+            //}
 
-            // 如果正在停止，等待完成
-            if (service.Status == ServiceControllerStatus.StopPending)
-            {
-                _logger.LogInformation("MySQL service '{ServiceName}' is already stopping, waiting for completion", serviceName);
-                _memoryProfiler?.RecordSnapshot(operationId, "WaitingForStop", "Service is stopping, waiting for completion");
-                await WaitForServiceStatusAsync(service, ServiceControllerStatus.Stopped, _serviceOperationTimeout);
-                var result = service.Status == ServiceControllerStatus.Stopped;
-                _memoryProfiler?.RecordSnapshot(operationId, "WaitComplete", $"Wait completed, success: {result}");
-                _memoryProfiler?.StopProfiling(operationId);
-                return result;
-            }
+            //// 如果正在停止，等待完成
+            //if (service.Status == ServiceControllerStatus.StopPending)
+            //{
+            //    _logger.LogInformation("MySQL service '{ServiceName}' is already stopping, waiting for completion", serviceName);
+            //    _memoryProfiler?.RecordSnapshot(operationId, "WaitingForStop", "Service is stopping, waiting for completion");
+            //    await WaitForServiceStatusAsync(service, ServiceControllerStatus.Stopped, _serviceOperationTimeout);
+            //    var result = service.Status == ServiceControllerStatus.Stopped;
+            //    _memoryProfiler?.RecordSnapshot(operationId, "WaitComplete", $"Wait completed, success: {result}");
+            //    _memoryProfiler?.StopProfiling(operationId);
+            //    return result;
+            //}
 
-            // 停止服务
-            _memoryProfiler?.RecordSnapshot(operationId, "SendStopCommand", "Sending stop command to service");
-            service.Stop();
-            _logger.LogInformation("Stop command sent to MySQL service '{ServiceName}'", serviceName);
+            //// 停止服务
+            //_memoryProfiler?.RecordSnapshot(operationId, "SendStopCommand", "Sending stop command to service");
+            //service.Stop();
+            //_logger.LogInformation("Stop command sent to MySQL service '{ServiceName}'", serviceName);
 
-            // 等待服务停止
-            _memoryProfiler?.RecordSnapshot(operationId, "WaitingForStop", "Waiting for service to stop");
-            await WaitForServiceStatusAsync(service, ServiceControllerStatus.Stopped, _serviceOperationTimeout);
+            //// 等待服务停止
+            //_memoryProfiler?.RecordSnapshot(operationId, "WaitingForStop", "Waiting for service to stop");
+            //await WaitForServiceStatusAsync(service, ServiceControllerStatus.Stopped, _serviceOperationTimeout);
 
-            if (service.Status == ServiceControllerStatus.Stopped)
-            {
-                _logger.LogInformation("MySQL service '{ServiceName}' stopped successfully", serviceName);
-                _memoryProfiler?.RecordSnapshot(operationId, "Success", "Service stopped successfully");
-                _memoryProfiler?.StopProfiling(operationId);
-                return true;
-            }
-            else
-            {
-                _logger.LogError("MySQL service '{ServiceName}' failed to stop within timeout. Current status: {Status}", 
-                    serviceName, service.Status);
-                _memoryProfiler?.RecordSnapshot(operationId, "Timeout", $"Stop timeout, status: {service.Status}");
-                _memoryProfiler?.StopProfiling(operationId);
-                return false;
-            }
+            //if (service.Status == ServiceControllerStatus.Stopped)
+            //{
+            //    _logger.LogInformation("MySQL service '{ServiceName}' stopped successfully", serviceName);
+            //    _memoryProfiler?.RecordSnapshot(operationId, "Success", "Service stopped successfully");
+            //    _memoryProfiler?.StopProfiling(operationId);
+            //    return true;
+            //}
+            //else
+            //{
+            //    _logger.LogError("MySQL service '{ServiceName}' failed to stop within timeout. Current status: {Status}", 
+            //        serviceName, service.Status);
+            //    _memoryProfiler?.RecordSnapshot(operationId, "Timeout", $"Stop timeout, status: {service.Status}");
+            //    _memoryProfiler?.StopProfiling(operationId);
+            //    return false;
+            //}
         }
         catch (InvalidOperationException ex)
         {
@@ -141,6 +159,406 @@ public class MySQLManager : IMySQLManager, IBackupService
             _logger.LogError(ex, "Unexpected error stopping MySQL service '{ServiceName}'", serviceName);
             _memoryProfiler?.RecordSnapshot(operationId, "Exception", $"Unexpected error: {ex.Message}");
             _memoryProfiler?.StopProfiling(operationId);
+            return false;
+        }
+    }
+
+    private async Task<bool> StopUsingServiceControllerAsync(string serviceName, string operationId)
+    {
+        try
+        {
+            using var service = new ServiceController(serviceName);
+
+            // 检查服务是否存在
+            try
+            {
+                var status = service.Status;
+                _logger.LogDebug("Current service status: {Status}", status);
+                _memoryProfiler?.RecordSnapshot(operationId, "StatusCheck", $"Service status: {status}");
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogError(ex, "MySQL service '{ServiceName}' not found", serviceName);
+                _memoryProfiler?.RecordSnapshot(operationId, "Error", "Service not found");
+                return false;
+            }
+
+            // 如果已经停止，返回成功
+            if (service.Status == ServiceControllerStatus.Stopped)
+            {
+                _logger.LogInformation("MySQL service '{ServiceName}' is already stopped", serviceName);
+                _memoryProfiler?.RecordSnapshot(operationId, "AlreadyStopped", "Service already in stopped state");
+                return true;
+            }
+
+            // 检查权限
+            if (!HasPermissionToControlService(serviceName))
+            {
+                _logger.LogError("Insufficient permissions to control service: {ServiceName}", serviceName);
+                _memoryProfiler?.RecordSnapshot(operationId, "Error", "Insufficient permissions");
+                return false;
+            }
+
+            // 停止服务
+            _memoryProfiler?.RecordSnapshot(operationId, "SendStopCommand", "Sending stop command to service");
+            service.Stop();
+            _logger.LogInformation("Stop command sent to MySQL service '{ServiceName}'", serviceName);
+
+            // 等待服务停止
+            _memoryProfiler?.RecordSnapshot(operationId, "WaitingForStop", "Waiting for service to stop");
+            await WaitForServiceStatusAsync(service, ServiceControllerStatus.Stopped, _serviceOperationTimeout);
+
+            if (service.Status == ServiceControllerStatus.Stopped)
+            {
+                _logger.LogInformation("MySQL service '{ServiceName}' stopped successfully", serviceName);
+                _memoryProfiler?.RecordSnapshot(operationId, "Success", "Service stopped successfully");
+                return true;
+            }
+            else
+            {
+                _logger.LogError("MySQL service '{ServiceName}' failed to stop within timeout. Current status: {Status}",
+                    serviceName, service.Status);
+                _memoryProfiler?.RecordSnapshot(operationId, "Timeout", $"Stop timeout, status: {service.Status}");
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "ServiceController method failed for service '{ServiceName}'", serviceName);
+            _memoryProfiler?.RecordSnapshot(operationId, "Exception", $"{ex.GetType().Name}: {ex.Message}");
+            return false;
+        }
+    }
+
+    private async Task<bool> StopUsingCommandLineAsync(string serviceName, string operationId)
+    {
+        try
+        {
+            _logger.LogInformation("Attempting to stop service via command line: {ServiceName}", serviceName);
+            _memoryProfiler?.RecordSnapshot(operationId, "CommandLineStart", "Starting command line stop");
+
+            // 方法1: 使用net stop
+            var result = await StopServiceWithNetStop(serviceName, operationId);
+            if (result)
+            {
+                return true;
+            }
+
+            // 方法2: 使用sc stop
+            result = await StopServiceWithScStop(serviceName, operationId);
+            if (result)
+            {
+                return true;
+            }
+
+            // 方法3: 使用PowerShell
+            result = await StopServiceWithPowerShell(serviceName, operationId);
+            if (result)
+            {
+                return true;
+            }
+
+            _logger.LogError("All command line methods failed to stop service: {ServiceName}", serviceName);
+            _memoryProfiler?.RecordSnapshot(operationId, "AllMethodsFailed", "All command line methods failed");
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Command line method failed for service '{ServiceName}'", serviceName);
+            _memoryProfiler?.RecordSnapshot(operationId, "CommandLineException", $"{ex.GetType().Name}: {ex.Message}");
+            return false;
+        }
+    }
+    private async Task<bool> StopServiceWithNetStop(string serviceName, string operationId)
+    {
+        try
+        {
+            var processInfo = new ProcessStartInfo
+            {
+                FileName = "net",
+                Arguments = $"stop \"{serviceName}\" /y", // /y参数表示跳过确认
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            _logger.LogDebug("Executing: {FileName} {Arguments}", processInfo.FileName, processInfo.Arguments);
+            _memoryProfiler?.RecordSnapshot(operationId, "NetStop", $"Executing: net stop {serviceName}");
+
+            var output = new StringBuilder();
+            var error = new StringBuilder();
+
+            using (var process = new Process { StartInfo = processInfo })
+            {
+                process.OutputDataReceived += (sender, e) =>
+                {
+                    if (!string.IsNullOrEmpty(e.Data))
+                    {
+                        output.AppendLine(e.Data);
+                        _logger.LogDebug("net stop output: {Output}", e.Data);
+                    }
+                };
+
+                process.ErrorDataReceived += (sender, e) =>
+                {
+                    if (!string.IsNullOrEmpty(e.Data))
+                    {
+                        error.AppendLine(e.Data);
+                        _logger.LogDebug("net stop error: {Error}", e.Data);
+                    }
+                };
+
+                process.Start();
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+
+                var completed = await Task.Run(() => process.WaitForExit(30000)); // 30秒超时
+
+                if (!completed)
+                {
+                    _logger.LogWarning("net stop timed out for service: {ServiceName}", serviceName);
+                    process.Kill();
+                    return false;
+                }
+
+                if (process.ExitCode == 0)
+                {
+                    _logger.LogInformation("net stop successful for service: {ServiceName}", serviceName);
+                    _memoryProfiler?.RecordSnapshot(operationId, "NetStopSuccess", "net stop succeeded");
+
+                    // 验证服务确实停止了
+                    await Task.Delay(2000); // 等待2秒让服务完全停止
+                    return await IsServiceStopped(serviceName, operationId);
+                }
+                else
+                {
+                    _logger.LogWarning("net stop failed with exit code {ExitCode} for service: {ServiceName}. Output: {Output}",
+                        process.ExitCode, serviceName, output.ToString());
+                    _memoryProfiler?.RecordSnapshot(operationId, "NetStopFailed", $"Exit code: {process.ExitCode}");
+                    return false;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error executing net stop for service: {ServiceName}", serviceName);
+            _memoryProfiler?.RecordSnapshot(operationId, "NetStopError", ex.Message);
+            return false;
+        }
+    }
+
+    private async Task<bool> StopServiceWithScStop(string serviceName, string operationId)
+    {
+        try
+        {
+            var processInfo = new ProcessStartInfo
+            {
+                FileName = "sc",
+                Arguments = $"stop \"{serviceName}\"",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            _logger.LogDebug("Executing: {FileName} {Arguments}", processInfo.FileName, processInfo.Arguments);
+            _memoryProfiler?.RecordSnapshot(operationId, "ScStop", $"Executing: sc stop {serviceName}");
+
+            var output = new StringBuilder();
+            var error = new StringBuilder();
+
+            using (var process = new Process { StartInfo = processInfo })
+            {
+                process.OutputDataReceived += (sender, e) =>
+                {
+                    if (!string.IsNullOrEmpty(e.Data))
+                    {
+                        output.AppendLine(e.Data);
+                        _logger.LogDebug("sc stop output: {Output}", e.Data);
+                    }
+                };
+
+                process.ErrorDataReceived += (sender, e) =>
+                {
+                    if (!string.IsNullOrEmpty(e.Data))
+                    {
+                        error.AppendLine(e.Data);
+                        _logger.LogDebug("sc stop error: {Error}", e.Data);
+                    }
+                };
+
+                process.Start();
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+
+                var completed = await Task.Run(() => process.WaitForExit(30000));
+
+                if (!completed)
+                {
+                    _logger.LogWarning("sc stop timed out for service: {ServiceName}", serviceName);
+                    process.Kill();
+                    return false;
+                }
+
+                if (process.ExitCode == 0 || output.ToString().Contains("SERVICE_STOPPED", StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogInformation("sc stop successful for service: {ServiceName}", serviceName);
+                    _memoryProfiler?.RecordSnapshot(operationId, "ScStopSuccess", "sc stop succeeded");
+
+                    await Task.Delay(2000);
+                    return await IsServiceStopped(serviceName, operationId);
+                }
+                else
+                {
+                    _logger.LogWarning("sc stop failed with exit code {ExitCode} for service: {ServiceName}. Output: {Output}",
+                        process.ExitCode, serviceName, output.ToString());
+                    _memoryProfiler?.RecordSnapshot(operationId, "ScStopFailed", $"Exit code: {process.ExitCode}");
+                    return false;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error executing sc stop for service: {ServiceName}", serviceName);
+            _memoryProfiler?.RecordSnapshot(operationId, "ScStopError", ex.Message);
+            return false;
+        }
+    }
+
+    private async Task<bool> StopServiceWithPowerShell(string serviceName, string operationId)
+    {
+        try
+        {
+            var command = $"-Command \"Stop-Service -Name '{serviceName}' -Force -ErrorAction Stop\"";
+
+            var processInfo = new ProcessStartInfo
+            {
+                FileName = "powershell.exe",
+                Arguments = command,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            _logger.LogDebug("Executing PowerShell: Stop-Service -Name '{ServiceName}' -Force", serviceName);
+            _memoryProfiler?.RecordSnapshot(operationId, "PowerShellStop", $"Executing: Stop-Service {serviceName}");
+
+            var output = new StringBuilder();
+            var error = new StringBuilder();
+
+            using (var process = new Process { StartInfo = processInfo })
+            {
+                process.OutputDataReceived += (sender, e) =>
+                {
+                    if (!string.IsNullOrEmpty(e.Data))
+                    {
+                        output.AppendLine(e.Data);
+                        _logger.LogDebug("PowerShell output: {Output}", e.Data);
+                    }
+                };
+
+                process.ErrorDataReceived += (sender, e) =>
+                {
+                    if (!string.IsNullOrEmpty(e.Data))
+                    {
+                        error.AppendLine(e.Data);
+                        _logger.LogDebug("PowerShell error: {Error}", e.Data);
+                    }
+                };
+
+                process.Start();
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+
+                var completed = await Task.Run(() => process.WaitForExit(30000));
+
+                if (!completed)
+                {
+                    _logger.LogWarning("PowerShell stop timed out for service: {ServiceName}", serviceName);
+                    process.Kill();
+                    return false;
+                }
+
+                if (process.ExitCode == 0)
+                {
+                    _logger.LogInformation("PowerShell stop successful for service: {ServiceName}", serviceName);
+                    _memoryProfiler?.RecordSnapshot(operationId, "PowerShellSuccess", "PowerShell succeeded");
+
+                    await Task.Delay(2000);
+                    return await IsServiceStopped(serviceName, operationId);
+                }
+                else
+                {
+                    _logger.LogWarning("PowerShell stop failed with exit code {ExitCode} for service: {ServiceName}. Error: {Error}",
+                        process.ExitCode, serviceName, error.ToString());
+                    _memoryProfiler?.RecordSnapshot(operationId, "PowerShellFailed", $"Exit code: {process.ExitCode}");
+                    return false;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error executing PowerShell stop for service: {ServiceName}", serviceName);
+            _memoryProfiler?.RecordSnapshot(operationId, "PowerShellError", ex.Message);
+            return false;
+        }
+    }
+    private async Task<bool> IsServiceStopped(string serviceName, string operationId)
+    {
+        try
+        {
+            for (int i = 0; i < 5; i++) // 最多重试5次
+            {
+                using var service = new ServiceController(serviceName);
+                if (service.Status == ServiceControllerStatus.Stopped)
+                {
+                    _logger.LogDebug("Service '{ServiceName}' is confirmed stopped (attempt {Attempt})",
+                        serviceName, i + 1);
+                    _memoryProfiler?.RecordSnapshot(operationId, "VerifiedStopped", $"Verified on attempt {i + 1}");
+                    return true;
+                }
+
+                _logger.LogDebug("Service '{ServiceName}' status: {Status} (attempt {Attempt})",
+                    serviceName, service.Status, i + 1);
+                await Task.Delay(1000);
+            }
+
+            _logger.LogWarning("Service '{ServiceName}' is not in stopped state after verification attempts", serviceName);
+            _memoryProfiler?.RecordSnapshot(operationId, "VerificationFailed", "Service not confirmed as stopped");
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error verifying service status for: {ServiceName}", serviceName);
+            _memoryProfiler?.RecordSnapshot(operationId, "VerificationError", ex.Message);
+            return false;
+        }
+    }
+
+    private bool HasPermissionToControlService(string serviceName)
+    {
+        try
+        {
+            using var service = new ServiceController(serviceName);
+
+            // 尝试读取服务的CanStop属性
+            // 这可能会在权限不足时抛出异常
+            var canStop = service.CanStop;
+
+            _logger.LogDebug("Permission check: CanStop={CanStop} for service: {ServiceName}", canStop, serviceName);
+            return canStop;
+        }
+        catch (System.ComponentModel.Win32Exception ex)
+        {
+            _logger.LogWarning(ex, "Permission denied for service: {ServiceName}. Error code: {ErrorCode}",
+                serviceName, ex.NativeErrorCode);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error checking permissions for service: {ServiceName}", serviceName);
             return false;
         }
     }
@@ -319,30 +737,71 @@ public class MySQLManager : IMySQLManager, IBackupService
     /// <summary>
     /// Waits for a service to reach the specified status within the given timeout
     /// </summary>
-    private async Task WaitForServiceStatusAsync(ServiceController service, ServiceControllerStatus targetStatus, TimeSpan timeout)
-    {
-        var stopwatch = Stopwatch.StartNew();
+    //private async Task WaitForServiceStatusAsync(ServiceController service, ServiceControllerStatus targetStatus, TimeSpan timeout)
+    //{
+    //    var stopwatch = Stopwatch.StartNew();
         
-        while (stopwatch.Elapsed < timeout)
+    //    while (stopwatch.Elapsed < timeout)
+    //    {
+    //        try
+    //        {
+    //            service.Refresh();
+    //            if (service.Status == targetStatus)
+    //            {
+    //                return;
+    //            }
+                
+    //            await Task.Delay(StatusCheckIntervalMs); // Check every 500ms
+    //        }
+    //        catch (Exception ex)
+    //        {
+    //            _logger.LogWarning(ex, "Error checking service status during wait");
+    //            break;
+    //        }
+    //    }
+        
+    //    _logger.LogWarning("Timeout waiting for service to reach status {TargetStatus}. Current status: {CurrentStatus}", 
+    //        targetStatus, service.Status);
+    //}
+
+    private async Task WaitForServiceStatusAsync(ServiceController service, ServiceControllerStatus desiredStatus, TimeSpan timeout)
+    {
+        var startTime = DateTime.UtcNow;
+
+        while (DateTime.UtcNow - startTime < timeout)
         {
             try
             {
                 service.Refresh();
-                if (service.Status == targetStatus)
+                if (service.Status == desiredStatus)
                 {
+                    _logger.LogDebug("Service reached desired status: {Status} after {Elapsed}s",
+                        desiredStatus, (DateTime.UtcNow - startTime).TotalSeconds);
                     return;
                 }
-                
-                await Task.Delay(StatusCheckIntervalMs); // Check every 500ms
+
+                if (desiredStatus == ServiceControllerStatus.Stopped &&
+                    service.Status == ServiceControllerStatus.StopPending)
+                {
+                    _logger.LogDebug("Service is stopping, current status: StopPending");
+                }
+                else if (desiredStatus == ServiceControllerStatus.Running &&
+                         service.Status == ServiceControllerStatus.StartPending)
+                {
+                    _logger.LogDebug("Service is starting, current status: StartPending");
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Error checking service status during wait");
-                break;
+                _logger.LogWarning(ex, "Error refreshing service status");
             }
+
+            await Task.Delay(1000);
         }
-        
-        _logger.LogWarning("Timeout waiting for service to reach status {TargetStatus}. Current status: {CurrentStatus}", 
-            targetStatus, service.Status);
+
+        _logger.LogWarning("Service did not reach status {Status} within timeout of {Timeout}s",
+            desiredStatus, timeout.TotalSeconds);
+
+        throw new System.ServiceProcess.TimeoutException($"Service did not reach {desiredStatus} status within {timeout.TotalSeconds} seconds");
     }
 }
