@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MySqlBackupTool.Shared.DependencyInjection;
+using MySqlBackupTool.Shared.Tools;
 
 namespace MySqlBackupTool.Client;
 
@@ -87,7 +88,23 @@ internal static class Program
             #endregion
 
             #region 主窗体运行
+            // 检查管理员权限
+            if (!AdminHelper.IsRunningAsAdministrator())
+            {
+                // 如果不需要管理员权限，可以继续运行
+                // 但如果需要停止服务，提示用户
+                var result = MessageBox.Show(
+                    "需要管理员权限才能停止MySQL服务。\n是否以管理员身份重新启动？",
+                    "权限提示",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
 
+                if (result == DialogResult.Yes)
+                {
+                    AdminHelper.RestartAsAdministratorIfNeeded();
+                    return;
+                }
+            }
             // 运行Windows Forms应用程序
             // 创建主窗体实例并传入服务提供者
             using var mainForm = new FormMain(host.Services);
