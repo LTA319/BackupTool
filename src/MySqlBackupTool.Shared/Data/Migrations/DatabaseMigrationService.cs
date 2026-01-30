@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using MySqlBackupTool.Shared.Interfaces;
+using MySqlBackupTool.Shared.Models;
 
 namespace MySqlBackupTool.Shared.Data.Migrations;
 
@@ -10,11 +12,16 @@ public class DatabaseMigrationService
 {
     private readonly BackupDbContext _context;
     private readonly ILogger<DatabaseMigrationService> _logger;
+    private readonly ICredentialStorage _credentialStorage;
 
-    public DatabaseMigrationService(BackupDbContext context, ILogger<DatabaseMigrationService> logger)
+    public DatabaseMigrationService(
+        BackupDbContext context, 
+        ILogger<DatabaseMigrationService> logger,
+        ICredentialStorage credentialStorage)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _credentialStorage = credentialStorage ?? throw new ArgumentNullException(nameof(credentialStorage));
     }
 
     /// <summary>
@@ -74,6 +81,9 @@ public class DatabaseMigrationService
         {
             _logger.LogInformation("Seeding default data...");
 
+            // Create default client credentials first
+            await SeedDefaultClientCredentialsAsync();
+
             // Add default retention policy if none exists
             if (!await _context.RetentionPolicies.AnyAsync())
             {
@@ -93,12 +103,168 @@ public class DatabaseMigrationService
                 _logger.LogInformation("Default retention policy created");
             }
 
+            // Add default backup configuration if none exists
+            await SeedDefaultBackupConfigurationAsync();
+
             _logger.LogInformation("Default data seeding completed");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error seeding default data");
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Seeds default client credentials for testing and initial setup
+    /// </summary>
+    private async Task SeedDefaultClientCredentialsAsync()
+    {
+        try
+        {
+            // Check if any client credentials exist
+            var existingClients = await _credentialStorage.ListClientIdsAsync();
+            
+            // Check if default client exists and has correct permissions
+            var defaultClientExists = existingClients.Contains("default-client");
+            if (defaultClientExists)
+            {
+                var existingClient = await _credentialStorage.GetCredentialsAsync("default-client");
+                if (existingClient != null)
+                {
+                    // Check if permissions are correct (using new format)
+                    var hasCorrectPermissions = existingClient.Permissions.Contains(BackupPermissions.UploadBackup);
+                    if (!hasCorrectPermissions)
+                    {
+                        _logger.LogInformation("Updating default client credentials with correct permissions");
+                        
+                        // Update with correct permissions
+                        existingClient.Permissions = new List<string>
+                        {
+                            BackupPermissions.UploadBackup,
+                            BackupPermissions.DownloadBackup,
+                            BackupPermissions.ListBackups,
+                            BackupPermissions.DeleteBackup
+                        };
+                        
+                        await _credentialStorage.UpdateCredentialsAsync(existingClient);
+                        _logger.LogInformation("Default client credentials updated with correct permissions");
+                        return;
+                    }
+                    else
+                    {
+                        _logger.LogDebug("Default client credentials already exist with correct permissions");
+                        return;
+                    }
+                }
+            }
+            
+            if (existingClients.Any() && !defaultClientExists)
+            {
+                _logger.LogDebug("Other client credentials exist, skipping default credential creation");
+                return;
+            }
+
+            // Create default client credentials
+            var defaultClient = new ClientCredentials
+            {
+                ClientId = "default-client",
+                ClientSecret = "default-secret-2024", // In production, this should be randomly generated
+                ClientName = "Default Backup Client",
+                Permissions = new List<string>
+                {
+                    BackupPermissions.UploadBackup,
+                    BackupPermissions.DownloadBackup,
+                    BackupPermissions.ListBackups,
+                    BackupPermissions.DeleteBackup
+                },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                ExpiresAt = null // No expiration for default client
+            };
+
+            var success = await _credentialStorage.StoreCredentialsAsync(defaultClient);
+            if (success)
+            {
+                _logger.LogInformation("Default client credentials created successfully for client '{ClientId}'", defaultClient.ClientId);
+                _logger.LogWarning("SECURITY WARNING: Default client credentials are being used. Please change them in production!");
+            }
+            else
+            {
+                _logger.LogError("Failed to create default client credentials");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating default client credentials");
+            // Don't throw here as this is not critical for database initialization
+        }
+    }
+
+    /// <summary>
+    /// Seeds default backup configuration for testing and initial setup
+    /// </summary>
+    private async Task SeedDefaultBackupConfigurationAsync()
+    {
+        try
+        {
+            // Check if any backup configurations exist
+            if (await _context.BackupConfigurations.AnyAsync())
+            {
+                _logger.LogDebug("Backup configurations already exist, skipping default configuration creation");
+                return;
+            }
+
+            // Create default backup configuration
+            var defaultConfig = new BackupConfiguration
+            {
+                Name = "Default Configuration",
+                MySQLConnection = new MySQLConnectionInfo
+                {
+                    Host = "localhost",
+                    Port = 3306,
+                    Username = "root",
+                    Password = "", // Empty password for default setup
+                    ServiceName = "MySQL80",
+                    DataDirectoryPath = @"C:\ProgramData\MySQL\MySQL Server 8.0\Data"
+                },
+                DataDirectoryPath = @"C:\ProgramData\MySQL\MySQL Server 8.0\Data",
+                ServiceName = "MySQL80",
+                TargetServer = new ServerEndpoint
+                {
+                    IPAddress = "127.0.0.1",
+                    Port = 8080,
+                    UseSSL = false,
+                    RequireAuthentication = true,
+                    ClientCredentials = new ClientCredentials
+                    {
+                        ClientId = "default-client",
+                        ClientSecret = "default-secret-2024",
+                        ClientName = "Default Backup Client"
+                    }
+                },
+                TargetDirectory = "backups",
+                NamingStrategy = new FileNamingStrategy
+                {
+                    Pattern = "{server}_{database}_{timestamp}.zip",
+                    DateFormat = "yyyyMMdd_HHmmss",
+                    IncludeServerName = true,
+                    IncludeDatabaseName = true
+                },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.BackupConfigurations.Add(defaultConfig);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Default backup configuration created successfully");
+            _logger.LogWarning("SECURITY WARNING: Default backup configuration is being used. Please review and update the settings!");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating default backup configuration");
+            // Don't throw here as this is not critical for database initialization
         }
     }
 

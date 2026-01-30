@@ -202,6 +202,37 @@ public static class ServiceCollectionExtensions
         });
 
         // Add authentication services
+        services.AddSingleton<CredentialStorageConfig>(provider =>
+        {
+            var config = new CredentialStorageConfig
+            {
+                CredentialsFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "MySqlBackupTool", "credentials.dat"),
+                EncryptionKey = "MySqlBackupTool-DefaultKey-2024", // In production, this should be configurable
+                UseWindowsDPAPI = true,
+                MaxAuthenticationAttempts = 5,
+                LockoutDurationMinutes = 15
+            };
+            
+            if (configuration != null)
+            {
+                var credentialSection = configuration.GetSection("CredentialStorage");
+                if (credentialSection.Exists())
+                {
+                    credentialSection.Bind(config);
+                }
+            }
+            
+            // Ensure the credentials directory exists
+            var credentialsDir = Path.GetDirectoryName(config.CredentialsFilePath);
+            if (!string.IsNullOrEmpty(credentialsDir) && !Directory.Exists(credentialsDir))
+            {
+                Directory.CreateDirectory(credentialsDir);
+            }
+            
+            return config;
+        });
+        services.AddScoped<ICredentialStorage, SecureCredentialStorage>();
+        services.AddScoped<ITokenManager, TokenManager>();
         services.AddScoped<IAuthenticationService, AuthenticationService>();
         services.AddScoped<IAuthorizationService, AuthorizationService>();
 
@@ -266,6 +297,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<CompressionService>();
         services.AddScoped<FileTransferClient>();
         services.AddScoped<SecureFileTransferClient>();
+        services.AddScoped<AuthenticatedFileTransferClient>();
         
         // Add timeout-protected services as the primary implementations
         services.AddScoped<IMySQLManager>(provider =>
@@ -315,9 +347,10 @@ public static class ServiceCollectionExtensions
         }
         else
         {
+            // Use authenticated file transfer client for non-secure transfers
             services.AddScoped<IFileTransferClient>(provider =>
             {
-                var innerClient = provider.GetRequiredService<FileTransferClient>();
+                var innerClient = provider.GetRequiredService<AuthenticatedFileTransferClient>();
                 var errorRecoveryManager = provider.GetRequiredService<IErrorRecoveryManager>();
                 var logger = provider.GetRequiredService<ILogger<TimeoutProtectedFileTransferClient>>();
                 return new TimeoutProtectedFileTransferClient(innerClient, errorRecoveryManager, logger);
@@ -326,7 +359,7 @@ public static class ServiceCollectionExtensions
             // Register IFileTransferService as an alias for IFileTransferClient for consistency
             services.AddScoped<IFileTransferService>(provider =>
             {
-                var innerClient = provider.GetRequiredService<FileTransferClient>();
+                var innerClient = provider.GetRequiredService<AuthenticatedFileTransferClient>();
                 var errorRecoveryManager = provider.GetRequiredService<IErrorRecoveryManager>();
                 var logger = provider.GetRequiredService<ILogger<TimeoutProtectedFileTransferClient>>();
                 return new TimeoutProtectedFileTransferClient(innerClient, errorRecoveryManager, logger);

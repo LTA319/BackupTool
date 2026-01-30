@@ -29,6 +29,7 @@ public class FileReceiver : IFileReceiver, IDisposable
     private readonly IChecksumService _checksumService;
     private readonly IAuthenticationService _authenticationService;
     private readonly IAuthorizationService _authorizationService;
+    private readonly ICredentialStorage _credentialStorage;
     private TcpListener? _tcpListener;
     private CancellationTokenSource? _cancellationTokenSource;
     private readonly List<Task> _clientTasks = new();
@@ -41,13 +42,16 @@ public class FileReceiver : IFileReceiver, IDisposable
         IChunkManager chunkManager,
         IChecksumService checksumService,
         IAuthenticationService authenticationService,
-        IAuthorizationService authorizationService)
+        IAuthorizationService authorizationService,
+        ICredentialStorage credentialStorage)
     {
         _logger = logger;
         _storageManager = storageManager;
         _chunkManager = chunkManager;
         _checksumService = checksumService ?? throw new ArgumentNullException(nameof(checksumService));
         _authenticationService = authenticationService ?? throw new ArgumentNullException(nameof(authenticationService));
+        _authorizationService = authorizationService ?? throw new ArgumentNullException(nameof(authorizationService));
+        _credentialStorage = credentialStorage ?? throw new ArgumentNullException(nameof(credentialStorage));
         _authorizationService = authorizationService ?? throw new ArgumentNullException(nameof(authorizationService));
     }
 
@@ -332,7 +336,50 @@ public class FileReceiver : IFileReceiver, IDisposable
         try
         {
             // Authenticate and authorize the request
-            var authContext = await _authenticationService.GetAuthorizationContextAsync(request.AuthenticationToken);
+            AuthorizationContext? authContext = null;
+            
+            // Try to decode the authentication token as base64-encoded credentials
+            try
+            {
+                var credentialsBytes = Convert.FromBase64String(request.AuthenticationToken);
+                var credentialsString = System.Text.Encoding.UTF8.GetString(credentialsBytes);
+                var parts = credentialsString.Split(':', 2);
+                
+                if (parts.Length == 2)
+                {
+                    var clientId = parts[0];
+                    var clientSecret = parts[1];
+                    
+                    // Validate credentials directly
+                    var storedCredentials = await _credentialStorage.GetCredentialsAsync(clientId);
+                    if (storedCredentials != null && 
+                        storedCredentials.IsActive && 
+                        !storedCredentials.IsExpired &&
+                        storedCredentials.VerifySecret(clientSecret, storedCredentials.ClientSecret))
+                    {
+                        authContext = new AuthorizationContext
+                        {
+                            ClientId = clientId,
+                            Permissions = new List<string>(storedCredentials.Permissions),
+                            RequestTime = DateTime.UtcNow
+                        };
+                        
+                        _logger.LogInformation("Successfully authenticated client {ClientId} using direct credentials", clientId);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Authentication failed for client {ClientId}: invalid credentials or inactive client", clientId);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Failed to decode authentication token as base64 credentials, trying token validation");
+                
+                // Fallback to token-based authentication
+                authContext = await _authenticationService.GetAuthorizationContextAsync(request.AuthenticationToken);
+            }
+            
             if (authContext == null)
             {
                 await SendTransferResponseAsync(stream, false, "Invalid authentication token", cancellationToken);

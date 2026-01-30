@@ -231,37 +231,17 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
             return null;
         }
 
-        try
-        {
-            var authRequest = new AuthenticationRequest
-            {
-                ClientId = serverEndpoint.ClientCredentials.ClientId,
-                ClientSecret = serverEndpoint.ClientCredentials.ClientSecret,
-                Timestamp = DateTime.UtcNow,
-                Nonce = Guid.NewGuid().ToString()
-            };
-
-            var authResponse = await _authenticationService.AuthenticateAsync(authRequest);
-            
-            if (authResponse.Success && !string.IsNullOrEmpty(authResponse.Token))
-            {
-                _currentAuthToken = authResponse.Token;
-                _tokenExpiresAt = authResponse.TokenExpiresAt ?? DateTime.UtcNow.AddHours(1);
-                
-                _logger.LogInformation("Successfully authenticated client {ClientId}", authRequest.ClientId);
-                return _currentAuthToken;
-            }
-            else
-            {
-                _logger.LogError("Authentication failed: {ErrorMessage}", authResponse.ErrorMessage);
-                return null;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during authentication");
-            return null;
-        }
+        // For now, we'll use the client credentials directly as the "token"
+        // The server will validate these credentials when it receives the transfer request
+        // This is a simplified approach - in production, you'd want proper token exchange
+        var credentials = $"{serverEndpoint.ClientCredentials.ClientId}:{serverEndpoint.ClientCredentials.ClientSecret}";
+        var token = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(credentials));
+        
+        _currentAuthToken = token;
+        _tokenExpiresAt = DateTime.UtcNow.AddHours(1);
+        
+        _logger.LogInformation("Successfully prepared authentication token for client {ClientId}", serverEndpoint.ClientCredentials.ClientId);
+        return _currentAuthToken;
     }
 
     /// <summary>

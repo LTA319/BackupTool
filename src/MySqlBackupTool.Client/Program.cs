@@ -53,10 +53,11 @@ internal static class Program
                 // 创建客户端数据库连接字符串并注册共享服务
                 var connectionString = ServiceCollectionExtensions.CreateDefaultConnectionString("client_backup_tool.db");
                 services.AddSharedServices(connectionString);
-                
+
                 // 添加客户端特定的服务
                 // 包括窗体服务、UI相关服务等
-                services.AddClientServices();
+                //services.AddClientServices();
+                services.AddClientServices(useSecureTransfer :false);
                 
                 // 添加备份调度服务（当前已禁用）
                 // 可根据需要重新启用备份调度功能

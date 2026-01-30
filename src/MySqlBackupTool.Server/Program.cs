@@ -22,7 +22,9 @@ internal class Program
                 
                 // Add server-specific services
                 var storagePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "MySqlBackupTool", "Backups");
-                services.AddServerServices(storagePath);
+                
+                //services.AddServerServices(storagePath);
+                services.AddServerServices(storagePath,false);
                 
                 // Add retention policy background service (runs every 24 hours)
                 services.AddRetentionPolicyBackgroundService(TimeSpan.FromHours(24));
@@ -57,8 +59,15 @@ internal class Program
         }
         catch (Exception ex)
         {
-            var logger = host.Services.GetService<ILogger<Program>>();
-            logger?.LogCritical(ex, "Fatal error occurred during server startup");
+            try
+            {
+                var logger = host.Services.GetService<ILogger<Program>>();
+                logger?.LogCritical(ex, "Fatal error occurred during server startup");
+            }
+            catch
+            {
+                // Ignore logging errors if services are disposed
+            }
             
             Console.WriteLine($"Fatal error: {ex.Message}");
             Console.WriteLine("Press any key to exit...");
