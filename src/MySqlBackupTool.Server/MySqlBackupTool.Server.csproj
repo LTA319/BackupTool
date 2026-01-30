@@ -1,19 +1,39 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <!-- 项目基本属性配置 -->
   <PropertyGroup>
+    <!-- 输出类型：可执行文件 -->
     <OutputType>Exe</OutputType>
+    <!-- 目标框架：.NET 8.0 -->
     <TargetFramework>net8.0</TargetFramework>
+    <!-- 启用可空引用类型，提高代码安全性 -->
     <Nullable>enable</Nullable>
+    <!-- 启用隐式using语句，简化代码 -->
     <ImplicitUsings>enable</ImplicitUsings>
+    
+    <!-- 程序集信息 -->
+    <AssemblyTitle>MySQL备份工具服务器端</AssemblyTitle>
+    <AssemblyDescription>MySQL备份工具的服务器端应用程序，负责接收和管理备份文件</AssemblyDescription>
+    <AssemblyCompany>MySQL Backup Tool</AssemblyCompany>
+    <AssemblyProduct>MySQL Backup Tool Server</AssemblyProduct>
+    <AssemblyCopyright>Copyright © 2024</AssemblyCopyright>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
   </PropertyGroup>
 
+  <!-- 项目引用：引用共享库项目 -->
   <ItemGroup>
+    <!-- 引用共享组件项目，包含通用的服务、模型和接口 -->
     <ProjectReference Include="..\MySqlBackupTool.Shared\MySqlBackupTool.Shared.csproj" />
   </ItemGroup>
 
+  <!-- NuGet包引用：Microsoft扩展包 -->
   <ItemGroup>
+    <!-- Microsoft.Extensions.Hosting: 提供托管服务和后台服务支持 -->
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+    <!-- Microsoft.Extensions.Logging: 提供日志记录功能 -->
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+    <!-- Microsoft.Extensions.DependencyInjection: 提供依赖注入容器 -->
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
   </ItemGroup>
 
