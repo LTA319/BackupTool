@@ -18,47 +18,143 @@ using System.Text;
 namespace MySqlBackupTool.Shared.DependencyInjection;
 
 /// <summary>
-/// Extension methods for configuring dependency injection
+/// 依赖注入服务配置扩展方法类
+/// 为MySQL备份工具提供统一的服务注册和配置功能
 /// </summary>
+/// <remarks>
+/// 该类提供以下主要功能：
+/// 1. 共享服务注册 - 数据库、仓储、业务服务等
+/// 2. 客户端特定服务注册 - 备份执行、文件传输等
+/// 3. 服务器端特定服务注册 - 文件接收、存储管理等
+/// 4. 调度服务注册 - 定时备份、后台任务等
+/// 5. 错误处理和重试策略配置
+/// 6. SSL/TLS安全配置
+/// 7. 服务验证和诊断功能
+/// 
+/// 设计原则：
+/// - 模块化：不同类型的服务分别注册
+/// - 可配置：支持通过配置文件自定义行为
+/// - 容错性：包含完善的错误处理和重试机制
+/// - 安全性：支持SSL/TLS和认证配置
+/// - 可测试性：支持依赖注入和接口抽象
+/// </remarks>
 public static class ServiceCollectionExtensions
 {
+    #region 共享服务注册
+
     /// <summary>
-    /// Adds shared services to the dependency injection container
+    /// 向依赖注入容器添加共享服务（简化版本）
     /// </summary>
+    /// <param name="services">服务集合</param>
+    /// <param name="connectionString">数据库连接字符串</param>
+    /// <returns>配置后的服务集合，支持链式调用</returns>
+    /// <remarks>
+    /// 这是AddSharedServices方法的简化版本，不需要配置参数
+    /// 适用于不需要复杂配置的场景
+    /// </remarks>
     public static IServiceCollection AddSharedServices(this IServiceCollection services, string connectionString)
     {
         return services.AddSharedServices(connectionString, null);
     }
 
     /// <summary>
-    /// Adds shared services to the dependency injection container with configuration
+    /// 向依赖注入容器添加共享服务（完整版本）
     /// </summary>
+    /// <param name="services">服务集合</param>
+    /// <param name="connectionString">数据库连接字符串</param>
+    /// <param name="configuration">应用程序配置对象，可为null</param>
+    /// <returns>配置后的服务集合，支持链式调用</returns>
+    /// <remarks>
+    /// 该方法注册以下类型的服务：
+    /// 
+    /// 1. 数据访问层：
+    ///    - Entity Framework DbContext
+    ///    - 各种仓储接口和实现
+    ///    - 数据库迁移服务
+    /// 
+    /// 2. 业务服务层：
+    ///    - 备份日志服务
+    ///    - 备份报告服务
+    ///    - 保留策略服务
+    /// 
+    /// 3. 网络和通信服务：
+    ///    - HTTP客户端配置
+    ///    - 网络重试服务
+    ///    - 告警服务
+    /// 
+    /// 4. 安全和认证服务：
+    ///    - 凭据存储服务
+    ///    - 令牌管理服务
+    ///    - 认证和授权服务
+    /// 
+    /// 5. 基础设施服务：
+    ///    - 日志记录服务
+    ///    - 内存分析服务
+    ///    - 加密和压缩服务
+    ///    - 错误处理服务
+    /// 
+    /// 6. 验证和诊断服务：
+    ///    - 启动验证服务
+    ///    - 依赖关系验证服务
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">当services或connectionString为null时抛出</exception>
+    /// <example>
+    /// <code>
+    /// var services = new ServiceCollection();
+    /// var connectionString = "Data Source=backup.db";
+    /// var configuration = new ConfigurationBuilder().Build();
+    /// 
+    /// services.AddSharedServices(connectionString, configuration);
+    /// 
+    /// var serviceProvider = services.BuildServiceProvider();
+    /// var dbContext = serviceProvider.GetRequiredService&lt;BackupDbContext&gt;();
+    /// </code>
+    /// </example>
     public static IServiceCollection AddSharedServices(this IServiceCollection services, string connectionString, IConfiguration? configuration)
     {
-        // Add Entity Framework
+        #region 数据访问层服务注册
+
+        // 注册Entity Framework数据库上下文
+        // 使用SQLite作为本地数据库，存储备份配置、日志等信息
         services.AddDbContext<BackupDbContext>(options =>
             options.UseSqlite(connectionString));
 
-        // Add repositories
+        // 注册仓储模式实现
+        // 为各种实体提供统一的数据访问接口
         services.AddScoped<IBackupConfigurationRepository, BackupConfigurationRepository>();
         services.AddScoped<IBackupLogRepository, BackupLogRepository>();
         services.AddScoped<IRetentionPolicyRepository, RetentionPolicyRepository>();
         services.AddScoped<IResumeTokenRepository, ResumeTokenRepository>();
         services.AddScoped<IScheduleConfigurationRepository, ScheduleConfigurationRepository>();
 
-        // Add database migration service
+        // 注册数据库迁移服务
+        // 负责数据库初始化、架构更新和种子数据填充
         services.AddScoped<DatabaseMigrationService>();
 
-        // Add business services
-        services.AddScoped<IBackupLogService, BackupLogService>();
-        services.AddScoped<BackupReportingService>();
-        services.AddScoped<IRetentionPolicyService, RetentionManagementService>();
-        services.AddScoped<RetentionManagementService>();
+        #endregion
 
-        // Add network and alerting services
+        #region 业务服务层注册
+
+        // 注册核心业务服务
+        services.AddScoped<IBackupLogService, BackupLogService>();           // 备份日志管理服务
+        services.AddScoped<BackupReportingService>();                        // 备份报告生成服务
+        services.AddScoped<IRetentionPolicyService, RetentionManagementService>(); // 保留策略服务接口
+        services.AddScoped<RetentionManagementService>();                    // 保留策略管理服务实现
+
+        #endregion
+
+        #region 网络和通信服务注册
+
+        // 注册网络重试服务
+        // 提供网络操作的重试机制和错误恢复
         services.AddScoped<INetworkRetryService, NetworkRetryService>();
+
+        #endregion
         
-        // Add AlertingConfig with comprehensive configuration binding and error handling
+        #region 告警配置服务注册
+
+        // 注册告警配置为单例服务
+        // 告警配置包含邮件、Webhook、文件日志等多种通知方式的设置
         services.AddSingleton<AlertingConfig>(provider =>
         {
             var logger = provider.GetService<ILogger<AlertingConfig>>();
@@ -68,54 +164,57 @@ public static class ServiceCollectionExtensions
             {
                 if (configuration != null)
                 {
+                    // 尝试从配置文件中读取告警配置
                     var alertingSection = configuration.GetSection("Alerting");
                     if (alertingSection.Exists())
                     {
-                        logger?.LogInformation("Found Alerting configuration section, attempting to bind configuration values");
+                        logger?.LogInformation("发现告警配置节，正在尝试绑定配置值");
                         
-                        // Attempt to bind configuration
+                        // 将配置节绑定到告警配置对象
                         alertingSection.Bind(alertingConfig);
                         
-                        // Validate bound configuration values
+                        // 验证绑定后的配置值
                         var validationErrors = ValidateAlertingConfig(alertingConfig, logger);
                         
                         if (validationErrors.Any())
                         {
-                            logger?.LogWarning("AlertingConfig validation found {ErrorCount} issues: {Errors}. Using corrected values.",
+                            logger?.LogWarning("告警配置验证发现 {ErrorCount} 个问题: {Errors}。使用修正后的值。",
                                 validationErrors.Count, string.Join("; ", validationErrors));
                         }
                         else
                         {
-                            logger?.LogInformation("AlertingConfig successfully bound and validated from configuration section");
+                            logger?.LogInformation("告警配置成功从配置节绑定并验证");
                         }
                         
-                        // Log final configuration values for transparency
+                        // 记录最终的配置值以便透明化
                         LogAlertingConfigValues(alertingConfig, logger);
                     }
                     else
                     {
-                        logger?.LogInformation("No Alerting configuration section found, using default AlertingConfig values");
+                        logger?.LogInformation("未找到告警配置节，使用默认告警配置值");
                         LogAlertingConfigValues(alertingConfig, logger);
                     }
                 }
                 else
                 {
-                    logger?.LogInformation("No configuration provided, using default AlertingConfig values");
+                    logger?.LogInformation("未提供配置对象，使用默认告警配置值");
                     LogAlertingConfigValues(alertingConfig, logger);
                 }
             }
             catch (Exception ex)
             {
-                logger?.LogError(ex, "Failed to bind AlertingConfig from configuration section 'Alerting': {ErrorMessage}. " +
-                    "Using default configuration values. This may affect alerting functionality.", ex.Message);
+                logger?.LogError(ex, "从配置节'Alerting'绑定告警配置失败: {ErrorMessage}。" +
+                    "使用默认配置值。这可能会影响告警功能。", ex.Message);
                 
-                // Reset to defaults in case of partial binding
+                // 发生异常时重置为默认配置，防止部分绑定导致的问题
                 alertingConfig = new AlertingConfig();
                 LogAlertingConfigValues(alertingConfig, logger);
             }
             
             return alertingConfig;
         });
+
+        #endregion
         
         // Add HttpClient for AlertingService with typed client pattern, retry policy, and error handling
         services.AddHttpClient<AlertingService>((serviceProvider, client) =>
@@ -271,11 +370,49 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<DependencyResolutionValidator>();
 
         return services;
-    }
+    #endregion
+
+    #region 客户端服务注册
 
     /// <summary>
-    /// Adds client-specific services to the dependency injection container
+    /// 向依赖注入容器添加客户端特定的服务
     /// </summary>
+    /// <param name="services">服务集合</param>
+    /// <param name="useSecureTransfer">是否使用安全传输（SSL/TLS），默认为true</param>
+    /// <returns>配置后的服务集合，支持链式调用</returns>
+    /// <remarks>
+    /// 该方法注册客户端执行备份操作所需的服务：
+    /// 
+    /// 1. 核心服务：
+    ///    - 校验和服务：验证文件完整性
+    ///    - 证书管理器：管理SSL/TLS证书
+    /// 
+    /// 2. 备份执行服务：
+    ///    - MySQL管理器：控制MySQL服务和数据库操作
+    ///    - 压缩服务：压缩备份文件
+    ///    - 文件传输客户端：传输备份文件到服务器
+    /// 
+    /// 3. 超时保护服务：
+    ///    - 为核心服务添加超时保护装饰器
+    ///    - 防止长时间运行的操作阻塞应用程序
+    /// 
+    /// 4. 高级功能：
+    ///    - 备份编排器：协调整个备份流程
+    ///    - 后台任务管理器：管理异步备份任务
+    /// 
+    /// 安全传输选项：
+    /// - true：使用SecureFileTransferClient（SSL/TLS加密）
+    /// - false：使用AuthenticatedFileTransferClient（仅认证，无加密）
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// // 使用安全传输（推荐用于生产环境）
+    /// services.AddClientServices(useSecureTransfer: true);
+    /// 
+    /// // 使用非安全传输（适用于内网环境）
+    /// services.AddClientServices(useSecureTransfer: false);
+    /// </code>
+    /// </example>
     public static IServiceCollection AddClientServices(this IServiceCollection services, bool useSecureTransfer = true)
     {
         // Add checksum service
@@ -373,11 +510,56 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IBackgroundTaskManager, BackgroundTaskManager>();
         
         return services;
-    }
+    #endregion
+
+    #region 服务器端服务注册
 
     /// <summary>
-    /// Adds server-specific services to the dependency injection container
+    /// 向依赖注入容器添加服务器端特定的服务
     /// </summary>
+    /// <param name="services">服务集合</param>
+    /// <param name="baseStoragePath">基础存储路径，如果为null则使用默认路径</param>
+    /// <param name="useSecureReceiver">是否使用安全文件接收器（SSL/TLS），默认为true</param>
+    /// <returns>配置后的服务集合，支持链式调用</returns>
+    /// <remarks>
+    /// 该方法注册服务器端接收和管理备份文件所需的服务：
+    /// 
+    /// 1. 核心服务：
+    ///    - 校验和服务：验证接收文件的完整性
+    ///    - 证书管理器：管理SSL/TLS服务器证书
+    /// 
+    /// 2. 文件接收服务：
+    ///    - FileReceiver：基础文件接收功能
+    ///    - SecureFileReceiver：支持SSL/TLS的安全文件接收
+    /// 
+    /// 3. 存储管理服务：
+    ///    - 分块管理器：处理大文件的分块传输
+    ///    - 存储管理器：管理备份文件的存储和组织
+    /// 
+    /// 4. 安全配置：
+    ///    - SSL/TLS配置：根据useSecureReceiver参数配置安全传输
+    ///    - 开发证书：为测试环境提供自签名证书
+    /// 
+    /// 存储路径配置：
+    /// - 如果baseStoragePath为null，使用空字符串作为默认值
+    /// - 存储管理器会根据路径创建必要的目录结构
+    /// 
+    /// 安全接收器选项：
+    /// - true：使用SecureFileReceiver（SSL/TLS加密，推荐用于生产环境）
+    /// - false：使用FileReceiver（无加密，适用于内网环境）
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// // 生产环境配置（安全传输 + 自定义存储路径）
+    /// services.AddServerServices("/var/backups/mysql", useSecureReceiver: true);
+    /// 
+    /// // 开发环境配置（无加密 + 默认路径）
+    /// services.AddServerServices(useSecureReceiver: false);
+    /// 
+    /// // 使用默认配置
+    /// services.AddServerServices();
+    /// </code>
+    /// </example>
     public static IServiceCollection AddServerServices(this IServiceCollection services, string? baseStoragePath = null, bool useSecureReceiver = true)
     {
         // Add checksum service
@@ -425,47 +607,175 @@ public static class ServiceCollectionExtensions
         });
         
         return services;
-    }
+    #endregion
+
+    #region 备份调度服务注册
 
     /// <summary>
-    /// Adds backup scheduling services to the dependency injection container
+    /// 向依赖注入容器添加备份调度相关的服务
     /// </summary>
+    /// <param name="services">服务集合</param>
+    /// <returns>配置后的服务集合，支持链式调用</returns>
+    /// <remarks>
+    /// 该方法注册以下调度相关服务：
+    /// 
+    /// 1. 备份调度器服务：
+    ///    - IBackupScheduler接口和BackupSchedulerService实现
+    ///    - 负责根据配置的时间表自动执行备份操作
+    /// 
+    /// 2. 服务检查器：
+    ///    - IServiceChecker接口和ServiceChecker实现
+    ///    - 监控系统服务状态，确保备份环境正常
+    /// 
+    /// 3. 托管服务（后台服务）：
+    ///    - BackupSchedulerService：作为后台服务运行，持续监控和执行调度任务
+    ///    - AutoStartupService：应用程序启动时的自动化服务
+    /// 
+    /// 调度功能特性：
+    /// - 支持多种调度类型（每日、每周、每月等）
+    /// - 自动处理调度冲突和重叠
+    /// - 提供调度状态监控和日志记录
+    /// - 支持手动触发和暂停调度
+    /// 
+    /// 后台服务说明：
+    /// - 这些服务在应用程序启动时自动开始运行
+    /// - 在应用程序关闭时自动停止
+    /// - 提供优雅的启动和关闭处理
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// services.AddBackupSchedulingServices();
+    /// 
+    /// // 在应用程序中使用调度器
+    /// var scheduler = serviceProvider.GetRequiredService&lt;IBackupScheduler&gt;();
+    /// await scheduler.ScheduleBackupAsync(configId, scheduleType, scheduleTime);
+    /// </code>
+    /// </example>
     public static IServiceCollection AddBackupSchedulingServices(this IServiceCollection services)
     {
-        // Add backup scheduler service
+        #region 调度服务注册
+
+        // 注册备份调度器服务
+        // 提供备份任务的调度和执行功能
         services.AddScoped<IBackupScheduler, BackupSchedulerService>();
 
-        //添加服务检查
+        // 注册服务检查器
+        // 监控系统服务状态，确保备份环境健康
         services.AddSingleton<IServiceChecker, ServiceChecker>();
 
-        // Add the scheduler as a hosted service for background execution
+        #endregion
+
+        #region 托管服务注册
+
+        // 将调度器注册为托管服务，在后台持续运行
+        // 这样调度器可以在应用程序生命周期内持续工作
         services.AddHostedService<BackupSchedulerService>();
         
-        // Add auto-startup service
+        // 注册自动启动服务
+        // 处理应用程序启动时的初始化任务
         services.AddHostedService<AutoStartupService>();
+
+        #endregion
         
         return services;
     }
 
+    #endregion
+
+    #region 工具方法
+
     /// <summary>
-    /// Creates the default SQLite connection string
+    /// 创建默认的SQLite数据库连接字符串
     /// </summary>
+    /// <param name="databasePath">数据库文件路径，默认为"backup_tool.db"</param>
+    /// <returns>格式化的SQLite连接字符串</returns>
+    /// <remarks>
+    /// 该方法生成标准的SQLite连接字符串格式：Data Source={完整路径}
+    /// 
+    /// 功能特性：
+    /// - 自动将相对路径转换为绝对路径
+    /// - 确保路径格式正确
+    /// - 支持自定义数据库文件名
+    /// 
+    /// 使用场景：
+    /// - 应用程序启动时配置数据库连接
+    /// - 测试环境中创建临时数据库
+    /// - 不同环境使用不同的数据库文件
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// // 使用默认数据库文件名
+    /// var connectionString = ServiceCollectionExtensions.CreateDefaultConnectionString();
+    /// // 结果: "Data Source=C:\App\backup_tool.db"
+    /// 
+    /// // 使用自定义数据库文件名
+    /// var connectionString = ServiceCollectionExtensions.CreateDefaultConnectionString("my_backup.db");
+    /// // 结果: "Data Source=C:\App\my_backup.db"
+    /// 
+    /// // 使用完整路径
+    /// var connectionString = ServiceCollectionExtensions.CreateDefaultConnectionString(@"C:\Data\backup.db");
+    /// // 结果: "Data Source=C:\Data\backup.db"
+    /// </code>
+    /// </example>
     public static string CreateDefaultConnectionString(string databasePath = "backup_tool.db")
     {
+        // 将路径转换为绝对路径，确保路径格式正确
         var fullPath = Path.GetFullPath(databasePath);
+        
+        // 返回SQLite标准连接字符串格式
         return $"Data Source={fullPath}";
     }
 
     /// <summary>
-    /// Ensures the database is properly initialized
+    /// 确保数据库正确初始化
     /// </summary>
+    /// <param name="serviceProvider">服务提供者实例</param>
+    /// <returns>异步任务</returns>
+    /// <remarks>
+    /// 该扩展方法简化了数据库初始化过程：
+    /// 
+    /// 执行步骤：
+    /// 1. 创建服务作用域
+    /// 2. 获取数据库迁移服务
+    /// 3. 执行数据库初始化操作
+    /// 4. 自动释放资源
+    /// 
+    /// 初始化内容：
+    /// - 创建数据库文件（如果不存在）
+    /// - 应用数据库架构迁移
+    /// - 填充默认种子数据
+    /// - 验证数据库完整性
+    /// 
+    /// 使用时机：
+    /// - 应用程序启动时
+    /// - 数据库升级后
+    /// - 测试环境准备时
+    /// </remarks>
+    /// <exception cref="Exception">当数据库初始化失败时抛出</exception>
+    /// <example>
+    /// <code>
+    /// var serviceProvider = services.BuildServiceProvider();
+    /// 
+    /// // 初始化数据库
+    /// await serviceProvider.InitializeDatabaseAsync();
+    /// 
+    /// // 现在可以安全地使用数据库服务
+    /// var dbContext = serviceProvider.GetRequiredService&lt;BackupDbContext&gt;();
+    /// </code>
+    /// </example>
     public static async Task InitializeDatabaseAsync(this IServiceProvider serviceProvider)
     {
+        // 创建服务作用域，确保正确的服务生命周期管理
         using var scope = serviceProvider.CreateScope();
+        
+        // 获取数据库迁移服务实例
         var migrationService = scope.ServiceProvider.GetRequiredService<DatabaseMigrationService>();
         
+        // 执行数据库初始化
         await migrationService.InitializeDatabaseAsync();
     }
+
+    #endregion
 
     /// <summary>
     /// Validates all required services can be resolved during startup and logs configuration status

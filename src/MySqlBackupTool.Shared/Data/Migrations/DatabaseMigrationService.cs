@@ -6,14 +6,49 @@ using MySqlBackupTool.Shared.Models;
 namespace MySqlBackupTool.Shared.Data.Migrations;
 
 /// <summary>
-/// Service for managing database migrations and initialization
+/// 数据库迁移和初始化服务
+/// 负责管理数据库的创建、迁移、初始化和维护操作
 /// </summary>
+/// <remarks>
+/// 该服务提供以下功能：
+/// 1. 数据库初始化和架构迁移
+/// 2. 默认数据种子填充
+/// 3. 数据库连接性检查
+/// 4. 数据库备份和恢复
+/// 5. 数据库状态信息获取
+/// 
+/// 主要用于应用程序启动时确保数据库环境正确配置
+/// </remarks>
 public class DatabaseMigrationService
 {
+    #region 私有字段
+
+    /// <summary>
+    /// 数据库上下文实例，用于执行数据库操作
+    /// </summary>
     private readonly BackupDbContext _context;
+
+    /// <summary>
+    /// 日志记录器，用于记录迁移过程中的信息和错误
+    /// </summary>
     private readonly ILogger<DatabaseMigrationService> _logger;
+
+    /// <summary>
+    /// 凭据存储服务，用于管理客户端认证凭据
+    /// </summary>
     private readonly ICredentialStorage _credentialStorage;
 
+    #endregion
+
+    #region 构造函数
+
+    /// <summary>
+    /// 初始化DatabaseMigrationService类的新实例
+    /// </summary>
+    /// <param name="context">数据库上下文实例</param>
+    /// <param name="logger">日志记录器实例</param>
+    /// <param name="credentialStorage">凭据存储服务实例</param>
+    /// <exception cref="ArgumentNullException">当任何参数为null时抛出</exception>
     public DatabaseMigrationService(
         BackupDbContext context, 
         ILogger<DatabaseMigrationService> logger,
@@ -24,96 +59,123 @@ public class DatabaseMigrationService
         _credentialStorage = credentialStorage ?? throw new ArgumentNullException(nameof(credentialStorage));
     }
 
+    #endregion
+
+    #region 公共方法
+
     /// <summary>
-    /// Initializes the database, creating it if it doesn't exist and applying any pending migrations
+    /// 初始化数据库，创建数据库（如果不存在）并应用所有待处理的迁移
     /// </summary>
+    /// <returns>异步任务</returns>
+    /// <remarks>
+    /// 该方法执行以下操作：
+    /// 1. 确保数据库文件存在，如果不存在则创建
+    /// 2. 检查并应用所有待处理的数据库迁移
+    /// 3. 填充默认的种子数据
+    /// 4. 记录详细的操作日志
+    /// 
+    /// 通常在应用程序启动时调用，确保数据库环境准备就绪
+    /// </remarks>
+    /// <exception cref="Exception">当数据库初始化过程中发生错误时抛出</exception>
     public async Task InitializeDatabaseAsync()
     {
         try
         {
-            _logger.LogInformation("Initializing database...");
+            _logger.LogInformation("正在初始化数据库...");
 
-            // Ensure the database is created
+            // 确保数据库已创建
             var created = await _context.Database.EnsureCreatedAsync();
             if (created)
             {
-                _logger.LogInformation("Database created successfully");
+                _logger.LogInformation("数据库创建成功");
             }
             else
             {
-                _logger.LogInformation("Database already exists");
+                _logger.LogInformation("数据库已存在");
             }
 
-            // Apply any pending migrations
+            // 应用所有待处理的迁移
             var pendingMigrations = await _context.Database.GetPendingMigrationsAsync();
             if (pendingMigrations.Any())
             {
-                _logger.LogInformation("Applying {Count} pending migrations: {Migrations}", 
+                _logger.LogInformation("正在应用 {Count} 个待处理的迁移: {Migrations}", 
                     pendingMigrations.Count(), 
                     string.Join(", ", pendingMigrations));
                 
                 await _context.Database.MigrateAsync();
-                _logger.LogInformation("Migrations applied successfully");
+                _logger.LogInformation("迁移应用成功");
             }
             else
             {
-                _logger.LogInformation("No pending migrations found");
+                _logger.LogInformation("没有发现待处理的迁移");
             }
 
-            // Seed default data
+            // 填充默认种子数据
             await SeedDefaultDataAsync();
 
-            _logger.LogInformation("Database initialization completed successfully");
+            _logger.LogInformation("数据库初始化成功完成");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error initializing database");
+            _logger.LogError(ex, "初始化数据库时发生错误");
             throw;
         }
     }
 
     /// <summary>
-    /// Seeds the database with default data if needed
+    /// 为数据库填充默认种子数据
     /// </summary>
+    /// <returns>异步任务</returns>
+    /// <remarks>
+    /// 该方法会检查并创建以下默认数据：
+    /// 1. 默认客户端认证凭据（用于测试和初始设置）
+    /// 2. 默认备份保留策略
+    /// 3. 默认备份配置（如果需要）
+    /// 
+    /// 只有在相应数据不存在时才会创建，避免重复数据
+    /// </remarks>
+    /// <exception cref="Exception">当种子数据创建过程中发生错误时抛出</exception>
     public async Task SeedDefaultDataAsync()
     {
         try
         {
-            _logger.LogInformation("Seeding default data...");
+            _logger.LogInformation("正在填充默认种子数据...");
 
-            // Create default client credentials first
+            // 首先创建默认客户端凭据
             await SeedDefaultClientCredentialsAsync();
 
-            // Add default retention policy if none exists
+            // 添加默认保留策略（如果不存在）
             if (!await _context.RetentionPolicies.AnyAsync())
             {
                 var defaultPolicy = new Models.RetentionPolicy
                 {
                     Name = "Default Policy",
                     Description = "Keep backups for 30 days or maximum 10 backups",
-                    MaxAgeDays = 30,
-                    MaxCount = 10,
-                    IsEnabled = true,
+                    MaxAgeDays = 30,        // 保留30天
+                    MaxCount = 10,          // 最多保留10个备份
+                    IsEnabled = true,       // 默认启用
                     CreatedAt = DateTime.UtcNow
                 };
 
                 _context.RetentionPolicies.Add(defaultPolicy);
                 await _context.SaveChangesAsync();
                 
-                _logger.LogInformation("Default retention policy created");
+                _logger.LogInformation("默认保留策略创建成功");
             }
 
-            // Add default backup configuration if none exists
+            // 添加默认备份配置（如果不存在）
             await SeedDefaultBackupConfigurationAsync();
 
-            _logger.LogInformation("Default data seeding completed");
+            _logger.LogInformation("默认种子数据填充完成");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error seeding default data");
+            _logger.LogError(ex, "填充默认种子数据时发生错误");
             throw;
         }
     }
+
+    #endregion
 
     /// <summary>
     /// Seeds default client credentials for testing and initial setup
