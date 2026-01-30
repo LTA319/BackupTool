@@ -4,50 +4,79 @@ using MySql.Data.MySqlClient;
 namespace MySqlBackupTool.Shared.Models;
 
 /// <summary>
-/// MySQL connection information
+/// MySQL数据库连接信息
+/// 包含连接MySQL数据库所需的所有配置参数和验证逻辑
 /// </summary>
 public class MySQLConnectionInfo : IValidatableObject
 {
+    /// <summary>
+    /// MySQL用户名，必填项
+    /// 长度限制：1-100个字符
+    /// </summary>
     [Required(ErrorMessage = "Username is required")]
     [StringLength(100, MinimumLength = 1, ErrorMessage = "Username must be between 1 and 100 characters")]
     public string Username { get; set; } = string.Empty;
 
+    /// <summary>
+    /// MySQL密码，必填项
+    /// 长度限制：1-100个字符
+    /// </summary>
     [Required(ErrorMessage = "Password is required")]
     [StringLength(100, MinimumLength = 1, ErrorMessage = "Password must be between 1 and 100 characters")]
     public string Password { get; set; } = string.Empty;
 
+    /// <summary>
+    /// MySQL服务名称，必填项
+    /// 长度限制：1-100个字符，只能包含字母、数字、连字符和下划线
+    /// </summary>
     [Required(ErrorMessage = "Service name is required")]
     [StringLength(100, MinimumLength = 1, ErrorMessage = "Service name must be between 1 and 100 characters")]
     [RegularExpression(@"^[a-zA-Z0-9\-_]+$", ErrorMessage = "Service name can only contain letters, numbers, hyphens, and underscores")]
     public string ServiceName { get; set; } = string.Empty;
 
+    /// <summary>
+    /// MySQL数据目录路径，必填项
+    /// 长度限制：1-500个字符
+    /// </summary>
     [Required(ErrorMessage = "Data directory path is required")]
     [StringLength(500, MinimumLength = 1, ErrorMessage = "Data directory path must be between 1 and 500 characters")]
     public string DataDirectoryPath { get; set; } = string.Empty;
 
+    /// <summary>
+    /// MySQL服务器端口号
+    /// 范围：1-65535，默认值：3306
+    /// </summary>
     [Range(1, 65535, ErrorMessage = "Port must be between 1 and 65535")]
     public int Port { get; set; } = 3306;
 
+    /// <summary>
+    /// MySQL服务器主机地址，必填项
+    /// 长度限制：1-255个字符，默认值：localhost
+    /// </summary>
     [Required(ErrorMessage = "Host is required")]
     [StringLength(255, MinimumLength = 1, ErrorMessage = "Host must be between 1 and 255 characters")]
     public string Host { get; set; } = "localhost";
 
     /// <summary>
-    /// Gets the connection string for this MySQL connection
+    /// 获取此MySQL连接的连接字符串
     /// </summary>
+    /// <returns>格式化的MySQL连接字符串</returns>
     public string GetConnectionString()
     {
         return $"Server={Host};Port={Port};Database=mysql;Uid={Username};Pwd={Password};ConnectionTimeout=30;";
     }
 
     /// <summary>
-    /// Performs custom validation logic for the MySQL connection
+    /// 对MySQL连接信息执行自定义验证逻辑
+    /// 验证主机格式、数据目录路径和用户名的有效性
     /// </summary>
+    /// <param name="validationContext">验证上下文</param>
+    /// <returns>验证结果集合</returns>
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         var results = new List<ValidationResult>();
 
-        // Validate host format (basic check for common invalid characters)
+        // 验证主机格式（基本检查常见的无效字符）
         if (!string.IsNullOrWhiteSpace(Host))
         {
             if (Host.Contains(" ") || Host.Contains("\t") || Host.Contains("\n"))
@@ -57,7 +86,7 @@ public class MySQLConnectionInfo : IValidatableObject
                     new[] { nameof(Host) }));
             }
 
-            // Check for valid hostname/IP format (basic validation)
+            // 检查有效的主机名/IP格式（基本验证）
             if (Host.StartsWith(".") || Host.EndsWith(".") || Host.Contains(".."))
             {
                 results.Add(new ValidationResult(
@@ -66,7 +95,7 @@ public class MySQLConnectionInfo : IValidatableObject
             }
         }
 
-        // Validate data directory path format
+        // 验证数据目录路径格式
         if (!string.IsNullOrWhiteSpace(DataDirectoryPath))
         {
             try
@@ -81,7 +110,7 @@ public class MySQLConnectionInfo : IValidatableObject
             }
         }
 
-        // Validate username doesn't contain invalid characters
+        // 验证用户名不包含无效字符
         if (!string.IsNullOrWhiteSpace(Username))
         {
             var invalidChars = new[] { '\'', '"', '\\', '\0', '\n', '\r', '\t' };
@@ -97,10 +126,10 @@ public class MySQLConnectionInfo : IValidatableObject
     }
 
     /// <summary>
-    /// Validates the MySQL connection by attempting to connect
+    /// 通过尝试连接来验证MySQL连接
     /// </summary>
-    /// <param name="timeoutSeconds">Connection timeout in seconds (default: 30)</param>
-    /// <returns>Tuple indicating if connection is valid and any error messages</returns>
+    /// <param name="timeoutSeconds">连接超时时间（秒），默认：30</param>
+    /// <returns>包含连接是否有效和错误消息的元组</returns>
     public async Task<(bool IsValid, List<string> Errors)> ValidateConnectionAsync(int timeoutSeconds = 30)
     {
         var errors = new List<string>();
@@ -111,7 +140,7 @@ public class MySQLConnectionInfo : IValidatableObject
             using var connection = new MySqlConnection(connectionString);
             await connection.OpenAsync();
             
-            // Test basic query to ensure connection is functional
+            // 测试基本查询以确保连接功能正常
             using var command = new MySqlCommand("SELECT 1", connection);
             await command.ExecuteScalarAsync();
             
@@ -130,10 +159,10 @@ public class MySQLConnectionInfo : IValidatableObject
     }
 
     /// <summary>
-    /// Tests if the MySQL service is accessible and responsive
+    /// 测试MySQL服务是否可访问和响应
     /// </summary>
-    /// <param name="timeoutSeconds">Connection timeout in seconds</param>
-    /// <returns>True if service is accessible, false otherwise</returns>
+    /// <param name="timeoutSeconds">连接超时时间（秒）</param>
+    /// <returns>如果服务可访问返回true，否则返回false</returns>
     public async Task<bool> TestServiceAccessibilityAsync(int timeoutSeconds = 30)
     {
         try

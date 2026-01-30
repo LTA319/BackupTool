@@ -3,42 +3,128 @@ using System.ComponentModel.DataAnnotations;
 namespace MySqlBackupTool.Shared.Models;
 
 /// <summary>
-/// Performance benchmark result for a specific operation
+/// 特定操作的性能基准测试结果
+/// 包含详细的性能指标和系统资源使用情况
 /// </summary>
 public class BenchmarkResult
 {
+    /// <summary>
+    /// 基准测试名称
+    /// </summary>
     public string BenchmarkName { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// 操作类型
+    /// </summary>
     public string OperationType { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// 测试开始时间
+    /// </summary>
     public DateTime StartTime { get; set; }
+    
+    /// <summary>
+    /// 测试结束时间
+    /// </summary>
     public DateTime EndTime { get; set; }
+    
+    /// <summary>
+    /// 测试持续时间
+    /// </summary>
     public TimeSpan Duration => EndTime - StartTime;
     
-    // Performance metrics
+    // 性能指标
+    
+    /// <summary>
+    /// 处理的字节数
+    /// </summary>
     public long BytesProcessed { get; set; }
+    
+    /// <summary>
+    /// 吞吐量（MB/秒）
+    /// 根据处理字节数和持续时间计算
+    /// </summary>
     public double ThroughputMBps => BytesProcessed > 0 && Duration.TotalSeconds > 0 
         ? (BytesProcessed / (1024.0 * 1024.0)) / Duration.TotalSeconds 
         : 0;
     
-    // Memory metrics
+    // 内存指标
+    
+    /// <summary>
+    /// 峰值内存使用量（字节）
+    /// </summary>
     public long PeakMemoryUsage { get; set; }
+    
+    /// <summary>
+    /// 平均内存使用量（字节）
+    /// </summary>
     public long AverageMemoryUsage { get; set; }
+    
+    /// <summary>
+    /// 内存增长量（字节）
+    /// </summary>
     public long MemoryGrowth { get; set; }
     
-    // System metrics
+    // 系统指标
+    
+    /// <summary>
+    /// CPU使用率百分比
+    /// </summary>
     public double CpuUsagePercent { get; set; }
+    
+    /// <summary>
+    /// 线程数量
+    /// </summary>
     public int ThreadCount { get; set; }
+    
+    /// <summary>
+    /// 磁盘IO字节数
+    /// </summary>
     public long DiskIOBytes { get; set; }
+    
+    /// <summary>
+    /// 网络IO字节数
+    /// </summary>
     public long NetworkIOBytes { get; set; }
     
-    // Quality metrics
+    // 质量指标
+    
+    /// <summary>
+    /// 测试是否成功
+    /// </summary>
     public bool Success { get; set; }
+    
+    /// <summary>
+    /// 错误消息（如果测试失败）
+    /// </summary>
     public string? ErrorMessage { get; set; }
+    
+    /// <summary>
+    /// 压缩比率
+    /// </summary>
     public double CompressionRatio { get; set; }
+    
+    /// <summary>
+    /// 校验和验证结果
+    /// </summary>
     public string ChecksumValidation { get; set; } = string.Empty;
     
-    // Additional context
+    // 附加上下文
+    
+    /// <summary>
+    /// 附加指标字典
+    /// 可以存储任何额外的测试指标
+    /// </summary>
     public Dictionary<string, object> AdditionalMetrics { get; set; } = new();
+    
+    /// <summary>
+    /// 测试环境描述
+    /// </summary>
     public string Environment { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// 测试配置描述
+    /// </summary>
     public string TestConfiguration { get; set; } = string.Empty;
     
     /// <summary>

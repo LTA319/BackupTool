@@ -6,70 +6,95 @@ using System.Security.Cryptography.X509Certificates;
 namespace MySqlBackupTool.Shared.Models;
 
 /// <summary>
+/// 支持SSL/TLS的服务器端点配置
 /// Server endpoint configuration with SSL/TLS support
 /// </summary>
 public class ServerEndpoint : IValidatableObject
 {
+    /// <summary>
+    /// IP地址，最大长度45字符（IPv6地址最多45字符）
+    /// IP Address, maximum 45 characters (IPv6 addresses can be up to 45 characters)
+    /// </summary>
     [Required(ErrorMessage = "IP Address is required")]
-    [StringLength(45, ErrorMessage = "IP Address must be no more than 45 characters")] // IPv6 addresses can be up to 45 characters
+    [StringLength(45, ErrorMessage = "IP Address must be no more than 45 characters")]
     public string IPAddress { get; set; } = string.Empty;
 
+    /// <summary>
+    /// 端口号，必须在1-65535范围内，默认为8080
+    /// Port number, must be between 1-65535, defaults to 8080
+    /// </summary>
     [Range(1, 65535, ErrorMessage = "Port must be between 1 and 65535")]
     public int Port { get; set; } = 8080;
 
+    /// <summary>
+    /// 是否使用SSL，默认为true
+    /// Whether to use SSL, defaults to true
+    /// </summary>
     public bool UseSSL { get; set; } = true;
 
     /// <summary>
+    /// SSL证书文件路径（.pfx或.p12格式）
     /// Path to the SSL certificate file (.pfx or .p12)
     /// </summary>
     public string? CertificatePath { get; set; }
 
     /// <summary>
+    /// SSL证书文件的密码
     /// Password for the SSL certificate file
     /// </summary>
     public string? CertificatePassword { get; set; }
 
     /// <summary>
+    /// 用于验证的证书指纹（可选）
     /// Certificate thumbprint for validation (optional)
     /// </summary>
     public string? CertificateThumbprint { get; set; }
 
     /// <summary>
+    /// 是否验证服务器证书（客户端）
     /// Whether to validate the server certificate (client-side)
     /// </summary>
     public bool ValidateServerCertificate { get; set; } = true;
 
     /// <summary>
+    /// 是否允许自签名证书
     /// Whether to allow self-signed certificates
     /// </summary>
     public bool AllowSelfSignedCertificates { get; set; } = false;
 
     /// <summary>
+    /// 服务器证书中期望的主题名称
     /// Subject name expected in the server certificate
     /// </summary>
     public string? ExpectedCertificateSubject { get; set; }
 
     /// <summary>
+    /// 用于身份验证的客户端凭据
     /// Client credentials for authentication
     /// </summary>
     public ClientCredentials? ClientCredentials { get; set; }
 
     /// <summary>
+    /// 此端点是否需要身份验证
     /// Whether authentication is required for this endpoint
     /// </summary>
     public bool RequireAuthentication { get; set; } = true;
 
     /// <summary>
+    /// 验证IP地址格式是否有效
     /// Validates that the IP address is in a valid format
     /// </summary>
+    /// <returns>如果IP地址格式有效返回true / True if IP address format is valid</returns>
     public bool IsValidIPAddress()
     {
         return System.Net.IPAddress.TryParse(IPAddress, out _);
     }
 
     /// <summary>
+    /// 获取完整的端点地址
     /// Gets the full endpoint address
     /// </summary>
+    /// <returns>完整的端点地址字符串 / Full endpoint address string</returns>
     public string GetEndpointAddress()
     {
         var protocol = UseSSL ? "https" : "http";

@@ -3,37 +3,56 @@ using System.ComponentModel.DataAnnotations;
 namespace MySqlBackupTool.Shared.Models;
 
 /// <summary>
-/// Strategy for naming backup files
+/// 备份文件命名策略
+/// 定义如何根据配置参数生成备份文件名
 /// </summary>
 public class FileNamingStrategy : IValidatableObject
 {
+    /// <summary>
+    /// 文件命名模式，必填项
+    /// 支持占位符：{timestamp}、{database}、{server}
+    /// 长度限制：1-200个字符
+    /// </summary>
     [Required(ErrorMessage = "File naming pattern is required")]
     [StringLength(200, MinimumLength = 1, ErrorMessage = "Pattern must be between 1 and 200 characters")]
     public string Pattern { get; set; } = "{timestamp}_{database}_{server}.zip";
 
+    /// <summary>
+    /// 日期格式字符串，必填项
+    /// 用于格式化{timestamp}占位符
+    /// 长度限制：1-50个字符
+    /// </summary>
     [Required(ErrorMessage = "Date format is required")]
     [StringLength(50, MinimumLength = 1, ErrorMessage = "Date format must be between 1 and 50 characters")]
     public string DateFormat { get; set; } = "yyyyMMdd_HHmmss";
 
+    /// <summary>
+    /// 是否在文件名中包含服务器名称
+    /// 控制{server}占位符的处理
+    /// </summary>
     public bool IncludeServerName { get; set; } = true;
 
+    /// <summary>
+    /// 是否在文件名中包含数据库名称
+    /// 控制{database}占位符的处理
+    /// </summary>
     public bool IncludeDatabaseName { get; set; } = true;
 
     /// <summary>
-    /// Generates a filename based on the strategy and provided parameters
+    /// 根据策略和提供的参数生成文件名
     /// </summary>
-    /// <param name="serverName">Name of the server</param>
-    /// <param name="databaseName">Name of the database</param>
-    /// <param name="timestamp">Timestamp for the backup</param>
-    /// <returns>Generated filename</returns>
+    /// <param name="serverName">服务器名称</param>
+    /// <param name="databaseName">数据库名称</param>
+    /// <param name="timestamp">备份时间戳</param>
+    /// <returns>生成的文件名</returns>
     public string GenerateFileName(string serverName, string databaseName, DateTime timestamp)
     {
         var fileName = Pattern;
         
-        // Replace timestamp first
+        // 首先替换时间戳
         fileName = fileName.Replace("{timestamp}", timestamp.ToString(DateFormat));
         
-        // Handle server name
+        // 处理服务器名称
         if (IncludeServerName)
         {
             if (!string.IsNullOrWhiteSpace(serverName))
@@ -47,11 +66,11 @@ public class FileNamingStrategy : IValidatableObject
         }
         else
         {
-            // Remove the server placeholder and any adjacent separators
+            // 移除服务器占位符和相邻的分隔符
             fileName = RemovePlaceholderAndSeparators(fileName, "{server}");
         }
         
-        // Handle database name
+        // 处理数据库名称
         if (IncludeDatabaseName)
         {
             if (!string.IsNullOrWhiteSpace(databaseName))
@@ -65,35 +84,38 @@ public class FileNamingStrategy : IValidatableObject
         }
         else
         {
-            // Remove the database placeholder and any adjacent separators
+            // 移除数据库占位符和相邻的分隔符
             fileName = RemovePlaceholderAndSeparators(fileName, "{database}");
         }
 
-        // Final cleanup
+        // 最终清理
         fileName = CleanupFileName(fileName);
         
         return fileName;
     }
 
     /// <summary>
-    /// Removes a placeholder and any adjacent separators to avoid double separators
+    /// 移除占位符和相邻的分隔符以避免双重分隔符
     /// </summary>
+    /// <param name="input">输入字符串</param>
+    /// <param name="placeholder">要移除的占位符</param>
+    /// <returns>处理后的字符串</returns>
     private static string RemovePlaceholderAndSeparators(string input, string placeholder)
     {
-        // Try different patterns: _placeholder, placeholder_, _placeholder_
+        // 尝试不同的模式：_placeholder、placeholder_、_placeholder_
         var patterns = new[]
         {
-            $"_{placeholder}_", // Middle placeholder with separators on both sides
-            $"_{placeholder}",  // Placeholder with leading separator
-            $"{placeholder}_",  // Placeholder with trailing separator
-            placeholder         // Just the placeholder
+            $"_{placeholder}_", // 两边都有分隔符的中间占位符
+            $"_{placeholder}",  // 有前导分隔符的占位符
+            $"{placeholder}_",  // 有尾随分隔符的占位符
+            placeholder         // 只有占位符
         };
 
         foreach (var pattern in patterns)
         {
             if (input.Contains(pattern))
             {
-                // For middle pattern, replace with single separator
+                // 对于中间模式，替换为单个分隔符
                 if (pattern == $"_{placeholder}_")
                 {
                     input = input.Replace(pattern, "_");
@@ -110,31 +132,35 @@ public class FileNamingStrategy : IValidatableObject
     }
 
     /// <summary>
-    /// Cleans up the filename by removing double separators and trimming
+    /// 通过移除双重分隔符和修剪来清理文件名
     /// </summary>
+    /// <param name="fileName">要清理的文件名</param>
+    /// <returns>清理后的文件名</returns>
     private static string CleanupFileName(string fileName)
     {
-        // Remove double underscores
+        // 移除双下划线
         while (fileName.Contains("__"))
         {
             fileName = fileName.Replace("__", "_");
         }
         
-        // Remove double hyphens
+        // 移除双连字符
         while (fileName.Contains("--"))
         {
             fileName = fileName.Replace("--", "-");
         }
         
-        // Trim separators from start and end
+        // 从开头和结尾修剪分隔符
         fileName = fileName.Trim('_', '-', ' ', '.');
         
         return fileName;
     }
 
     /// <summary>
-    /// Sanitizes a string to be safe for use in filenames
+    /// 清理字符串使其适合用于文件名
     /// </summary>
+    /// <param name="input">输入字符串</param>
+    /// <returns>清理后的安全文件名字符串</returns>
     private static string SanitizeFileName(string input)
     {
         if (string.IsNullOrWhiteSpace(input))
@@ -147,13 +173,15 @@ public class FileNamingStrategy : IValidatableObject
     }
 
     /// <summary>
-    /// Performs custom validation logic for the file naming strategy
+    /// 对文件命名策略执行自定义验证逻辑
     /// </summary>
+    /// <param name="validationContext">验证上下文</param>
+    /// <returns>验证结果集合</returns>
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         var results = new List<ValidationResult>();
 
-        // Validate date format
+        // 验证日期格式
         if (!string.IsNullOrWhiteSpace(DateFormat))
         {
             try
@@ -161,7 +189,7 @@ public class FileNamingStrategy : IValidatableObject
                 var testDate = DateTime.Now;
                 var formatted = testDate.ToString(DateFormat);
                 
-                // Additional validation - check if the format contains valid format specifiers
+                // 附加验证 - 检查格式是否包含有效的格式说明符
                 var validFormatChars = new[] { 'y', 'M', 'd', 'H', 'h', 'm', 's', 'f', 'F', 't', 'z', 'K' };
                 var hasValidFormatChar = DateFormat.Any(c => validFormatChars.Contains(c));
                 
@@ -180,7 +208,7 @@ public class FileNamingStrategy : IValidatableObject
             }
         }
 
-        // Validate pattern contains valid placeholders
+        // 验证模式包含有效的占位符
         if (!string.IsNullOrWhiteSpace(Pattern))
         {
             var validPlaceholders = new[] { "{timestamp}", "{server}", "{database}" };
@@ -193,7 +221,7 @@ public class FileNamingStrategy : IValidatableObject
                     new[] { nameof(Pattern) }));
             }
 
-            // Check for invalid filename characters in the pattern (excluding placeholders)
+            // 检查模式中的无效文件名字符（排除占位符）
             var patternWithoutPlaceholders = Pattern;
             foreach (var placeholder in validPlaceholders)
             {
@@ -210,7 +238,7 @@ public class FileNamingStrategy : IValidatableObject
                     new[] { nameof(Pattern) }));
             }
 
-            // Validate pattern doesn't result in empty filename
+            // 验证模式不会导致空文件名
             if (Pattern.Trim().Replace("{timestamp}", "").Replace("{server}", "").Replace("{database}", "").Trim('_', '-', ' ').Length == 0)
             {
                 results.Add(new ValidationResult(
@@ -219,7 +247,7 @@ public class FileNamingStrategy : IValidatableObject
             }
         }
 
-        // Validate consistency between pattern and include flags
+        // 验证模式和包含标志之间的一致性
         if (!string.IsNullOrWhiteSpace(Pattern))
         {
             if (Pattern.Contains("{server}") && !IncludeServerName)
@@ -241,20 +269,20 @@ public class FileNamingStrategy : IValidatableObject
     }
 
     /// <summary>
-    /// Validates the naming strategy configuration
+    /// 验证命名策略配置
     /// </summary>
-    /// <returns>Tuple indicating if strategy is valid and any error messages</returns>
+    /// <returns>包含策略是否有效和错误消息的元组</returns>
     public (bool IsValid, List<string> Errors) ValidateStrategy()
     {
         var errors = new List<string>();
 
-        // Test the date format
+        // 测试日期格式
         try
         {
             var testDate = DateTime.Now;
             var formatted = testDate.ToString(DateFormat);
             
-            // Additional validation - check if the format contains valid format specifiers
+            // 附加验证 - 检查格式是否包含有效的格式说明符
             var validFormatChars = new[] { 'y', 'M', 'd', 'H', 'h', 'm', 's', 'f', 'F', 't', 'z', 'K' };
             var hasValidFormatChar = DateFormat.Any(c => validFormatChars.Contains(c));
             
@@ -268,7 +296,7 @@ public class FileNamingStrategy : IValidatableObject
             errors.Add($"Invalid date format '{DateFormat}': {ex.Message}");
         }
 
-        // Test filename generation with sample data
+        // 使用示例数据测试文件名生成
         try
         {
             var testFileName = GenerateFileName("TestServer", "TestDB", DateTime.Now);
@@ -290,12 +318,12 @@ public class FileNamingStrategy : IValidatableObject
     }
 
     /// <summary>
-    /// Tests filename uniqueness by generating multiple filenames with slight time differences
+    /// 通过生成多个具有轻微时间差异的文件名来测试文件名唯一性
     /// </summary>
-    /// <param name="serverName">Server name to test with</param>
-    /// <param name="databaseName">Database name to test with</param>
-    /// <param name="count">Number of filenames to generate for uniqueness test</param>
-    /// <returns>True if all generated filenames are unique, false otherwise</returns>
+    /// <param name="serverName">用于测试的服务器名称</param>
+    /// <param name="databaseName">用于测试的数据库名称</param>
+    /// <param name="count">生成用于唯一性测试的文件名数量</param>
+    /// <returns>如果所有生成的文件名都是唯一的返回true，否则返回false</returns>
     public bool TestUniqueness(string serverName, string databaseName, int count = 10)
     {
         var filenames = new HashSet<string>();
@@ -308,7 +336,7 @@ public class FileNamingStrategy : IValidatableObject
             
             if (!filenames.Add(filename))
             {
-                return false; // Duplicate found
+                return false; // 发现重复
             }
         }
 

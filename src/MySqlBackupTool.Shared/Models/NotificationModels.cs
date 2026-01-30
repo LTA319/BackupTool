@@ -3,46 +3,76 @@ using System.ComponentModel.DataAnnotations;
 namespace MySqlBackupTool.Shared.Models;
 
 /// <summary>
+/// 网络重试行为的配置
 /// Configuration for network retry behavior
 /// </summary>
 public class NetworkRetryConfig
 {
     /// <summary>
-    /// Maximum number of retry attempts
+    /// 最大重试次数，范围1-20，默认为5
+    /// Maximum number of retry attempts, range 1-20, defaults to 5
     /// </summary>
     [Range(1, 20)]
     public int MaxRetryAttempts { get; set; } = 5;
 
     /// <summary>
-    /// Base delay between retry attempts (exponential backoff)
+    /// 重试间隔的基础延迟（指数退避），默认为2秒
+    /// Base delay between retry attempts (exponential backoff), defaults to 2 seconds
     /// </summary>
     public TimeSpan BaseRetryDelay { get; set; } = TimeSpan.FromSeconds(2);
 
     /// <summary>
-    /// Maximum delay between retry attempts
+    /// 重试间隔的最大延迟，默认为2分钟
+    /// Maximum delay between retry attempts, defaults to 2 minutes
     /// </summary>
     public TimeSpan MaxRetryDelay { get; set; } = TimeSpan.FromMinutes(2);
 
     /// <summary>
-    /// Whether to add jitter to retry delays to prevent thundering herd
+    /// 是否在重试延迟中添加抖动以防止惊群效应，默认为true
+    /// Whether to add jitter to retry delays to prevent thundering herd, defaults to true
     /// </summary>
     public bool EnableJitter { get; set; } = true;
 
     /// <summary>
-    /// Whether to retry on unknown exceptions
+    /// 是否对未知异常进行重试，默认为false
+    /// Whether to retry on unknown exceptions, defaults to false
     /// </summary>
     public bool RetryOnUnknownExceptions { get; set; } = false;
 }
 
 /// <summary>
+/// 网络重试尝试耗尽时抛出的异常
 /// Exception thrown when network retry attempts are exhausted
 /// </summary>
 public class NetworkRetryException : BackupException
 {
+    /// <summary>
+    /// 操作名称
+    /// Operation name
+    /// </summary>
     public string OperationName { get; }
+    
+    /// <summary>
+    /// 耗尽的尝试次数
+    /// Number of attempts exhausted
+    /// </summary>
     public int AttemptsExhausted { get; }
+    
+    /// <summary>
+    /// 总持续时间
+    /// Total duration
+    /// </summary>
     public TimeSpan TotalDuration { get; }
 
+    /// <summary>
+    /// 初始化网络重试异常实例
+    /// Initializes a network retry exception instance
+    /// </summary>
+    /// <param name="operationId">操作标识符 / Operation identifier</param>
+    /// <param name="operationName">操作名称 / Operation name</param>
+    /// <param name="attemptsExhausted">耗尽的尝试次数 / Attempts exhausted</param>
+    /// <param name="totalDuration">总持续时间 / Total duration</param>
+    /// <param name="innerException">内部异常 / Inner exception</param>
     public NetworkRetryException(
         string operationId, 
         string operationName, 
@@ -58,86 +88,134 @@ public class NetworkRetryException : BackupException
 }
 
 /// <summary>
+/// 网络连接测试的结果
 /// Result of a network connectivity test
 /// </summary>
 public class NetworkConnectivityResult
 {
+    /// <summary>
+    /// 主机地址
+    /// Host address
+    /// </summary>
     public string Host { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// 端口号
+    /// Port number
+    /// </summary>
     public int Port { get; set; }
+    
+    /// <summary>
+    /// 是否可达
+    /// Whether reachable
+    /// </summary>
     public bool IsReachable { get; set; }
+    
+    /// <summary>
+    /// Ping是否成功
+    /// Whether ping was successful
+    /// </summary>
     public bool PingSuccessful { get; set; }
+    
+    /// <summary>
+    /// TCP连接是否成功
+    /// Whether TCP connection was successful
+    /// </summary>
     public bool TcpConnectionSuccessful { get; set; }
+    
+    /// <summary>
+    /// 响应时间
+    /// Response time
+    /// </summary>
     public TimeSpan ResponseTime { get; set; }
+    
+    /// <summary>
+    /// 错误消息（如果有）
+    /// Error message (if any)
+    /// </summary>
     public string? ErrorMessage { get; set; }
 }
 
 /// <summary>
+/// 警报和通知系统的配置
 /// Configuration for alerting and notification system
 /// </summary>
 public class AlertingConfig
 {
     /// <summary>
-    /// Whether alerting is enabled
+    /// 是否启用警报，默认为true
+    /// Whether alerting is enabled, defaults to true
     /// </summary>
     public bool EnableAlerting { get; set; } = true;
 
     /// <summary>
-    /// Base URL for HTTP client operations (optional)
+    /// HTTP客户端操作的基础URL（可选），最大长度2000字符
+    /// Base URL for HTTP client operations (optional), maximum 2000 characters
     /// </summary>
     [Url]
     [StringLength(2000)]
     public string? BaseUrl { get; set; }
 
     /// <summary>
-    /// Timeout in seconds for HTTP client requests
+    /// HTTP客户端请求的超时时间（秒），范围1-300，默认为30
+    /// Timeout in seconds for HTTP client requests, range 1-300, defaults to 30
     /// </summary>
     [Range(1, 300)]
     public int TimeoutSeconds { get; set; } = 30;
 
     /// <summary>
-    /// Maximum number of retry attempts for HTTP operations
+    /// HTTP操作的最大重试次数，范围0-10，默认为3
+    /// Maximum number of retry attempts for HTTP operations, range 0-10, defaults to 3
     /// </summary>
     [Range(0, 10)]
     public int MaxRetryAttempts { get; set; } = 3;
 
     /// <summary>
-    /// Whether to enable circuit breaker pattern for HTTP operations
+    /// 是否为HTTP操作启用断路器模式，默认为false
+    /// Whether to enable circuit breaker pattern for HTTP operations, defaults to false
     /// </summary>
     public bool EnableCircuitBreaker { get; set; } = false;
 
     /// <summary>
+    /// HTTP请求中包含的默认头部
     /// Default headers to include in HTTP requests
     /// </summary>
     public Dictionary<string, string> DefaultHeaders { get; set; } = new();
 
     /// <summary>
+    /// 警报的邮件配置
     /// Email configuration for alerts
     /// </summary>
     public EmailConfig Email { get; set; } = new();
 
     /// <summary>
+    /// 警报的Webhook配置
     /// Webhook configuration for alerts
     /// </summary>
     public WebhookConfig Webhook { get; set; } = new();
 
     /// <summary>
+    /// 警报的文件日志配置
     /// File logging configuration for alerts
     /// </summary>
     public FileLogConfig FileLog { get; set; } = new();
 
     /// <summary>
-    /// Minimum severity level for sending alerts
+    /// 发送警报的最低严重程度级别，默认为Error
+    /// Minimum severity level for sending alerts, defaults to Error
     /// </summary>
     public AlertSeverity MinimumSeverity { get; set; } = AlertSeverity.Error;
 
     /// <summary>
-    /// Maximum number of alerts to send per hour (rate limiting)
+    /// 每小时发送的最大警报数量（速率限制），范围1-1000，默认为50
+    /// Maximum number of alerts to send per hour (rate limiting), range 1-1000, defaults to 50
     /// </summary>
     [Range(1, 1000)]
     public int MaxAlertsPerHour { get; set; } = 50;
 
     /// <summary>
-    /// Timeout for notification delivery attempts
+    /// 通知传递尝试的超时时间，默认为30秒
+    /// Timeout for notification delivery attempts, defaults to 30 seconds
     /// </summary>
     public TimeSpan NotificationTimeout { get; set; } = TimeSpan.FromSeconds(30);
 }

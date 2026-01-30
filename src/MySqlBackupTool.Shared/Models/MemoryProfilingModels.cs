@@ -3,75 +3,213 @@ using System.ComponentModel.DataAnnotations;
 namespace MySqlBackupTool.Shared.Models;
 
 /// <summary>
+/// 备份操作的完整内存分析配置文件
 /// Complete memory profile for a backup operation
 /// </summary>
 public class MemoryProfile
 {
+    /// <summary>
+    /// 操作标识符
+    /// Operation identifier
+    /// </summary>
     public string OperationId { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// 操作类型
+    /// Operation type
+    /// </summary>
     public string OperationType { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// 开始时间
+    /// Start time
+    /// </summary>
     public DateTime StartTime { get; set; }
+    
+    /// <summary>
+    /// 结束时间
+    /// End time
+    /// </summary>
     public DateTime? EndTime { get; set; }
+    
+    /// <summary>
+    /// 持续时间
+    /// Duration
+    /// </summary>
     public TimeSpan Duration => EndTime?.Subtract(StartTime) ?? DateTime.UtcNow.Subtract(StartTime);
     
+    /// <summary>
+    /// 内存快照列表
+    /// List of memory snapshots
+    /// </summary>
     public List<MemorySnapshot> Snapshots { get; set; } = new();
+    
+    /// <summary>
+    /// 内存统计信息
+    /// Memory statistics
+    /// </summary>
     public MemoryStatistics Statistics { get; set; } = new();
+    
+    /// <summary>
+    /// 垃圾回收事件列表
+    /// List of garbage collection events
+    /// </summary>
     public List<GarbageCollectionEvent> GCEvents { get; set; } = new();
     
     /// <summary>
+    /// 获取操作期间的峰值内存使用量
     /// Gets the peak memory usage during the operation
     /// </summary>
     public long PeakMemoryUsage => Snapshots.Any() ? Snapshots.Max(s => s.WorkingSet) : 0;
     
     /// <summary>
+    /// 获取操作开始时的内存使用量
     /// Gets the memory usage at the start of the operation
     /// </summary>
     public long InitialMemoryUsage => Snapshots.FirstOrDefault()?.WorkingSet ?? 0;
     
     /// <summary>
+    /// 获取操作结束时的内存使用量
     /// Gets the memory usage at the end of the operation
     /// </summary>
     public long FinalMemoryUsage => Snapshots.LastOrDefault()?.WorkingSet ?? 0;
     
     /// <summary>
+    /// 获取操作期间分配的总内存量
     /// Gets the total memory allocated during the operation
     /// </summary>
     public long TotalMemoryAllocated => FinalMemoryUsage - InitialMemoryUsage;
 }
 
 /// <summary>
+/// 特定时间点的内存快照
 /// Memory snapshot at a specific point in time
 /// </summary>
 public class MemorySnapshot
 {
+    /// <summary>
+    /// 时间戳，默认为当前UTC时间
+    /// Timestamp, defaults to current UTC time
+    /// </summary>
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    
+    /// <summary>
+    /// 阶段名称
+    /// Phase name
+    /// </summary>
     public string Phase { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// 附加信息
+    /// Additional information
+    /// </summary>
     public string? AdditionalInfo { get; set; }
     
-    // Process memory metrics
+    /// <summary>
+    /// 进程内存指标 - 工作集大小
+    /// Process memory metrics - Working set size
+    /// </summary>
     public long WorkingSet { get; set; }
+    
+    /// <summary>
+    /// 私有内存大小
+    /// Private memory size
+    /// </summary>
     public long PrivateMemorySize { get; set; }
+    
+    /// <summary>
+    /// 虚拟内存大小
+    /// Virtual memory size
+    /// </summary>
     public long VirtualMemorySize { get; set; }
+    
+    /// <summary>
+    /// 分页内存大小
+    /// Paged memory size
+    /// </summary>
     public long PagedMemorySize { get; set; }
+    
+    /// <summary>
+    /// 非分页系统内存大小
+    /// Non-paged system memory size
+    /// </summary>
     public long NonPagedSystemMemorySize { get; set; }
+    
+    /// <summary>
+    /// 分页系统内存大小
+    /// Paged system memory size
+    /// </summary>
     public long PagedSystemMemorySize { get; set; }
     
-    // .NET GC metrics
+    /// <summary>
+    /// .NET GC指标 - 第0代垃圾回收次数
+    /// .NET GC metrics - Generation 0 collections
+    /// </summary>
     public long Gen0Collections { get; set; }
+    
+    /// <summary>
+    /// 第1代垃圾回收次数
+    /// Generation 1 collections
+    /// </summary>
     public long Gen1Collections { get; set; }
+    
+    /// <summary>
+    /// 第2代垃圾回收次数
+    /// Generation 2 collections
+    /// </summary>
     public long Gen2Collections { get; set; }
+    
+    /// <summary>
+    /// 总内存使用量
+    /// Total memory usage
+    /// </summary>
     public long TotalMemory { get; set; }
+    
+    /// <summary>
+    /// 第0代堆大小
+    /// Generation 0 heap size
+    /// </summary>
     public long Gen0HeapSize { get; set; }
+    
+    /// <summary>
+    /// 第1代堆大小
+    /// Generation 1 heap size
+    /// </summary>
     public long Gen1HeapSize { get; set; }
+    
+    /// <summary>
+    /// 第2代堆大小
+    /// Generation 2 heap size
+    /// </summary>
     public long Gen2HeapSize { get; set; }
+    
+    /// <summary>
+    /// 大对象堆大小
+    /// Large object heap size
+    /// </summary>
     public long LargeObjectHeapSize { get; set; }
     
-    // System memory metrics
+    /// <summary>
+    /// 系统内存指标 - 可用物理内存
+    /// System memory metrics - Available physical memory
+    /// </summary>
     public long AvailablePhysicalMemory { get; set; }
+    
+    /// <summary>
+    /// 总物理内存
+    /// Total physical memory
+    /// </summary>
     public long TotalPhysicalMemory { get; set; }
+    
+    /// <summary>
+    /// 内存使用百分比
+    /// Memory usage percentage
+    /// </summary>
     public double MemoryUsagePercentage => TotalPhysicalMemory > 0 ? 
         (double)(TotalPhysicalMemory - AvailablePhysicalMemory) / TotalPhysicalMemory * 100 : 0;
     
     /// <summary>
+    /// 获取格式化的内存大小字符串
     /// Gets formatted memory size strings
     /// </summary>
     public string GetFormattedWorkingSet() => FormatBytes(WorkingSet);
@@ -79,6 +217,12 @@ public class MemorySnapshot
     public string GetFormattedVirtualMemory() => FormatBytes(VirtualMemorySize);
     public string GetFormattedTotalMemory() => FormatBytes(TotalMemory);
     
+    /// <summary>
+    /// 将字节数格式化为可读的大小字符串
+    /// Formats bytes into a human-readable size string
+    /// </summary>
+    /// <param name="bytes">字节数 / Number of bytes</param>
+    /// <returns>格式化的大小字符串 / Formatted size string</returns>
     private static string FormatBytes(long bytes)
     {
         if (bytes == 0) return "0 B";
