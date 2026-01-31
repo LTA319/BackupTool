@@ -9,7 +9,8 @@ using MySqlBackupTool.Shared.Models;
 namespace MySqlBackupTool.Shared.Services;
 
 /// <summary>
-/// Service for sending email notifications via SMTP
+/// 通过SMTP发送邮件通知的服务 / Service for sending email notifications via SMTP
+/// 支持单个和批量邮件发送、模板管理、状态跟踪和统计功能 / Supports single and bulk email sending, template management, status tracking and statistics
 /// </summary>
 public class NotificationService : INotificationService
 {
@@ -18,6 +19,11 @@ public class NotificationService : INotificationService
     private readonly ConcurrentDictionary<string, EmailTemplate> _templates;
     private SmtpConfig _configuration;
 
+    /// <summary>
+    /// 初始化通知服务 / Initialize notification service
+    /// </summary>
+    /// <param name="logger">日志记录器 / Logger instance</param>
+    /// <exception cref="ArgumentNullException">当logger为null时抛出 / Thrown when logger is null</exception>
     public NotificationService(ILogger<NotificationService> logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -25,12 +31,20 @@ public class NotificationService : INotificationService
         _templates = new ConcurrentDictionary<string, EmailTemplate>();
         _configuration = new SmtpConfig();
         
-        // Initialize with default templates
+        // 初始化默认模板 / Initialize with default templates
         InitializeDefaultTemplates();
     }
 
+    /// <summary>
+    /// 获取当前SMTP配置 / Gets current SMTP configuration
+    /// </summary>
     public SmtpConfig Configuration => _configuration;
 
+    /// <summary>
+    /// 更新SMTP配置 / Updates SMTP configuration
+    /// </summary>
+    /// <param name="config">新的SMTP配置 / New SMTP configuration</param>
+    /// <exception cref="ArgumentNullException">当config为null时抛出 / Thrown when config is null</exception>
     public void UpdateConfiguration(SmtpConfig config)
     {
         _configuration = config ?? throw new ArgumentNullException(nameof(config));
@@ -38,8 +52,13 @@ public class NotificationService : INotificationService
     }
 
     /// <summary>
-    /// Sends a single email message asynchronously
+    /// 异步发送单个邮件消息 / Sends a single email message asynchronously
+    /// 支持HTML和纯文本格式、附件、自定义头部和优先级设置 / Supports HTML and plain text formats, attachments, custom headers and priority settings
     /// </summary>
+    /// <param name="message">要发送的邮件消息 / Email message to send</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>发送成功返回true，失败返回false / Returns true if sent successfully, false if failed</returns>
+    /// <exception cref="ArgumentNullException">当message为null时抛出 / Thrown when message is null</exception>
     public async Task<bool> SendEmailAsync(EmailMessage message, CancellationToken cancellationToken = default)
     {
         if (message == null)
@@ -47,7 +66,7 @@ public class NotificationService : INotificationService
 
         _logger.LogInformation("Sending email to {Recipient} with subject '{Subject}'", message.To, message.Subject);
 
-        // Update status to sending
+        // 更新状态为发送中 / Update status to sending
         var status = new NotificationStatus
         {
             NotificationId = message.Id,
@@ -68,28 +87,28 @@ public class NotificationService : INotificationService
         {
             using var client = new SmtpClient();
             
-            // Configure timeout
+            // 配置超时时间 / Configure timeout
             client.Timeout = _configuration.TimeoutSeconds * 1000;
 
-            // Connect to SMTP server
+            // 连接到SMTP服务器 / Connect to SMTP server
             await client.ConnectAsync(_configuration.Host, _configuration.Port, 
                 _configuration.EnableSsl ? SecureSocketOptions.StartTls : SecureSocketOptions.None, 
                 cancellationToken);
 
-            // Authenticate if credentials are provided
+            // 如果提供了凭据则进行身份验证 / Authenticate if credentials are provided
             if (!string.IsNullOrEmpty(_configuration.Username) && !string.IsNullOrEmpty(_configuration.Password))
             {
                 await client.AuthenticateAsync(_configuration.Username, _configuration.Password, cancellationToken);
             }
 
-            // Create MimeMessage
+            // 创建MimeMessage / Create MimeMessage
             var mimeMessage = CreateMimeMessage(message);
 
-            // Send the message
+            // 发送消息 / Send the message
             await client.SendAsync(mimeMessage, cancellationToken);
             await client.DisconnectAsync(true, cancellationToken);
 
-            // Update status to sent
+            // 更新状态为已发送 / Update status to sent
             status.Status = NotificationDeliveryStatus.Sent;
             status.SentAt = DateTime.UtcNow;
             _notificationStatuses.AddOrUpdate(message.Id, status, (key, existing) => status);
@@ -101,7 +120,7 @@ public class NotificationService : INotificationService
         {
             _logger.LogError(ex, "Failed to send email to {Recipient}: {Error}", message.To, ex.Message);
 
-            // Update status to failed
+            // 更新状态为失败 / Update status to failed
             status.Status = NotificationDeliveryStatus.Failed;
             status.LastError = ex.Message;
             _notificationStatuses.AddOrUpdate(message.Id, status, (key, existing) => status);
@@ -111,8 +130,13 @@ public class NotificationService : INotificationService
     }
 
     /// <summary>
-    /// Sends multiple email messages in bulk
+    /// 批量发送多个邮件消息 / Sends multiple email messages in bulk
+    /// 使用并发发送以提高性能，支持限制并发数量 / Uses concurrent sending for performance with configurable concurrency limit
     /// </summary>
+    /// <param name="messages">要发送的邮件消息集合 / Collection of email messages to send</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>每个消息的发送结果字典 / Dictionary of send results for each message</returns>
+    /// <exception cref="ArgumentNullException">当messages为null时抛出 / Thrown when messages is null</exception>
     public async Task<Dictionary<string, bool>> SendBulkEmailAsync(IEnumerable<EmailMessage> messages, CancellationToken cancellationToken = default)
     {
         if (messages == null)
@@ -123,8 +147,8 @@ public class NotificationService : INotificationService
 
         _logger.LogInformation("Sending bulk email to {Count} recipients", messageList.Count);
 
-        // Send emails concurrently with limited parallelism
-        var semaphore = new SemaphoreSlim(5); // Limit to 5 concurrent sends
+        // 使用有限并行度并发发送邮件 / Send emails concurrently with limited parallelism
+        var semaphore = new SemaphoreSlim(5); // 限制为5个并发发送 / Limit to 5 concurrent sends
         var tasks = messageList.Select(async message =>
         {
             await semaphore.WaitAsync(cancellationToken);
@@ -153,8 +177,12 @@ public class NotificationService : INotificationService
     }
 
     /// <summary>
-    /// Gets the delivery status of a specific notification
+    /// 获取指定通知的投递状态 / Gets the delivery status of a specific notification
     /// </summary>
+    /// <param name="notificationId">通知ID / Notification ID</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>通知状态或null（如果未找到） / Notification status or null if not found</returns>
+    /// <exception cref="ArgumentException">当notificationId为空时抛出 / Thrown when notificationId is empty</exception>
     public async Task<NotificationStatus?> GetStatusAsync(string notificationId, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(notificationId))
@@ -164,16 +192,22 @@ public class NotificationService : INotificationService
     }
 
     /// <summary>
-    /// Retrieves all available email templates
+    /// 检索所有可用的邮件模板 / Retrieves all available email templates
+    /// 只返回活跃状态的模板 / Returns only active templates
     /// </summary>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>活跃邮件模板集合 / Collection of active email templates</returns>
     public async Task<IEnumerable<EmailTemplate>> GetTemplatesAsync(CancellationToken cancellationToken = default)
     {
         return await Task.FromResult(_templates.Values.Where(t => t.IsActive));
     }
 
     /// <summary>
-    /// Retrieves email templates by category
+    /// 按类别检索邮件模板 / Retrieves email templates by category
     /// </summary>
+    /// <param name="category">模板类别 / Template category</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>指定类别的活跃邮件模板集合 / Collection of active email templates in specified category</returns>
     public async Task<IEnumerable<EmailTemplate>> GetTemplatesByCategoryAsync(string category, CancellationToken cancellationToken = default)
     {
         return await Task.FromResult(_templates.Values.Where(t => t.IsActive && 
@@ -181,8 +215,12 @@ public class NotificationService : INotificationService
     }
 
     /// <summary>
-    /// Gets a specific email template by name
+    /// 按名称获取指定的邮件模板 / Gets a specific email template by name
     /// </summary>
+    /// <param name="templateName">模板名称 / Template name</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>邮件模板或null（如果未找到） / Email template or null if not found</returns>
+    /// <exception cref="ArgumentException">当templateName为空时抛出 / Thrown when templateName is empty</exception>
     public async Task<EmailTemplate?> GetTemplateAsync(string templateName, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(templateName))
@@ -192,8 +230,13 @@ public class NotificationService : INotificationService
     }
 
     /// <summary>
-    /// Tests the SMTP connection with the provided configuration
+    /// 使用提供的配置测试SMTP连接 / Tests the SMTP connection with the provided configuration
+    /// 验证连接、身份验证和基本功能 / Verifies connection, authentication and basic functionality
     /// </summary>
+    /// <param name="config">要测试的SMTP配置 / SMTP configuration to test</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>连接成功返回true，失败返回false / Returns true if connection successful, false if failed</returns>
+    /// <exception cref="ArgumentNullException">当config为null时抛出 / Thrown when config is null</exception>
     public async Task<bool> TestSmtpConnectionAsync(SmtpConfig config, CancellationToken cancellationToken = default)
     {
         if (config == null)
@@ -228,8 +271,15 @@ public class NotificationService : INotificationService
     }
 
     /// <summary>
-    /// Creates an email message from a template with variable substitution
+    /// 从模板创建邮件消息并进行变量替换 / Creates an email message from a template with variable substitution
+    /// 支持必需变量验证和动态内容生成 / Supports required variable validation and dynamic content generation
     /// </summary>
+    /// <param name="templateName">模板名称 / Template name</param>
+    /// <param name="recipient">收件人 / Recipient</param>
+    /// <param name="variables">模板变量字典 / Template variables dictionary</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>生成的邮件消息或null（如果失败） / Generated email message or null if failed</returns>
+    /// <exception cref="ArgumentException">当templateName或recipient为空时抛出 / Thrown when templateName or recipient is empty</exception>
     public async Task<EmailMessage?> CreateEmailFromTemplateAsync(
         string templateName, 
         string recipient, 
@@ -251,7 +301,7 @@ public class NotificationService : INotificationService
 
         variables ??= new Dictionary<string, object>();
 
-        // Check for required variables
+        // 检查必需变量 / Check for required variables
         var missingVariables = template.RequiredVariables.Where(v => !variables.ContainsKey(v)).ToList();
         if (missingVariables.Any())
         {
@@ -260,7 +310,7 @@ public class NotificationService : INotificationService
             return null;
         }
 
-        // Substitute variables in subject and body
+        // 在主题和正文中替换变量 / Substitute variables in subject and body
         var subject = SubstituteVariables(template.Subject, variables);
         var body = string.IsNullOrEmpty(template.HtmlBody) 
             ? SubstituteVariables(template.TextBody, variables)
@@ -277,8 +327,13 @@ public class NotificationService : INotificationService
     }
 
     /// <summary>
-    /// Gets statistics about notification delivery
+    /// 获取通知投递统计信息 / Gets statistics about notification delivery
+    /// 包括成功率、失败原因、投递时间分布等 / Includes success rates, failure reasons, delivery time distribution, etc.
     /// </summary>
+    /// <param name="fromDate">统计开始日期（可选） / Statistics start date (optional)</param>
+    /// <param name="toDate">统计结束日期（可选） / Statistics end date (optional)</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>通知统计信息 / Notification statistics</returns>
     public async Task<NotificationStatistics> GetStatisticsAsync(
         DateTime? fromDate = null, 
         DateTime? toDate = null, 
@@ -302,7 +357,7 @@ public class NotificationService : INotificationService
             GeneratedAt = DateTime.UtcNow
         };
 
-        // Calculate average delivery time for successful deliveries
+        // 计算成功投递的平均投递时间 / Calculate average delivery time for successful deliveries
         var successfulWithTimes = relevantStatuses
             .Where(s => s.Status == NotificationDeliveryStatus.Sent && s.SentAt.HasValue)
             .ToList();
@@ -314,13 +369,13 @@ public class NotificationService : INotificationService
             statistics.AverageDeliveryTime = TimeSpan.FromMilliseconds(totalDeliveryTime / successfulWithTimes.Count);
         }
 
-        // Group failure reasons
+        // 分组失败原因 / Group failure reasons
         statistics.FailureReasons = relevantStatuses
             .Where(s => s.Status == NotificationDeliveryStatus.Failed && !string.IsNullOrEmpty(s.LastError))
             .GroupBy(s => s.LastError!)
             .ToDictionary(g => g.Key, g => g.Count());
 
-        // Group deliveries by hour
+        // 按小时分组投递 / Group deliveries by hour
         statistics.DeliveriesByHour = relevantStatuses
             .Where(s => s.SentAt.HasValue)
             .GroupBy(s => s.SentAt!.Value.Hour)
@@ -330,28 +385,31 @@ public class NotificationService : INotificationService
     }
 
     /// <summary>
-    /// Creates a MimeMessage from an EmailMessage
+    /// 从EmailMessage创建MimeMessage / Creates a MimeMessage from an EmailMessage
+    /// 处理发件人、收件人、主题、正文、附件和优先级设置 / Handles sender, recipient, subject, body, attachments and priority settings
     /// </summary>
+    /// <param name="message">源邮件消息 / Source email message</param>
+    /// <returns>MimeMessage实例 / MimeMessage instance</returns>
     private MimeMessage CreateMimeMessage(EmailMessage message)
     {
         var mimeMessage = new MimeMessage();
         
-        // Set sender
+        // 设置发件人 / Set sender
         mimeMessage.From.Add(new MailboxAddress(_configuration.FromName, _configuration.FromAddress));
         
-        // Set recipient
+        // 设置收件人 / Set recipient
         mimeMessage.To.Add(MailboxAddress.Parse(message.To));
         
-        // Set subject
+        // 设置主题 / Set subject
         mimeMessage.Subject = message.Subject;
 
-        // Add custom headers
+        // 添加自定义头部 / Add custom headers
         foreach (var header in message.Headers)
         {
             mimeMessage.Headers.Add(header.Key, header.Value);
         }
 
-        // Set priority
+        // 设置优先级 / Set priority
         mimeMessage.Priority = message.Priority switch
         {
             EmailPriority.Low => MessagePriority.NonUrgent,
@@ -360,7 +418,7 @@ public class NotificationService : INotificationService
             _ => MessagePriority.Normal
         };
 
-        // Create body
+        // 创建正文 / Create body
         var bodyBuilder = new BodyBuilder();
         
         if (message.IsHtml)
@@ -372,7 +430,7 @@ public class NotificationService : INotificationService
             bodyBuilder.TextBody = message.Body;
         }
 
-        // Add attachments
+        // 添加附件 / Add attachments
         foreach (var attachmentPath in message.Attachments)
         {
             if (File.Exists(attachmentPath))
@@ -391,8 +449,12 @@ public class NotificationService : INotificationService
     }
 
     /// <summary>
-    /// Substitutes variables in a template string
+    /// 在模板字符串中替换变量 / Substitutes variables in a template string
+    /// 使用大括号语法进行变量替换 / Uses curly brace syntax for variable substitution
     /// </summary>
+    /// <param name="template">模板字符串 / Template string</param>
+    /// <param name="variables">变量字典 / Variables dictionary</param>
+    /// <returns>替换后的字符串 / String with substituted variables</returns>
     private static string SubstituteVariables(string template, Dictionary<string, object> variables)
     {
         if (string.IsNullOrEmpty(template))
@@ -409,11 +471,12 @@ public class NotificationService : INotificationService
     }
 
     /// <summary>
-    /// Initializes default email templates
+    /// 初始化默认邮件模板 / Initializes default email templates
+    /// 创建备份成功和失败的标准模板 / Creates standard templates for backup success and failure
     /// </summary>
     private void InitializeDefaultTemplates()
     {
-        // Backup Success Template
+        // 备份成功模板 / Backup Success Template
         var backupSuccessTemplate = new EmailTemplate
         {
             Name = "backup-success",
@@ -451,7 +514,7 @@ public class NotificationService : INotificationService
             RequiredVariables = new List<string> { "DatabaseName", "BackupFileName", "FileSize", "Duration", "CompletedAt" }
         };
 
-        // Backup Failure Template
+        // 备份失败模板 / Backup Failure Template
         var backupFailureTemplate = new EmailTemplate
         {
             Name = "backup-failure",

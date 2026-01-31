@@ -9,8 +9,8 @@ using MySqlBackupTool.Shared.Models;
 namespace MySqlBackupTool.Shared.Services;
 
 /// <summary>
-/// 基于TCP的文件传输客户端实现
-/// 提供文件传输、断点续传、分块传输等功能
+/// 基于TCP的文件传输客户端实现 / TCP-based file transfer client implementation
+/// 提供文件传输、断点续传、分块传输等功能 / Provides file transfer, resume transfer, chunked transfer and other features
 /// </summary>
 public class FileTransferClient : IFileTransferClient, IFileTransferService
 {
@@ -38,11 +38,12 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     private const int PeriodicFlushMultiplier = 10; // 每10个缓冲区大小刷新一次
 
     /// <summary>
-    /// 构造函数，初始化文件传输客户端
+    /// 构造函数，初始化文件传输客户端 / Constructor, initialize file transfer client
     /// </summary>
-    /// <param name="logger">日志记录器</param>
-    /// <param name="checksumService">校验和服务</param>
-    /// <param name="memoryProfiler">内存分析器（可选）</param>
+    /// <param name="logger">日志记录器 / Logger instance</param>
+    /// <param name="checksumService">校验和服务 / Checksum service</param>
+    /// <param name="memoryProfiler">内存分析器（可选） / Memory profiler (optional)</param>
+    /// <exception cref="ArgumentNullException">当必需参数为null时抛出 / Thrown when required parameters are null</exception>
     public FileTransferClient(ILogger<FileTransferClient> logger, IChecksumService checksumService, IMemoryProfiler? memoryProfiler = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -51,12 +52,12 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     }
 
     /// <summary>
-    /// 将文件传输到远程服务器
+    /// 将文件传输到远程服务器 / Transfer file to remote server
     /// </summary>
-    /// <param name="filePath">要传输的文件路径</param>
-    /// <param name="config">传输配置</param>
-    /// <param name="cancellationToken">取消令牌</param>
-    /// <returns>传输结果</returns>
+    /// <param name="filePath">要传输的文件路径 / File path to transfer</param>
+    /// <param name="config">传输配置 / Transfer configuration</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>传输结果 / Transfer result</returns>
     public async Task<TransferResult> TransferFileAsync(string filePath, TransferConfig config, CancellationToken cancellationToken = default)
     {
         var startTime = DateTime.UtcNow;
@@ -68,13 +69,13 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
         
         try
         {
-            // Check for cancellation early
+            // 提前检查取消 / Check for cancellation early
             cancellationToken.ThrowIfCancellationRequested();
             
             _logger.LogInformation("Starting file transfer for {FilePath} to {Server}:{Port}", 
                 filePath, config.TargetServer.IPAddress, config.TargetServer.Port);
 
-            // Validate inputs
+            // 验证输入 / Validate inputs
             _memoryProfiler?.RecordSnapshot(operationId, "Validation", "Validating inputs");
             if (!File.Exists(filePath))
             {
@@ -101,12 +102,12 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
                 };
             }
 
-            // Get file info and create metadata
+            // 获取文件信息并创建元数据 / Get file info and create metadata
             _memoryProfiler?.RecordSnapshot(operationId, "CreateMetadata", "Creating file metadata");
             var fileInfo = new FileInfo(filePath);
             var metadata = await CreateFileMetadataAsync(filePath, config.FileName);
 
-            // Create transfer request
+            // 创建传输请求 / Create transfer request
             var transferRequest = new TransferRequest
             {
                 TransferId = transferId,
@@ -117,7 +118,7 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
 
             _memoryProfiler?.RecordSnapshot(operationId, "StartTransfer", $"Starting transfer with retry logic, file size: {fileInfo.Length} bytes");
 
-            // Perform transfer with retry logic
+            // 使用重试逻辑执行传输 / Perform transfer with retry logic
             var result = await TransferWithRetryAsync(filePath, transferRequest, config, cancellationToken, operationId);
             result.Duration = DateTime.UtcNow - startTime;
 
@@ -126,7 +127,7 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
 
             _memoryProfiler?.RecordSnapshot(operationId, "Complete", $"Transfer completed: Success={result.Success}, Bytes={result.BytesTransferred}");
             
-            // Get memory profile and recommendations
+            // 获取内存分析和建议 / Get memory profile and recommendations
             var profile = _memoryProfiler?.StopProfiling(operationId);
             if (profile != null)
             {
@@ -171,11 +172,11 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     }
 
     /// <summary>
-    /// 恢复中断的文件传输
+    /// 恢复中断的文件传输 / Resume interrupted file transfer
     /// </summary>
-    /// <param name="resumeToken">恢复令牌</param>
-    /// <param name="cancellationToken">取消令牌</param>
-    /// <returns>传输结果</returns>
+    /// <param name="resumeToken">恢复令牌 / Resume token</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>传输结果 / Transfer result</returns>
     public async Task<TransferResult> ResumeTransferAsync(string resumeToken, CancellationToken cancellationToken = default)
     {
         var startTime = DateTime.UtcNow;
@@ -184,9 +185,9 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
         {
             _logger.LogInformation("Resuming file transfer with token {ResumeToken}", resumeToken);
 
-            // This method would need access to IChunkManager to get resume info
-            // For now, return an error indicating the client needs to be updated to support resume
-            // The actual implementation would require dependency injection of IChunkManager
+            // 此方法需要访问IChunkManager来获取恢复信息 / This method would need access to IChunkManager to get resume info
+            // 目前，返回错误表示客户端需要更新以支持恢复 / For now, return an error indicating the client needs to be updated to support resume
+            // 实际实现需要依赖注入IChunkManager / The actual implementation would require dependency injection of IChunkManager
             
             return new TransferResult
             {
@@ -208,13 +209,13 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     }
 
     /// <summary>
-    /// 使用完整上下文恢复中断的文件传输
+    /// 使用完整上下文恢复中断的文件传输 / Resume interrupted file transfer with full context
     /// </summary>
-    /// <param name="resumeToken">恢复令牌</param>
-    /// <param name="filePath">文件路径</param>
-    /// <param name="config">传输配置</param>
-    /// <param name="cancellationToken">取消令牌</param>
-    /// <returns>传输结果</returns>
+    /// <param name="resumeToken">恢复令牌 / Resume token</param>
+    /// <param name="filePath">文件路径 / File path</param>
+    /// <param name="config">传输配置 / Transfer configuration</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>传输结果 / Transfer result</returns>
     public async Task<TransferResult> ResumeTransferAsync(string resumeToken, string filePath, TransferConfig config, CancellationToken cancellationToken = default)
     {
         var startTime = DateTime.UtcNow;
@@ -227,7 +228,7 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
         {
             _logger.LogInformation("Resuming file transfer with token {ResumeToken} for file {FilePath}", resumeToken, filePath);
 
-            // Validate inputs
+            // 验证输入 / Validate inputs
             _memoryProfiler?.RecordSnapshot(operationId, "Validation", "Validating inputs for resume");
             if (!File.Exists(filePath))
             {
@@ -254,14 +255,14 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
                 };
             }
 
-            // Create file metadata
+            // 创建文件元数据 / Create file metadata
             _memoryProfiler?.RecordSnapshot(operationId, "CreateMetadata", "Creating file metadata for resume");
             var metadata = await CreateFileMetadataAsync(filePath, config.FileName);
 
-            // Create resume transfer request
+            // 创建恢复传输请求 / Create resume transfer request
             var transferRequest = new TransferRequest
             {
-                TransferId = Guid.NewGuid().ToString(), // New transfer ID for resume
+                TransferId = Guid.NewGuid().ToString(), // 恢复的新传输ID / New transfer ID for resume
                 Metadata = metadata,
                 ChunkingStrategy = config.ChunkingStrategy,
                 ResumeTransfer = true,
@@ -270,7 +271,7 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
 
             _memoryProfiler?.RecordSnapshot(operationId, "StartResume", "Starting resume transfer with retry logic");
 
-            // Perform transfer with retry logic
+            // 使用重试逻辑执行传输 / Perform transfer with retry logic
             var result = await TransferWithRetryAsync(filePath, transferRequest, config, cancellationToken, operationId);
             result.Duration = DateTime.UtcNow - startTime;
 
@@ -279,7 +280,7 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
 
             _memoryProfiler?.RecordSnapshot(operationId, "Complete", $"Resume transfer completed: Success={result.Success}, Bytes={result.BytesTransferred}");
             
-            // Get memory profile and recommendations
+            // 获取内存分析和建议 / Get memory profile and recommendations
             var profile = _memoryProfiler?.StopProfiling(operationId);
             if (profile != null)
             {

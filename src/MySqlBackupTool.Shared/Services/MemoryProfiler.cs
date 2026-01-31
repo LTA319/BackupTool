@@ -7,8 +7,8 @@ using MySqlBackupTool.Shared.Models;
 namespace MySqlBackupTool.Shared.Services;
 
 /// <summary>
-/// 内存分析器，用于分析备份操作期间的内存使用情况
-/// 提供内存快照、性能监控和资源使用统计功能
+/// 内存分析器，用于分析备份操作期间的内存使用情况 / Memory profiler for analyzing memory usage during backup operations
+/// 提供内存快照、性能监控和资源使用统计功能 / Provides memory snapshots, performance monitoring and resource usage statistics
 /// </summary>
 public class MemoryProfiler : IMemoryProfiler, IDisposable
 {
@@ -19,6 +19,12 @@ public class MemoryProfiler : IMemoryProfiler, IDisposable
     private readonly Process _currentProcess;
     private bool _disposed;
 
+    /// <summary>
+    /// 初始化内存分析器 / Initialize memory profiler
+    /// </summary>
+    /// <param name="logger">日志记录器 / Logger instance</param>
+    /// <param name="config">内存分析配置（可选） / Memory profiling configuration (optional)</param>
+    /// <exception cref="ArgumentNullException">当logger为null时抛出 / Thrown when logger is null</exception>
     public MemoryProfiler(ILogger<MemoryProfiler> logger, MemoryProfilingConfig? config = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -32,8 +38,11 @@ public class MemoryProfiler : IMemoryProfiler, IDisposable
     }
 
     /// <summary>
-    /// Starts memory profiling for a backup operation
+    /// 为备份操作开始内存分析 / Starts memory profiling for a backup operation
     /// </summary>
+    /// <param name="operationId">操作ID / Operation ID</param>
+    /// <param name="operationType">操作类型 / Operation type</param>
+    /// <exception cref="ArgumentException">当操作ID或类型为空时抛出 / Thrown when operation ID or type is empty</exception>
     public void StartProfiling(string operationId, string operationType)
     {
         if (string.IsNullOrWhiteSpace(operationId))
@@ -54,10 +63,10 @@ public class MemoryProfiler : IMemoryProfiler, IDisposable
 
         _activeProfiles.TryAdd(operationId, profile);
 
-        // Take initial snapshot
+        // 拍摄初始快照 / Take initial snapshot
         RecordSnapshot(operationId, "Start", "Initial memory state");
 
-        // Start automatic snapshots if configured
+        // 如果配置了则开始自动快照 / Start automatic snapshots if configured
         if (_config.AutomaticSnapshots)
         {
             var timer = new Timer(
@@ -73,8 +82,11 @@ public class MemoryProfiler : IMemoryProfiler, IDisposable
     }
 
     /// <summary>
-    /// Records a memory snapshot during the operation
+    /// 在操作期间记录内存快照 / Records a memory snapshot during the operation
     /// </summary>
+    /// <param name="operationId">操作ID / Operation ID</param>
+    /// <param name="phase">阶段名称 / Phase name</param>
+    /// <param name="additionalInfo">附加信息 / Additional information</param>
     public void RecordSnapshot(string operationId, string phase, string? additionalInfo = null)
     {
         if (!_activeProfiles.TryGetValue(operationId, out var profile))
@@ -91,7 +103,7 @@ public class MemoryProfiler : IMemoryProfiler, IDisposable
             {
                 profile.Snapshots.Add(snapshot);
                 
-                // Limit snapshots to prevent memory issues
+                // 限制快照数量以防止内存问题 / Limit snapshots to prevent memory issues
                 if (profile.Snapshots.Count > _config.MaxSnapshots)
                 {
                     profile.Snapshots.RemoveAt(0);
@@ -100,7 +112,7 @@ public class MemoryProfiler : IMemoryProfiler, IDisposable
                 }
             }
 
-            // Check memory thresholds
+            // 检查内存阈值 / Check memory thresholds
             CheckMemoryThresholds(operationId, snapshot);
 
             _logger.LogDebug("Recorded memory snapshot for operation {OperationId}, phase {Phase}: {WorkingSet}",
@@ -113,8 +125,10 @@ public class MemoryProfiler : IMemoryProfiler, IDisposable
     }
 
     /// <summary>
-    /// Stops profiling and returns the complete memory profile
+    /// 停止分析并返回完整的内存分析结果 / Stops profiling and returns the complete memory profile
     /// </summary>
+    /// <param name="operationId">操作ID / Operation ID</param>
+    /// <returns>内存分析结果 / Memory profile result</returns>
     public MemoryProfile StopProfiling(string operationId)
     {
         if (!_activeProfiles.TryRemove(operationId, out var profile))
@@ -125,17 +139,17 @@ public class MemoryProfiler : IMemoryProfiler, IDisposable
 
         _logger.LogInformation("Stopping memory profiling for operation {OperationId}", operationId);
 
-        // Stop automatic snapshots
+        // 停止自动快照 / Stop automatic snapshots
         if (_snapshotTimers.TryRemove(operationId, out var timer))
         {
             timer.Dispose();
         }
 
-        // Take final snapshot
+        // 拍摄最终快照 / Take final snapshot
         RecordSnapshot(operationId, "End", "Final memory state");
         profile.EndTime = DateTime.UtcNow;
 
-        // Calculate statistics
+        // 计算统计信息 / Calculate statistics
         profile.Statistics = CalculateStatistics(profile);
 
         _logger.LogInformation("Memory profiling completed for operation {OperationId}. Duration: {Duration}, Peak: {Peak}, Growth: {Growth}",
@@ -146,13 +160,15 @@ public class MemoryProfiler : IMemoryProfiler, IDisposable
     }
 
     /// <summary>
-    /// Gets the current memory profile for an ongoing operation
+    /// 获取正在进行的操作的当前内存分析结果 / Gets the current memory profile for an ongoing operation
     /// </summary>
+    /// <param name="operationId">操作ID / Operation ID</param>
+    /// <returns>当前内存分析结果或null / Current memory profile or null</returns>
     public MemoryProfile? GetCurrentProfile(string operationId)
     {
         if (_activeProfiles.TryGetValue(operationId, out var profile))
         {
-            // Create a copy with current statistics
+            // 创建带有当前统计信息的副本 / Create a copy with current statistics
             var currentProfile = new MemoryProfile
             {
                 OperationId = profile.OperationId,
@@ -171,8 +187,10 @@ public class MemoryProfiler : IMemoryProfiler, IDisposable
     }
 
     /// <summary>
-    /// Forces garbage collection and records the impact
+    /// 强制垃圾回收并记录影响 / Forces garbage collection and records the impact
     /// </summary>
+    /// <param name="operationId">操作ID / Operation ID</param>
+    /// <param name="generation">GC代数（可选） / GC generation (optional)</param>
     public void ForceGarbageCollection(string operationId, int? generation = null)
     {
         if (!_activeProfiles.TryGetValue(operationId, out var profile))
@@ -229,15 +247,17 @@ public class MemoryProfiler : IMemoryProfiler, IDisposable
     }
 
     /// <summary>
-    /// Gets memory usage recommendations based on profiling data
+    /// 基于分析数据获取内存使用建议 / Gets memory usage recommendations based on profiling data
     /// </summary>
+    /// <param name="profile">内存分析结果 / Memory profile</param>
+    /// <returns>内存建议列表 / List of memory recommendations</returns>
     public List<MemoryRecommendation> GetRecommendations(MemoryProfile profile)
     {
         var recommendations = new List<MemoryRecommendation>();
 
         try
         {
-            // High memory usage recommendation
+            // 高内存使用建议 / High memory usage recommendation
             if (profile.Statistics.PeakWorkingSet > _config.MemoryCriticalThreshold)
             {
                 recommendations.Add(new MemoryRecommendation
@@ -263,8 +283,8 @@ public class MemoryProfiler : IMemoryProfiler, IDisposable
                 });
             }
 
-            // High GC pressure recommendation
-            if (profile.Statistics.GCPressure > 10) // More than 10 collections per minute
+            // 高GC压力建议 / High GC pressure recommendation
+            if (profile.Statistics.GCPressure > 10) // 每分钟超过10次回收 / More than 10 collections per minute
             {
                 recommendations.Add(new MemoryRecommendation
                 {
@@ -277,8 +297,8 @@ public class MemoryProfiler : IMemoryProfiler, IDisposable
                 });
             }
 
-            // Memory growth rate recommendation
-            if (profile.Statistics.MemoryGrowthRate > 50 * 1024 * 1024) // More than 50 MB/s growth
+            // 内存增长率建议 / Memory growth rate recommendation
+            if (profile.Statistics.MemoryGrowthRate > 50 * 1024 * 1024) // 每秒增长超过50MB / More than 50 MB/s growth
             {
                 recommendations.Add(new MemoryRecommendation
                 {
@@ -291,10 +311,10 @@ public class MemoryProfiler : IMemoryProfiler, IDisposable
                 });
             }
 
-            // Memory leak detection
+            // 内存泄漏检测 / Memory leak detection
             if (profile.Statistics.MemoryGrowth > 0 && profile.Statistics.TotalGCCollections > 5)
             {
-                var expectedMemoryAfterGC = profile.Statistics.MinimumWorkingSet * 1.2; // 20% overhead expected
+                var expectedMemoryAfterGC = profile.Statistics.MinimumWorkingSet * 1.2; // 预期20%开销 / 20% overhead expected
                 if (profile.Statistics.AverageWorkingSet > expectedMemoryAfterGC)
                 {
                     recommendations.Add(new MemoryRecommendation
@@ -321,8 +341,11 @@ public class MemoryProfiler : IMemoryProfiler, IDisposable
     }
 
     /// <summary>
-    /// Creates a memory snapshot with current system state
+    /// 创建当前系统状态的内存快照 / Creates a memory snapshot with current system state
     /// </summary>
+    /// <param name="phase">阶段名称 / Phase name</param>
+    /// <param name="additionalInfo">附加信息 / Additional information</param>
+    /// <returns>内存快照 / Memory snapshot</returns>
     private MemorySnapshot CreateMemorySnapshot(string phase, string? additionalInfo)
     {
         try
@@ -335,7 +358,7 @@ public class MemoryProfiler : IMemoryProfiler, IDisposable
                 Phase = phase,
                 AdditionalInfo = additionalInfo,
                 
-                // Process memory metrics
+                // 进程内存指标 / Process memory metrics
                 WorkingSet = _currentProcess.WorkingSet64,
                 PrivateMemorySize = _currentProcess.PrivateMemorySize64,
                 VirtualMemorySize = _currentProcess.VirtualMemorySize64,
@@ -343,14 +366,14 @@ public class MemoryProfiler : IMemoryProfiler, IDisposable
                 NonPagedSystemMemorySize = _currentProcess.NonpagedSystemMemorySize64,
                 PagedSystemMemorySize = _currentProcess.PagedSystemMemorySize64,
                 
-                // .NET GC metrics
+                // .NET GC指标 / .NET GC metrics
                 Gen0Collections = GC.CollectionCount(0),
                 Gen1Collections = GC.CollectionCount(1),
                 Gen2Collections = GC.CollectionCount(2),
                 TotalMemory = GC.GetTotalMemory(false)
             };
 
-            // Get GC heap sizes if available (.NET 6+)
+            // 如果可用则获取GC堆大小（.NET 6+） / Get GC heap sizes if available (.NET 6+)
             try
             {
                 var gcInfo = GC.GetGCMemoryInfo();
@@ -361,10 +384,10 @@ public class MemoryProfiler : IMemoryProfiler, IDisposable
             }
             catch
             {
-                // Heap size information not available in this .NET version
+                // 此.NET版本中堆大小信息不可用 / Heap size information not available in this .NET version
             }
 
-            // System memory metrics (if configured)
+            // 系统内存指标（如果配置） / System memory metrics (if configured)
             if (_config.CollectSystemMemoryInfo)
             {
                 try

@@ -99,6 +99,36 @@
 - 提供TCP监听、客户端连接处理、文件接收、身份验证和授权功能
 - 包含网络通信、文件传输、分块处理、安全验证等功能的详细中文注释
 
+### 23. FileTransferClient.cs ✅
+- **FileTransferClient**: TCP文件传输客户端
+- 提供基于TCP的文件传输功能，支持分块传输、进度报告和错误处理
+- 包含TCP连接、文件传输、分块处理、进度监控等功能的详细中文注释
+
+### 24. LoggingService.cs ✅
+- **LoggingService**: 应用程序特定的结构化日志服务
+- 提供结构化日志记录、日志级别管理和性能监控功能
+- 包含日志记录、性能跟踪、错误处理等功能的详细中文注释
+
+### 25. MemoryProfiler.cs ✅
+- **MemoryProfiler**: 内存分析器，用于分析备份操作期间的内存使用情况
+- 提供内存快照、性能监控和资源使用统计功能
+- 包含内存分析、快照管理、统计计算、建议生成等功能的详细中文注释
+
+### 26. MySQLManager.cs ✅
+- **MySQLManager**: 基于Windows服务的MySQL实例管理器
+- 提供MySQL服务的启动、停止和连接验证功能，支持多种停止方法和错误恢复机制
+- 包含服务控制、命令行操作、权限检查、连接验证等功能的详细中文注释
+
+### 27. NetworkRetryService.cs ✅
+- **NetworkRetryService**: 网络重试服务，提供指数退避重试逻辑的网络操作处理
+- 支持网络连接测试、重试机制和连接恢复等待功能
+- 包含重试逻辑、连接测试、异常处理、延迟计算等功能的详细中文注释
+
+### 28. NotificationService.cs ✅
+- **NotificationService**: 通过SMTP发送邮件通知的服务
+- 支持单个和批量邮件发送、模板管理、状态跟踪和统计功能
+- 包含邮件发送、模板管理、状态跟踪、统计分析等功能的详细中文注释
+
 ## 注释特点
 
 ### 1. 详细性
@@ -120,12 +150,6 @@
 
 以下服务文件仍需要添加中文注释：
 
-- **FileTransferClient.cs**: 文件传输客户端
-- **LoggingService.cs**: 日志服务
-- **MemoryProfiler.cs**: 内存分析器
-- **MySQLManager.cs**: MySQL管理器
-- **NetworkRetryService.cs**: 网络重试服务
-- **NotificationService.cs**: 通知服务
 - **OptimizedFileTransferClient.cs**: 优化文件传输客户端
 - **RetentionManagementService.cs**: 保留管理服务
 - **RetentionPolicyBackgroundService.cs**: 保留策略后台服务
