@@ -370,6 +370,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<DependencyResolutionValidator>();
 
         return services;
+    }
+
     #endregion
 
     #region 客户端服务注册
@@ -510,6 +512,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IBackgroundTaskManager, BackgroundTaskManager>();
         
         return services;
+    }
+
     #endregion
 
     #region 服务器端服务注册
@@ -607,6 +611,8 @@ public static class ServiceCollectionExtensions
         });
         
         return services;
+    }
+
     #endregion
 
     #region 备份调度服务注册

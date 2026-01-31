@@ -22,6 +22,11 @@ public partial class FormMain : Form
     /// </summary>
     private readonly ILogger<FormMain> _logger;
 
+    /// <summary>
+    /// 标记是否真正退出应用程序，用于区分隐藏到托盘和真正退出
+    /// </summary>
+    private bool _isReallyClosing = false;
+
     #endregion
 
     #region 构造函数
@@ -58,6 +63,9 @@ public partial class FormMain : Form
             this.Size = new Size(800, 600);
             this.StartPosition = FormStartPosition.CenterScreen;
 
+            // 初始化系统托盘
+            InitializeSystemTray();
+
             _logger.LogInformation("主窗体初始化成功");
         }
         catch (Exception ex)
@@ -67,6 +75,36 @@ public partial class FormMain : Form
                 "初始化错误",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Error);
+        }
+    }
+
+    /// <summary>
+    /// 初始化系统托盘功能
+    /// 设置托盘图标、提示文本和相关事件
+    /// </summary>
+    private void InitializeSystemTray()
+    {
+        try
+        {
+            // 设置托盘图标（使用应用程序图标或默认图标）
+            if (this.Icon != null)
+            {
+                notifyIcon.Icon = this.Icon;
+            }
+            else
+            {
+                // 如果没有应用程序图标，使用系统默认图标
+                notifyIcon.Icon = SystemIcons.Application;
+            }
+
+            notifyIcon.Text = "MySQL Backup Tool - 点击显示主窗口";
+            notifyIcon.Visible = false; // 初始时不显示托盘图标
+
+            _logger.LogInformation("系统托盘初始化成功");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "初始化系统托盘时发生错误");
         }
     }
 
@@ -213,6 +251,7 @@ public partial class FormMain : Form
     /// <param name="e">事件参数</param>
     private void exitToolStripMenuItem_Click(object sender, EventArgs e)
     {
+        _isReallyClosing = true;
         this.Close();
     }
 
@@ -356,6 +395,82 @@ public partial class FormMain : Form
         // 当前为空实现
     }
 
+    /// <summary>
+    /// 系统托盘图标双击事件处理程序
+    /// 双击托盘图标时显示主窗体
+    /// </summary>
+    /// <param name="sender">事件发送者</param>
+    /// <param name="e">事件参数</param>
+    private void notifyIcon_DoubleClick(object sender, EventArgs e)
+    {
+        ShowMainWindow();
+    }
+
+    /// <summary>
+    /// 托盘右键菜单"显示主窗口"点击事件处理程序
+    /// </summary>
+    /// <param name="sender">事件发送者</param>
+    /// <param name="e">事件参数</param>
+    private void showToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        ShowMainWindow();
+    }
+
+    /// <summary>
+    /// 托盘右键菜单"退出"点击事件处理程序
+    /// </summary>
+    /// <param name="sender">事件发送者</param>
+    /// <param name="e">事件参数</param>
+    private void exitTrayToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        _isReallyClosing = true;
+        this.Close();
+    }
+
+    /// <summary>
+    /// 系统托盘帮助菜单项点击事件处理程序
+    /// </summary>
+    /// <param name="sender">事件发送者</param>
+    /// <param name="e">事件参数</param>
+    private void systemTrayHelpToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            // 显示系统托盘功能帮助信息
+            var helpMessage = @"MySQL Backup Tool 系统托盘功能帮助
+
+基本操作：
+• 点击关闭按钮 (X) → 隐藏到系统托盘
+• 双击托盘图标 → 恢复主窗体
+• 右键托盘图标 → 显示菜单
+
+完全退出：
+• 菜单栏：File → Exit
+• 托盘右键：退出
+
+特性：
+• 首次隐藏时显示提示气球
+• 后台持续运行
+• 快速访问和恢复
+
+注意：
+• 关闭按钮默认隐藏到托盘，不会退出程序
+• 使用菜单或托盘右键菜单才能完全退出";
+
+            MessageBox.Show(helpMessage, "系统托盘功能帮助", 
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+            // 同时在日志中记录帮助信息的显示
+            SystemTrayExample.ShowSystemTrayHelp(_logger);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "显示系统托盘帮助时发生错误");
+            MessageBox.Show($"显示帮助信息时发生错误: {ex.Message}",
+                "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
     #endregion
 
     #region 重写方法
@@ -363,18 +478,83 @@ public partial class FormMain : Form
     /// <summary>
     /// 重写窗体关闭事件
     /// 在窗体关闭时记录日志并执行清理操作
+    /// 如果不是真正退出，则隐藏到系统托盘
     /// </summary>
     /// <param name="e">窗体关闭事件参数</param>
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
         try
         {
+            if (!_isReallyClosing)
+            {
+                // 如果不是真正退出，则隐藏到系统托盘
+                e.Cancel = true;
+                HideToSystemTray();
+                return;
+            }
+
             _logger.LogInformation("应用程序正在关闭");
+            
+            // 隐藏托盘图标
+            if (notifyIcon != null)
+            {
+                notifyIcon.Visible = false;
+            }
+
             base.OnFormClosing(e);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "应用程序关闭过程中发生错误");
+        }
+    }
+
+    #endregion
+
+    #region 私有辅助方法
+
+    /// <summary>
+    /// 隐藏窗体到系统托盘
+    /// </summary>
+    private void HideToSystemTray()
+    {
+        try
+        {
+            this.Hide();
+            notifyIcon.Visible = true;
+            
+            // 显示托盘提示
+            notifyIcon.ShowBalloonTip(2000, 
+                "MySQL Backup Tool", 
+                "应用程序已最小化到系统托盘。双击图标或右键选择\"显示主窗口\"来恢复窗口。", 
+                ToolTipIcon.Info);
+
+            _logger.LogInformation("应用程序已隐藏到系统托盘");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "隐藏到系统托盘时发生错误");
+        }
+    }
+
+    /// <summary>
+    /// 从系统托盘显示主窗体
+    /// </summary>
+    private void ShowMainWindow()
+    {
+        try
+        {
+            this.Show();
+            this.WindowState = FormWindowState.Normal;
+            this.BringToFront();
+            this.Activate();
+            notifyIcon.Visible = false;
+
+            _logger.LogInformation("主窗体已从系统托盘恢复显示");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "从系统托盘恢复窗体时发生错误");
         }
     }
 
