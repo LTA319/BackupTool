@@ -7,15 +7,35 @@ using MySqlBackupTool.Shared.Models;
 namespace MySqlBackupTool.Shared.Services;
 
 /// <summary>
-/// Background service that manages backup scheduling and execution
+/// 管理备份调度和执行的后台服务 / Background service that manages backup scheduling and execution
 /// </summary>
 public class BackupSchedulerService : BackgroundService, IBackupScheduler
 {
+    /// <summary>
+    /// 服务提供者 / Service provider
+    /// </summary>
     private readonly IServiceProvider _serviceProvider;
+    
+    /// <summary>
+    /// 日志记录器 / Logger
+    /// </summary>
     private readonly ILogger<BackupSchedulerService> _logger;
-    private readonly TimeSpan _checkInterval = TimeSpan.FromMinutes(1); // Check every minute
+    
+    /// <summary>
+    /// 检查间隔时间，每分钟检查一次 / Check interval, check every minute
+    /// </summary>
+    private readonly TimeSpan _checkInterval = TimeSpan.FromMinutes(1);
+    
+    /// <summary>
+    /// 服务是否正在运行 / Whether the service is running
+    /// </summary>
     private bool _isRunning = false;
 
+    /// <summary>
+    /// 初始化备份调度服务 / Initializes the backup scheduler service
+    /// </summary>
+    /// <param name="serviceProvider">服务提供者 / Service provider</param>
+    /// <param name="logger">日志记录器 / Logger</param>
     public BackupSchedulerService(
         IServiceProvider serviceProvider,
         ILogger<BackupSchedulerService> logger)
@@ -25,8 +45,12 @@ public class BackupSchedulerService : BackgroundService, IBackupScheduler
     }
 
     /// <summary>
-    /// Helper method to get required service with proper error handling
+    /// 获取所需服务的辅助方法，具有适当的错误处理 / Helper method to get required service with proper error handling
     /// </summary>
+    /// <typeparam name="T">服务类型 / Service type</typeparam>
+    /// <param name="serviceProvider">服务提供者 / Service provider</param>
+    /// <returns>服务实例 / Service instance</returns>
+    /// <exception cref="InvalidOperationException">当服务未注册时抛出 / Thrown when service is not registered</exception>
     private T GetRequiredService<T>(IServiceProvider serviceProvider) where T : class
     {
         var service = serviceProvider.GetService<T>();
@@ -38,8 +62,10 @@ public class BackupSchedulerService : BackgroundService, IBackupScheduler
     }
 
     /// <summary>
-    /// Background service execution loop
+    /// 后台服务执行循环 / Background service execution loop
     /// </summary>
+    /// <param name="stoppingToken">停止令牌 / Stopping token</param>
+    /// <returns>任务 / Task</returns>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("Backup scheduler service started");
@@ -62,7 +88,7 @@ public class BackupSchedulerService : BackgroundService, IBackupScheduler
             }
             catch (TaskCanceledException)
             {
-                // Expected when cancellation is requested
+                // 请求取消时的预期异常 / Expected when cancellation is requested
                 break;
             }
         }
@@ -72,8 +98,10 @@ public class BackupSchedulerService : BackgroundService, IBackupScheduler
     }
 
     /// <summary>
-    /// Starts the backup scheduler service
+    /// 启动备份调度服务 / Starts the backup scheduler service
     /// </summary>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>任务 / Task</returns>
     public new async Task StartAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Starting backup scheduler service");
@@ -81,8 +109,10 @@ public class BackupSchedulerService : BackgroundService, IBackupScheduler
     }
 
     /// <summary>
-    /// Stops the backup scheduler service
+    /// 停止备份调度服务 / Stops the backup scheduler service
     /// </summary>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>任务 / Task</returns>
     public new async Task StopAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Stopping backup scheduler service");
@@ -90,34 +120,37 @@ public class BackupSchedulerService : BackgroundService, IBackupScheduler
     }
 
     /// <summary>
-    /// Adds or updates a schedule configuration
+    /// 添加或更新调度配置 / Adds or updates a schedule configuration
     /// </summary>
+    /// <param name="scheduleConfig">调度配置 / Schedule configuration</param>
+    /// <returns>保存的调度配置 / Saved schedule configuration</returns>
+    /// <exception cref="ArgumentException">当调度配置无效时抛出 / Thrown when schedule configuration is invalid</exception>
     public async Task<ScheduleConfiguration> AddOrUpdateScheduleAsync(ScheduleConfiguration scheduleConfig)
     {
         using var scope = _serviceProvider.CreateScope();
         var repository = GetRequiredService<IScheduleConfigurationRepository>(scope.ServiceProvider);
 
-        // Validate the schedule configuration
+        // 验证调度配置 / Validate the schedule configuration
         var (isValid, errors) = await ValidateScheduleAsync(scheduleConfig);
         if (!isValid)
         {
             throw new ArgumentException($"Invalid schedule configuration: {string.Join(", ", errors)}");
         }
 
-        // Calculate next execution time
+        // 计算下次执行时间 / Calculate next execution time
         scheduleConfig.NextExecution = scheduleConfig.CalculateNextExecution();
 
         ScheduleConfiguration savedConfig;
         if (scheduleConfig.Id == 0)
         {
-            // Add new schedule
+            // 添加新调度 / Add new schedule
             savedConfig = await repository.AddAsync(scheduleConfig);
             _logger.LogInformation("Added new schedule configuration with ID {ScheduleId} for backup config {BackupConfigId}", 
                 savedConfig.Id, savedConfig.BackupConfigId);
         }
         else
         {
-            // Update existing schedule
+            // 更新现有调度 / Update existing schedule
             savedConfig = await repository.UpdateAsync(scheduleConfig);
             _logger.LogInformation("Updated schedule configuration with ID {ScheduleId}", savedConfig.Id);
         }
@@ -126,8 +159,10 @@ public class BackupSchedulerService : BackgroundService, IBackupScheduler
     }
 
     /// <summary>
-    /// Removes a schedule configuration
+    /// 移除调度配置 / Removes a schedule configuration
     /// </summary>
+    /// <param name="scheduleId">调度ID / Schedule ID</param>
+    /// <returns>任务 / Task</returns>
     public async Task RemoveScheduleAsync(int scheduleId)
     {
         using var scope = _serviceProvider.CreateScope();
@@ -138,8 +173,9 @@ public class BackupSchedulerService : BackgroundService, IBackupScheduler
     }
 
     /// <summary>
-    /// Gets all schedule configurations
+    /// 获取所有调度配置 / Gets all schedule configurations
     /// </summary>
+    /// <returns>调度配置列表 / List of schedule configurations</returns>
     public async Task<IEnumerable<ScheduleConfiguration>> GetAllSchedulesAsync()
     {
         using var scope = _serviceProvider.CreateScope();
@@ -149,8 +185,10 @@ public class BackupSchedulerService : BackgroundService, IBackupScheduler
     }
 
     /// <summary>
-    /// Gets schedule configurations for a specific backup configuration
+    /// 获取特定备份配置的调度配置 / Gets schedule configurations for a specific backup configuration
     /// </summary>
+    /// <param name="backupConfigId">备份配置ID / Backup configuration ID</param>
+    /// <returns>调度配置列表 / List of schedule configurations</returns>
     public async Task<List<ScheduleConfiguration>> GetSchedulesForBackupConfigAsync(int backupConfigId)
     {
         using var scope = _serviceProvider.CreateScope();
@@ -160,8 +198,11 @@ public class BackupSchedulerService : BackgroundService, IBackupScheduler
     }
 
     /// <summary>
-    /// Enables or disables a schedule
+    /// 启用或禁用调度 / Enables or disables a schedule
     /// </summary>
+    /// <param name="scheduleId">调度ID / Schedule ID</param>
+    /// <param name="enabled">是否启用 / Whether to enable</param>
+    /// <returns>任务 / Task</returns>
     public async Task SetScheduleEnabledAsync(int scheduleId, bool enabled)
     {
         using var scope = _serviceProvider.CreateScope();
@@ -172,8 +213,9 @@ public class BackupSchedulerService : BackgroundService, IBackupScheduler
     }
 
     /// <summary>
-    /// Gets the next scheduled backup time across all schedules
+    /// 获取所有调度中的下一个计划备份时间 / Gets the next scheduled backup time across all schedules
     /// </summary>
+    /// <returns>下一个计划时间，如果没有则返回null / Next scheduled time, or null if none</returns>
     public async Task<DateTime?> GetNextScheduledTimeAsync()
     {
         using var scope = _serviceProvider.CreateScope();
@@ -186,8 +228,11 @@ public class BackupSchedulerService : BackgroundService, IBackupScheduler
     }
 
     /// <summary>
-    /// Manually triggers a scheduled backup
+    /// 手动触发计划备份 / Manually triggers a scheduled backup
     /// </summary>
+    /// <param name="scheduleId">调度ID / Schedule ID</param>
+    /// <returns>任务 / Task</returns>
+    /// <exception cref="ArgumentException">当调度不存在或没有关联的备份配置时抛出 / Thrown when schedule is not found or has no associated backup configuration</exception>
     public async Task TriggerScheduledBackupAsync(int scheduleId)
     {
         using var scope = _serviceProvider.CreateScope();
@@ -204,12 +249,12 @@ public class BackupSchedulerService : BackgroundService, IBackupScheduler
 
         try
         {
-            // Execute the backup
+            // 执行备份 / Execute the backup
             var result = await orchestrator.ExecuteBackupAsync(schedule.BackupConfiguration);
             
             if (result.Success)
             {
-                // Update last executed time and calculate next execution
+                // 更新最后执行时间并计算下次执行时间 / Update last executed time and calculate next execution
                 await repository.UpdateLastExecutedAsync(scheduleId, DateTime.Now);
                 _logger.LogInformation("Successfully executed manual backup for schedule {ScheduleId}", scheduleId);
             }
@@ -226,13 +271,15 @@ public class BackupSchedulerService : BackgroundService, IBackupScheduler
     }
 
     /// <summary>
-    /// Validates a schedule configuration
+    /// 验证调度配置 / Validates a schedule configuration
     /// </summary>
+    /// <param name="scheduleConfig">调度配置 / Schedule configuration</param>
+    /// <returns>验证结果和错误列表 / Validation result and error list</returns>
     public async Task<(bool IsValid, List<string> Errors)> ValidateScheduleAsync(ScheduleConfiguration scheduleConfig)
     {
         var errors = new List<string>();
 
-        // Validate using data annotations
+        // 使用数据注解验证 / Validate using data annotations
         var validationResults = new List<System.ComponentModel.DataAnnotations.ValidationResult>();
         var validationContext = new System.ComponentModel.DataAnnotations.ValidationContext(scheduleConfig);
         
@@ -241,7 +288,7 @@ public class BackupSchedulerService : BackgroundService, IBackupScheduler
             errors.AddRange(validationResults.Select(vr => vr.ErrorMessage ?? "Unknown validation error"));
         }
 
-        // Validate that the backup configuration exists
+        // 验证备份配置是否存在 / Validate that the backup configuration exists
         if (scheduleConfig.BackupConfigId > 0)
         {
             using var scope = _serviceProvider.CreateScope();
@@ -258,7 +305,7 @@ public class BackupSchedulerService : BackgroundService, IBackupScheduler
             }
         }
 
-        // Validate that next execution time can be calculated
+        // 验证可以计算下次执行时间 / Validate that next execution time can be calculated
         var nextExecution = scheduleConfig.CalculateNextExecution();
         if (scheduleConfig.IsEnabled && !nextExecution.HasValue)
         {
@@ -269,8 +316,10 @@ public class BackupSchedulerService : BackgroundService, IBackupScheduler
     }
 
     /// <summary>
-    /// Checks for due backups and executes them
+    /// 检查到期的备份并执行它们 / Checks for due backups and executes them
     /// </summary>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>任务 / Task</returns>
     private async Task CheckAndExecuteDueBackupsAsync(CancellationToken cancellationToken)
     {
         using var scope = _serviceProvider.CreateScope();
@@ -295,12 +344,12 @@ public class BackupSchedulerService : BackgroundService, IBackupScheduler
                 _logger.LogInformation("Executing scheduled backup for schedule {ScheduleId} (Config: {ConfigName})", 
                     schedule.Id, schedule.BackupConfiguration?.Name ?? "Unknown");
 
-                // Execute the backup
+                // 执行备份 / Execute the backup
                 var result = await orchestrator.ExecuteBackupAsync(schedule.BackupConfiguration!);
                 
                 if (result.Success)
                 {
-                    // Update last executed time and calculate next execution
+                    // 更新最后执行时间并计算下次执行时间 / Update last executed time and calculate next execution
                     await repository.UpdateLastExecutedAsync(schedule.Id, currentTime);
                     _logger.LogInformation("Successfully executed scheduled backup for schedule {ScheduleId}", schedule.Id);
                 }
@@ -308,7 +357,7 @@ public class BackupSchedulerService : BackgroundService, IBackupScheduler
                 {
                     _logger.LogError("Scheduled backup failed for schedule {ScheduleId}: {Error}", schedule.Id, result.ErrorMessage);
                     
-                    // Still update next execution time even if backup failed
+                    // 即使备份失败也要更新下次执行时间 / Still update next execution time even if backup failed
                     var nextExecution = schedule.CalculateNextExecution();
                     await repository.UpdateNextExecutionAsync(schedule.Id, nextExecution);
                 }
@@ -317,7 +366,7 @@ public class BackupSchedulerService : BackgroundService, IBackupScheduler
             {
                 _logger.LogError(ex, "Error executing scheduled backup for schedule {ScheduleId}", schedule.Id);
                 
-                // Update next execution time even if there was an error
+                // 即使出现错误也要更新下次执行时间 / Update next execution time even if there was an error
                 try
                 {
                     var nextExecution = schedule.CalculateNextExecution();

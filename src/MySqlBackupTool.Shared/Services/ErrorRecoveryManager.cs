@@ -7,7 +7,7 @@ using System.Text;
 namespace MySqlBackupTool.Shared.Services;
 
 /// <summary>
-/// Manages error recovery and handling strategies for backup operations
+/// 管理备份操作的错误恢复和处理策略 / Manages error recovery and handling strategies for backup operations
 /// </summary>
 public class ErrorRecoveryManager : IErrorRecoveryManager
 {
@@ -17,6 +17,13 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
     private readonly IAlertingService? _alertingService;
     private ErrorRecoveryConfig _configuration;
 
+    /// <summary>
+    /// 初始化错误恢复管理器 / Initialize error recovery manager
+    /// </summary>
+    /// <param name="logger">日志记录器 / Logger instance</param>
+    /// <param name="configuration">错误恢复配置 / Error recovery configuration</param>
+    /// <param name="alertingService">警报服务 / Alerting service</param>
+    /// <exception cref="ArgumentNullException">当logger为null时抛出 / Thrown when logger is null</exception>
     public ErrorRecoveryManager(
         ILogger<ErrorRecoveryManager> logger,
         //IMySQLManager mysqlManager,
@@ -31,14 +38,29 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
         _configuration = configuration ?? new ErrorRecoveryConfig();
     }
 
+    /// <summary>
+    /// 获取当前错误恢复配置 / Get current error recovery configuration
+    /// </summary>
     public ErrorRecoveryConfig Configuration => _configuration;
 
+    /// <summary>
+    /// 更新错误恢复配置 / Update error recovery configuration
+    /// </summary>
+    /// <param name="config">新的配置 / New configuration</param>
+    /// <exception cref="ArgumentNullException">当config为null时抛出 / Thrown when config is null</exception>
     public void UpdateConfiguration(ErrorRecoveryConfig config)
     {
         _configuration = config ?? throw new ArgumentNullException(nameof(config));
         _logger.LogInformation("Error recovery configuration updated");
     }
 
+    /// <summary>
+    /// 处理MySQL服务失败 / Handle MySQL service failure
+    /// </summary>
+    /// <param name="error">MySQL服务异常 / MySQL service exception</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <param name="mysqlManager">MySQL管理器实例 / MySQL manager instance</param>
+    /// <returns>恢复结果 / Recovery result</returns>
     public async Task<RecoveryResult> HandleMySQLServiceFailureAsync(
         MySQLServiceException error, 
         CancellationToken cancellationToken = default,
@@ -51,7 +73,7 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
 
         try
         {
-            // Strategy depends on the type of MySQL operation that failed
+            // 策略取决于失败的MySQL操作类型 / Strategy depends on the type of MySQL operation that failed
             switch (error.Operation)
             {
                 case MySQLServiceOperation.Stop:
@@ -85,6 +107,13 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
         }
     }
 
+    /// <summary>
+    /// 处理压缩失败 / Handle compression failure
+    /// </summary>
+    /// <param name="error">压缩异常 / Compression exception</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <param name="compressionService">压缩服务实例 / Compression service instance</param>
+    /// <returns>恢复结果 / Recovery result</returns>
     public async Task<RecoveryResult> HandleCompressionFailureAsync(
         CompressionException error, 
         CancellationToken cancellationToken = default,
@@ -103,22 +132,22 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
                 return RecoveryResult.Failed(RecoveryStrategy.ManualIntervention,
                     "CompressionService not available");
             }
-            // Clean up any partial compression files
+            // 清理任何部分压缩文件 / Clean up any partial compression files
             if (!string.IsNullOrEmpty(error.TargetPath) && File.Exists(error.TargetPath))
             {
                 _logger.LogInformation("Cleaning up partial compression file: {TargetPath}", error.TargetPath);
                 await compressionService.CleanupAsync(error.TargetPath);
             }
 
-            // If MySQL was stopped for this operation, ensure it's restarted
+            // 如果为此操作停止了MySQL，确保重新启动 / If MySQL was stopped for this operation, ensure it's restarted
             if (_configuration.AutoRestartMySQLOnFailure)
             {
                 _logger.LogInformation("Attempting to restart MySQL after compression failure");
-                // MySQL restart requires service name from context - this should be provided by the caller
+                // MySQL重启需要来自上下文的服务名称 - 这应该由调用者提供 / MySQL restart requires service name from context - this should be provided by the caller
                 _logger.LogWarning("MySQL restart required but service name not available in compression error context");
             }
 
-            // Send critical error alert if configured
+            // 如果配置了则发送关键错误警报 / Send critical error alert if configured
             if (_configuration.EnableCriticalErrorAlerts)
             {
                 var alert = new CriticalErrorAlert
@@ -154,6 +183,12 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
         }
     }
 
+    /// <summary>
+    /// 处理传输失败 / Handle transfer failure
+    /// </summary>
+    /// <param name="error">传输异常 / Transfer exception</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>恢复结果 / Recovery result</returns>
     public async Task<RecoveryResult> HandleTransferFailureAsync(TransferException error, CancellationToken cancellationToken = default)
     {
         _logger.LogError(error, "Transfer failure occurred for operation {OperationId}, file {FilePath}",
@@ -163,7 +198,7 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
 
         try
         {
-            // If we have a resume token, the transfer can be resumed
+            // 如果我们有恢复令牌，传输可以恢复 / If we have a resume token, the transfer can be resumed
             if (!string.IsNullOrEmpty(error.ResumeToken))
             {
                 _logger.LogInformation("Transfer failure has resume token {ResumeToken}, marking for retry", error.ResumeToken);
@@ -171,15 +206,15 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
                     $"Transfer can be resumed using token: {error.ResumeToken}");
             }
 
-            // If MySQL was stopped for this operation, ensure it's restarted
+            // 如果为此操作停止了MySQL，确保重新启动 / If MySQL was stopped for this operation, ensure it's restarted
             if (_configuration.AutoRestartMySQLOnFailure)
             {
                 _logger.LogInformation("Attempting to restart MySQL after transfer failure");
-                // MySQL restart requires service name from context - this should be provided by the caller
+                // MySQL重启需要来自上下文的服务名称 - 这应该由调用者提供 / MySQL restart requires service name from context - this should be provided by the caller
                 _logger.LogWarning("MySQL restart required but service name not available in transfer error context");
             }
 
-            // Send critical error alert if configured
+            // 如果配置了则发送关键错误警报 / Send critical error alert if configured
             if (_configuration.EnableCriticalErrorAlerts)
             {
                 var alert = new CriticalErrorAlert
@@ -216,6 +251,12 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
         }
     }
 
+    /// <summary>
+    /// 处理超时失败 / Handle timeout failure
+    /// </summary>
+    /// <param name="error">操作超时异常 / Operation timeout exception</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>恢复结果 / Recovery result</returns>
     public async Task<RecoveryResult> HandleTimeoutFailureAsync(OperationTimeoutException error, CancellationToken cancellationToken = default)
     {
         _logger.LogError(error, "Operation timeout occurred for operation {OperationId}, type {OperationType}, configured timeout {ConfiguredTimeout}, actual duration {ActualDuration}",
@@ -225,7 +266,7 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
 
         try
         {
-            // Send critical error alert for timeouts
+            // 为超时发送关键错误警报 / Send critical error alert for timeouts
             if (_configuration.EnableCriticalErrorAlerts)
             {
                 var alert = new CriticalErrorAlert
@@ -245,7 +286,7 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
                 await SendCriticalErrorAlertAsync(alert, cancellationToken);
             }
 
-            // For timeout errors, we typically need manual intervention
+            // 对于超时错误，我们通常需要手动干预 / For timeout errors, we typically need manual intervention
             return RecoveryResult.Failed(RecoveryStrategy.ManualIntervention, 
                 $"Operation {error.OperationType} timed out and requires manual intervention");
         }
@@ -262,6 +303,12 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
         }
     }
 
+    /// <summary>
+    /// 处理一般失败 / Handle general failure
+    /// </summary>
+    /// <param name="error">备份异常 / Backup exception</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>恢复结果 / Recovery result</returns>
     public async Task<RecoveryResult> HandleGeneralFailureAsync(BackupException error, CancellationToken cancellationToken = default)
     {
         _logger.LogError(error, "General backup failure occurred for operation {OperationId}",
@@ -271,7 +318,7 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
 
         try
         {
-            // Send critical error alert
+            // 发送关键错误警报 / Send critical error alert
             if (_configuration.EnableCriticalErrorAlerts)
             {
                 var alert = new CriticalErrorAlert
@@ -305,6 +352,12 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
         }
     }
 
+    /// <summary>
+    /// 发送关键错误警报 / Send critical error alert
+    /// </summary>
+    /// <param name="alert">关键错误警报 / Critical error alert</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>是否发送成功 / Whether sending was successful</returns>
     public async Task<bool> SendCriticalErrorAlertAsync(CriticalErrorAlert alert, CancellationToken cancellationToken = default)
     {
         if (_alertingService == null)
@@ -325,6 +378,17 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
         }
     }
 
+    /// <summary>
+    /// 使用超时执行操作 / Execute operation with timeout
+    /// </summary>
+    /// <typeparam name="T">返回类型 / Return type</typeparam>
+    /// <param name="operation">要执行的操作 / Operation to execute</param>
+    /// <param name="timeout">超时时间 / Timeout duration</param>
+    /// <param name="operationType">操作类型 / Operation type</param>
+    /// <param name="operationId">操作ID / Operation ID</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>操作结果 / Operation result</returns>
+    /// <exception cref="OperationTimeoutException">操作超时时抛出 / Thrown when operation times out</exception>
     public async Task<T> ExecuteWithTimeoutAsync<T>(
         Func<CancellationToken, Task<T>> operation,
         TimeSpan timeout,
@@ -362,6 +426,15 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
         }
     }
 
+    /// <summary>
+    /// 使用超时执行操作（无返回值） / Execute operation with timeout (no return value)
+    /// </summary>
+    /// <param name="operation">要执行的操作 / Operation to execute</param>
+    /// <param name="timeout">超时时间 / Timeout duration</param>
+    /// <param name="operationType">操作类型 / Operation type</param>
+    /// <param name="operationId">操作ID / Operation ID</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <exception cref="OperationTimeoutException">操作超时时抛出 / Thrown when operation times out</exception>
     public async Task ExecuteWithTimeoutAsync(
         Func<CancellationToken, Task> operation,
         TimeSpan timeout,
@@ -372,10 +445,18 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
         await ExecuteWithTimeoutAsync(async (ct) =>
         {
             await operation(ct);
-            return true; // Dummy return value for the generic version
+            return true; // 泛型版本的虚拟返回值 / Dummy return value for the generic version
         }, timeout, operationType, operationId, cancellationToken);
     }
 
+    /// <summary>
+    /// 错误后清理 / Cleanup after error
+    /// </summary>
+    /// <param name="operationId">操作ID / Operation ID</param>
+    /// <param name="filePaths">要清理的文件路径 / File paths to cleanup</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <param name="compressionService">压缩服务实例 / Compression service instance</param>
+    /// <returns>清理是否成功 / Whether cleanup was successful</returns>
     public async Task<bool> CleanupAfterErrorAsync(
         string operationId, IEnumerable<string> filePaths, 
         CancellationToken cancellationToken = default,
@@ -430,8 +511,11 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
         }
     }
 
-    #region Private Helper Methods
+    #region 私有辅助方法 / Private Helper Methods
 
+    /// <summary>
+    /// 处理MySQL停止失败的恢复 / Handle recovery for MySQL stop failure
+    /// </summary>
     private async Task<RecoveryResult> HandleMySQLStopFailureAsync(
         MySQLServiceException error,
         CancellationToken cancellationToken,
@@ -439,14 +523,14 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
     {
         _logger.LogInformation("Attempting recovery for MySQL stop failure");
 
-        // Try escalating stop strategies
+        // 尝试升级停止策略 / Try escalating stop strategies
         for (int attempt = 1; attempt <= _configuration.MaxRetryAttempts; attempt++)
         {
             try
             {
                 _logger.LogInformation("MySQL stop recovery attempt {Attempt}/{MaxAttempts}", attempt, _configuration.MaxRetryAttempts);
 
-                // Wait with exponential backoff
+                // 使用指数退避等待 / Wait with exponential backoff
                 if (attempt > 1)
                 {
                     var delay = TimeSpan.FromMilliseconds(_configuration.BaseRetryDelay.TotalMilliseconds * Math.Pow(2, attempt - 1));
@@ -462,7 +546,7 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
                         "MySQLManager not available");
                 }
 
-                // Try to stop the service again
+                // 尝试再次停止服务 / Try to stop the service again
                 var stopResult = await mysqlManager.StopInstanceAsync(error.ServiceName);
                 if (stopResult)
                 {

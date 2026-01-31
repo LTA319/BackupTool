@@ -5,7 +5,9 @@ using MySqlBackupTool.Shared.Models;
 namespace MySqlBackupTool.Shared.Services;
 
 /// <summary>
-/// Authorization service implementation
+/// 授权服务实现 / Authorization service implementation
+/// 提供基于权限的访问控制，包括操作授权检查、权限验证和授权日志记录
+/// Provides permission-based access control including operation authorization checks, permission validation and authorization logging
 /// </summary>
 public class AuthorizationService : IAuthorizationService
 {
@@ -13,7 +15,7 @@ public class AuthorizationService : IAuthorizationService
     private readonly ICredentialStorage _credentialStorage;
     private readonly IBackupLogRepository _logRepository;
 
-    // Operation to permission mappings
+    // 操作到权限的映射 / Operation to permission mappings
     private readonly Dictionary<string, string[]> _operationPermissions = new()
     {
         { "upload_backup", new[] { BackupPermissions.UploadBackup } },
@@ -24,11 +26,17 @@ public class AuthorizationService : IAuthorizationService
         { "manage_clients", new[] { BackupPermissions.ManageClients } },
         { "system_admin", new[] { BackupPermissions.SystemAdmin } },
         
-        // Composite operations requiring multiple permissions
+        // 需要多个权限的复合操作 / Composite operations requiring multiple permissions
         { "backup_management", new[] { BackupPermissions.UploadBackup, BackupPermissions.ListBackups } },
         { "full_backup_access", new[] { BackupPermissions.UploadBackup, BackupPermissions.DownloadBackup, BackupPermissions.ListBackups } }
     };
 
+    /// <summary>
+    /// 初始化授权服务 / Initializes authorization service
+    /// </summary>
+    /// <param name="logger">日志记录器 / Logger instance</param>
+    /// <param name="credentialStorage">凭据存储服务 / Credential storage service</param>
+    /// <param name="logRepository">备份日志存储库 / Backup log repository</param>
     public AuthorizationService(
         ILogger<AuthorizationService> logger,
         ICredentialStorage credentialStorage,
@@ -40,7 +48,9 @@ public class AuthorizationService : IAuthorizationService
     }
 
     /// <summary>
-    /// Checks if a client is authorized to perform an operation
+    /// 检查客户端是否有权执行操作 / Checks if a client is authorized to perform an operation
+    /// 验证客户端权限，检查系统管理员权限，记录授权尝试
+    /// Validates client permissions, checks system admin privileges, logs authorization attempts
     /// </summary>
     public async Task<bool> IsAuthorizedAsync(AuthorizationContext context, string operation)
     {
@@ -55,7 +65,7 @@ public class AuthorizationService : IAuthorizationService
             _logger.LogDebug("Checking authorization for client {ClientId} to perform operation {Operation}", 
                 context.ClientId, operation);
 
-            // Get required permissions for the operation
+            // 获取操作所需的权限 / Get required permissions for the operation
             if (!_operationPermissions.TryGetValue(operation.ToLowerInvariant(), out var requiredPermissions))
             {
                 _logger.LogWarning("Unknown operation requested: {Operation} by client {ClientId}", operation, context.ClientId);
@@ -63,14 +73,14 @@ public class AuthorizationService : IAuthorizationService
                 return false;
             }
 
-            // Check if client has system admin permission (grants all access to known operations)
+            // 检查客户端是否具有系统管理员权限（授予对已知操作的所有访问权限） / Check if client has system admin permission (grants all access to known operations)
             if (context.HasPermission(BackupPermissions.SystemAdmin))
             {
                 await LogAuthorizationAttemptAsync(context, operation, true, "System admin permission");
                 return true;
             }
 
-            // Check if client has all required permissions
+            // 检查客户端是否具有所有必需的权限 / Check if client has all required permissions
             var hasAllPermissions = requiredPermissions.All(permission => context.HasPermission(permission));
 
             if (hasAllPermissions)
@@ -79,7 +89,7 @@ public class AuthorizationService : IAuthorizationService
                 return true;
             }
 
-            // Log which permissions are missing
+            // 记录缺少哪些权限 / Log which permissions are missing
             var missingPermissions = requiredPermissions.Where(p => !context.HasPermission(p)).ToList();
             var reason = $"Missing permissions: {string.Join(", ", missingPermissions)}";
             
@@ -100,7 +110,9 @@ public class AuthorizationService : IAuthorizationService
     }
 
     /// <summary>
-    /// Checks if a client has a specific permission
+    /// 检查客户端是否具有特定权限 / Checks if a client has a specific permission
+    /// 验证单个权限，考虑系统管理员的特殊权限
+    /// Validates individual permission, considering system admin special privileges
     /// </summary>
     public async Task<bool> HasPermissionAsync(AuthorizationContext context, string permission)
     {
@@ -112,7 +124,7 @@ public class AuthorizationService : IAuthorizationService
 
         try
         {
-            // System admin has all permissions
+            // 系统管理员拥有所有权限 / System admin has all permissions
             if (context.HasPermission(BackupPermissions.SystemAdmin))
             {
                 return true;
@@ -134,7 +146,9 @@ public class AuthorizationService : IAuthorizationService
     }
 
     /// <summary>
-    /// Gets all permissions for a client
+    /// 获取客户端的所有权限 / Gets all permissions for a client
+    /// 从凭据存储中检索客户端的权限列表
+    /// Retrieves client's permission list from credential storage
     /// </summary>
     public async Task<List<string>> GetClientPermissionsAsync(string clientId)
     {
@@ -160,7 +174,9 @@ public class AuthorizationService : IAuthorizationService
     }
 
     /// <summary>
-    /// Logs an authorization attempt
+    /// 记录授权尝试 / Logs an authorization attempt
+    /// 将授权尝试记录到备份日志中，用于安全审计和监控
+    /// Records authorization attempts to backup log for security auditing and monitoring
     /// </summary>
     public async Task LogAuthorizationAttemptAsync(AuthorizationContext context, string operation, bool success, string? reason = null)
     {
@@ -169,18 +185,18 @@ public class AuthorizationService : IAuthorizationService
 
         try
         {
-            // Create a log entry for the authorization attempt
+            // 为授权尝试创建日志条目 / Create a log entry for the authorization attempt
             var logEntry = new BackupLog
             {
-                BackupConfigId = 0, // Not applicable for authorization logs
+                BackupConfigId = 0, // 不适用于授权日志 / Not applicable for authorization logs
                 StartTime = context.RequestTime,
                 EndTime = DateTime.UtcNow,
                 Status = success ? BackupStatus.Completed : BackupStatus.Failed,
                 ErrorMessage = success ? null : reason,
-                FilePath = null // Not applicable
+                FilePath = null // 不适用 / Not applicable
             };
 
-            // Add additional context information
+            // 添加额外的上下文信息 / Add additional context information
             var contextInfo = new Dictionary<string, object>
             {
                 { "ClientId", context.ClientId },
@@ -195,6 +211,8 @@ public class AuthorizationService : IAuthorizationService
                 contextInfo["Reason"] = reason;
             }
 
+            // 在日志条目中存储额外的上下文（这需要在实际的BackupLog模型中扩展）
+            // 现在，我们将其包含在失败尝试的错误消息中
             // Store additional context in the log entry (this would need to be extended in the actual BackupLog model)
             // For now, we'll include it in the error message for failed attempts
             if (!success && !string.IsNullOrEmpty(reason))
@@ -211,12 +229,12 @@ public class AuthorizationService : IAuthorizationService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to log authorization attempt for client {ClientId}", context.ClientId);
-            // Don't throw - logging failures shouldn't break authorization
+            // 不抛出异常 - 日志记录失败不应破坏授权 / Don't throw - logging failures shouldn't break authorization
         }
     }
 
     /// <summary>
-    /// Validates that an operation is supported
+    /// 验证操作是否受支持 / Validates that an operation is supported
     /// </summary>
     public bool IsOperationSupported(string operation)
     {
@@ -224,7 +242,7 @@ public class AuthorizationService : IAuthorizationService
     }
 
     /// <summary>
-    /// Gets the required permissions for an operation
+    /// 获取操作所需的权限 / Gets the required permissions for an operation
     /// </summary>
     public string[] GetRequiredPermissions(string operation)
     {
@@ -237,7 +255,9 @@ public class AuthorizationService : IAuthorizationService
     }
 
     /// <summary>
-    /// Adds a new operation-permission mapping
+    /// 添加新的操作-权限映射 / Adds a new operation-permission mapping
+    /// 允许动态注册新的操作和其所需权限
+    /// Allows dynamic registration of new operations and their required permissions
     /// </summary>
     public void RegisterOperation(string operation, params string[] requiredPermissions)
     {
@@ -254,7 +274,9 @@ public class AuthorizationService : IAuthorizationService
     }
 
     /// <summary>
-    /// Removes an operation-permission mapping
+    /// 移除操作-权限映射 / Removes an operation-permission mapping
+    /// 允许动态取消注册操作
+    /// Allows dynamic unregistration of operations
     /// </summary>
     public bool UnregisterOperation(string operation)
     {
@@ -272,7 +294,9 @@ public class AuthorizationService : IAuthorizationService
     }
 
     /// <summary>
-    /// Gets all registered operations
+    /// 获取所有已注册的操作 / Gets all registered operations
+    /// 返回所有操作及其所需权限的副本
+    /// Returns a copy of all operations and their required permissions
     /// </summary>
     public Dictionary<string, string[]> GetAllOperations()
     {

@@ -7,15 +7,22 @@ using MySqlBackupTool.Shared.Models;
 namespace MySqlBackupTool.Shared.Services;
 
 /// <summary>
-/// Service that handles automatic startup of backup operations when the system boots
+/// 处理系统启动时自动启动备份操作的服务 / Service that handles automatic startup of backup operations when the system boots
+/// 在系统启动后延迟一段时间，然后检查并执行需要在启动时运行的备份任务
+/// Delays after system startup, then checks and executes backup tasks that should run on startup
 /// </summary>
 public class AutoStartupService : IHostedService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<AutoStartupService> _logger;
-    //private readonly TimeSpan _startupDelay = TimeSpan.FromMinutes(2); // Wait 2 minutes after startup
-    private readonly TimeSpan _startupDelay = TimeSpan.FromSeconds(10); // Wait 2 minutes after startup
+    //private readonly TimeSpan _startupDelay = TimeSpan.FromMinutes(2); // 启动后等待2分钟 / Wait 2 minutes after startup
+    private readonly TimeSpan _startupDelay = TimeSpan.FromSeconds(10); // 启动后等待10秒（用于测试） / Wait 10 seconds after startup (for testing)
 
+    /// <summary>
+    /// 初始化自动启动服务 / Initializes auto-startup service
+    /// </summary>
+    /// <param name="serviceProvider">服务提供者用于获取依赖服务 / Service provider for obtaining dependent services</param>
+    /// <param name="logger">日志记录器 / Logger instance</param>
     public AutoStartupService(
         IServiceProvider serviceProvider,
         ILogger<AutoStartupService> logger)
@@ -25,18 +32,20 @@ public class AutoStartupService : IHostedService
     }
 
     /// <summary>
-    /// Starts the auto-startup service
+    /// 启动自动启动服务 / Starts the auto-startup service
+    /// 安排初始化任务在后台运行，不阻塞应用程序启动
+    /// Schedules initialization task to run in background without blocking application startup
     /// </summary>
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Auto-startup service starting");
 
-        // Start the initialization in the background without blocking
+        // 在后台启动初始化，不阻塞 / Start the initialization in the background without blocking
         _ = Task.Run(async () =>
         {
             try
             {
-                // Delay startup to allow system to stabilize
+                // 延迟启动以允许系统稳定 / Delay startup to allow system to stabilize
                 await Task.Delay(_startupDelay, cancellationToken);
                 await InitializeAutoStartupBackupsAsync(cancellationToken);
             }
@@ -50,12 +59,12 @@ public class AutoStartupService : IHostedService
             }
         }, cancellationToken);
 
-        // Return immediately to not block application startup
+        // 立即返回以不阻塞应用程序启动 / Return immediately to not block application startup
         _logger.LogInformation("Auto-startup service initialization scheduled");
     }
 
     /// <summary>
-    /// Stops the auto-startup service
+    /// 停止自动启动服务 / Stops the auto-startup service
     /// </summary>
     public Task StopAsync(CancellationToken cancellationToken)
     {
@@ -64,7 +73,9 @@ public class AutoStartupService : IHostedService
     }
 
     /// <summary>
-    /// Initializes auto-startup backups by checking for configurations that should run on startup
+    /// 通过检查应在启动时运行的配置来初始化自动启动备份 / Initializes auto-startup backups by checking for configurations that should run on startup
+    /// 获取活动的备份配置，检查调度设置，执行需要的备份任务
+    /// Gets active backup configurations, checks schedule settings, executes needed backup tasks
     /// </summary>
     private async Task InitializeAutoStartupBackupsAsync(CancellationToken cancellationToken)
     {
@@ -83,11 +94,11 @@ public class AutoStartupService : IHostedService
 
             _logger.LogInformation("Checking for auto-startup backup configurations");
 
-            // Get all active backup configurations
+            // 获取所有活动的备份配置 / Get all active backup configurations
             var activeConfigs = (await backupConfigRepository.GetActiveConfigurationsAsync()).ToList();
             _logger.LogInformation("Found {Count} active backup configurations", activeConfigs.Count);
 
-            // Check each configuration for auto-startup schedules
+            // 检查每个配置的自动启动调度 / Check each configuration for auto-startup schedules
             foreach (var config in activeConfigs)
             {
                 if (cancellationToken.IsCancellationRequested)
@@ -96,7 +107,7 @@ public class AutoStartupService : IHostedService
                 await ProcessAutoStartupForConfigAsync(config, scheduleRepository, orchestrator, cancellationToken);
             }
 
-            // Update next execution times for all enabled schedules
+            // 更新所有启用调度的下次执行时间 / Update next execution times for all enabled schedules
             await UpdateAllScheduleExecutionTimesAsync(scheduleRepository);
         }
         catch (Exception ex)
@@ -106,7 +117,9 @@ public class AutoStartupService : IHostedService
     }
 
     /// <summary>
-    /// Processes auto-startup logic for a specific backup configuration
+    /// 处理特定备份配置的自动启动逻辑 / Processes auto-startup logic for a specific backup configuration
+    /// 检查配置的调度设置，确定是否需要在启动时执行备份
+    /// Checks configuration's schedule settings, determines if backup should be executed on startup
     /// </summary>
     private async Task ProcessAutoStartupForConfigAsync(
         BackupConfiguration config,
@@ -128,7 +141,7 @@ public class AutoStartupService : IHostedService
             _logger.LogInformation("Processing {Count} enabled schedules for backup configuration '{ConfigName}'", 
                 enabledSchedules.Count, config.Name);
 
-            // Check if any schedule indicates this backup should run on startup
+            // 检查是否有任何调度表明此备份应在启动时运行 / Check if any schedule indicates this backup should run on startup
             var shouldRunOnStartup = await ShouldRunBackupOnStartupAsync(enabledSchedules);
 
             if (shouldRunOnStartup)
@@ -143,7 +156,7 @@ public class AutoStartupService : IHostedService
                     {
                         _logger.LogInformation("Successfully completed auto-startup backup for configuration '{ConfigName}'", config.Name);
                         
-                        // Update last executed time for all schedules of this configuration
+                        // 更新此配置所有调度的最后执行时间 / Update last executed time for all schedules of this configuration
                         var currentTime = DateTime.Now;
                         foreach (var schedule in enabledSchedules)
                         {
@@ -173,7 +186,9 @@ public class AutoStartupService : IHostedService
     }
 
     /// <summary>
-    /// Determines if a backup should run on startup based on its schedules
+    /// 根据调度确定备份是否应在启动时运行 / Determines if a backup should run on startup based on its schedules
+    /// 检查调度是否被错过（应该运行但没有运行）
+    /// Checks if schedules were missed (should have run but didn't)
     /// </summary>
     private async Task<bool> ShouldRunBackupOnStartupAsync(List<ScheduleConfiguration> schedules)
     {
@@ -181,17 +196,17 @@ public class AutoStartupService : IHostedService
         
         foreach (var schedule in schedules)
         {
-            // Check if the schedule was missed (should have run but didn't)
+            // 检查调度是否被错过（应该运行但没有运行） / Check if the schedule was missed (should have run but didn't)
             if (schedule.NextExecution.HasValue && schedule.NextExecution.Value < currentTime)
             {
-                // Check if it's been more than the schedule interval since last execution
+                // 检查自上次执行以来是否已超过调度间隔 / Check if it's been more than the schedule interval since last execution
                 var timeSinceLastExecution = schedule.LastExecuted.HasValue 
                     ? currentTime - schedule.LastExecuted.Value 
                     : TimeSpan.MaxValue;
 
                 var shouldRun = schedule.ScheduleType switch
                 {
-                    ScheduleType.Daily => timeSinceLastExecution > TimeSpan.FromHours(20), // Allow some flexibility
+                    ScheduleType.Daily => timeSinceLastExecution > TimeSpan.FromHours(20), // 允许一些灵活性 / Allow some flexibility
                     ScheduleType.Weekly => timeSinceLastExecution > TimeSpan.FromDays(6),
                     ScheduleType.Monthly => timeSinceLastExecution > TimeSpan.FromDays(25),
                     _ => false
@@ -208,7 +223,9 @@ public class AutoStartupService : IHostedService
     }
 
     /// <summary>
-    /// Updates next execution times for all enabled schedules
+    /// 更新所有启用调度的下次执行时间 / Updates next execution times for all enabled schedules
+    /// 重新计算并更新所有启用调度的下次执行时间
+    /// Recalculates and updates next execution times for all enabled schedules
     /// </summary>
     private async Task UpdateAllScheduleExecutionTimesAsync(IScheduleConfigurationRepository scheduleRepository)
     {

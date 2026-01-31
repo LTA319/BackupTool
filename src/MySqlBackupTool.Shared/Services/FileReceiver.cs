@@ -9,17 +9,28 @@ using System.Text.Json;
 namespace MySqlBackupTool.Shared.Services;
 
 /// <summary>
-/// Response from server during transfer operations
+/// 传输操作期间来自服务器的响应 / Response from server during transfer operations
 /// </summary>
 public class TransferResponse
 {
+    /// <summary>
+    /// 操作是否成功 / Whether operation was successful
+    /// </summary>
     public bool Success { get; set; }
+    
+    /// <summary>
+    /// 错误消息（如果有） / Error message (if any)
+    /// </summary>
     public string? ErrorMessage { get; set; }
+    
+    /// <summary>
+    /// 附加信息 / Additional information
+    /// </summary>
     public string? AdditionalInfo { get; set; }
 }
 
 /// <summary>
-/// TCP server implementation for receiving backup files
+/// 用于接收备份文件的TCP服务器实现 / TCP server implementation for receiving backup files
 /// </summary>
 public class FileReceiver : IFileReceiver, IDisposable
 {
@@ -36,6 +47,17 @@ public class FileReceiver : IFileReceiver, IDisposable
     private bool _isListening = false;
     private readonly object _lockObject = new();
 
+    /// <summary>
+    /// 初始化文件接收器 / Initialize file receiver
+    /// </summary>
+    /// <param name="logger">日志记录器 / Logger instance</param>
+    /// <param name="storageManager">存储管理器 / Storage manager</param>
+    /// <param name="chunkManager">块管理器 / Chunk manager</param>
+    /// <param name="checksumService">校验和服务 / Checksum service</param>
+    /// <param name="authenticationService">身份验证服务 / Authentication service</param>
+    /// <param name="authorizationService">授权服务 / Authorization service</param>
+    /// <param name="credentialStorage">凭据存储 / Credential storage</param>
+    /// <exception cref="ArgumentNullException">当必需参数为null时抛出 / Thrown when required parameters are null</exception>
     public FileReceiver(
         ILogger<FileReceiver> logger,
         IStorageManager storageManager,
@@ -56,8 +78,10 @@ public class FileReceiver : IFileReceiver, IDisposable
     }
 
     /// <summary>
-    /// Starts listening for incoming file transfer connections
+    /// 开始监听传入的文件传输连接 / Starts listening for incoming file transfer connections
     /// </summary>
+    /// <param name="port">监听端口 / Port to listen on</param>
+    /// <exception cref="Exception">启动监听失败时抛出 / Thrown when starting listener fails</exception>
     public async Task StartListeningAsync(int port)
     {
         lock (_lockObject)
@@ -78,7 +102,7 @@ public class FileReceiver : IFileReceiver, IDisposable
             _tcpListener.Start();
             _logger.LogInformation("File receiver started listening on port {Port}", port);
 
-            // Start accepting clients in background
+            // 在后台开始接受客户端 / Start accepting clients in background
             _ = Task.Run(async () => await AcceptClientsAsync(_cancellationTokenSource.Token));
         }
         catch (Exception ex)
@@ -93,8 +117,9 @@ public class FileReceiver : IFileReceiver, IDisposable
     }
 
     /// <summary>
-    /// Stops listening for incoming connections
+    /// 停止监听传入连接 / Stops listening for incoming connections
     /// </summary>
+    /// <exception cref="Exception">停止监听失败时抛出 / Thrown when stopping listener fails</exception>
     public async Task StopListeningAsync()
     {
         lock (_lockObject)
@@ -114,7 +139,7 @@ public class FileReceiver : IFileReceiver, IDisposable
             _tcpListener?.Stop();
             _logger.LogInformation("File receiver stopped listening");
 
-            // Wait for all client tasks to complete
+            // 等待所有客户端任务完成 / Wait for all client tasks to complete
             if (_clientTasks.Count > 0)
             {
                 _logger.LogInformation("Waiting for {Count} client connections to complete", _clientTasks.Count);
@@ -135,8 +160,10 @@ public class FileReceiver : IFileReceiver, IDisposable
     }
 
     /// <summary>
-    /// Receives a file from a client (used for direct file reception)
+    /// 从客户端接收文件（用于直接文件接收） / Receives a file from a client (used for direct file reception)
     /// </summary>
+    /// <param name="request">接收请求 / Receive request</param>
+    /// <returns>接收结果 / Receive result</returns>
     public async Task<ReceiveResult> ReceiveFileAsync(ReceiveRequest request)
     {
         var startTime = DateTime.UtcNow;
@@ -146,7 +173,7 @@ public class FileReceiver : IFileReceiver, IDisposable
             _logger.LogInformation("Starting file reception for {FileName} (Transfer ID: {TransferId})", 
                 request.Metadata.FileName, request.TransferId);
 
-            // Validate storage space
+            // 验证存储空间 / Validate storage space
             var hasSpace = await _storageManager.ValidateStorageSpaceAsync(request.Metadata.FileSize);
             if (!hasSpace)
             {
@@ -157,7 +184,7 @@ public class FileReceiver : IFileReceiver, IDisposable
                 };
             }
 
-            // Create target directory if it doesn't exist
+            // 如果目标目录不存在则创建 / Create target directory if it doesn't exist
             var targetDir = Path.GetDirectoryName(request.TargetPath);
             if (!string.IsNullOrEmpty(targetDir) && !Directory.Exists(targetDir))
             {
@@ -185,8 +212,9 @@ public class FileReceiver : IFileReceiver, IDisposable
     }
 
     /// <summary>
-    /// Accepts incoming client connections
+    /// 接受传入的客户端连接 / Accepts incoming client connections
     /// </summary>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
     private async Task AcceptClientsAsync(CancellationToken cancellationToken)
     {
         try
@@ -199,27 +227,27 @@ public class FileReceiver : IFileReceiver, IDisposable
                     _logger.LogInformation("Accepted client connection from {RemoteEndPoint}", 
                         tcpClient.Client.RemoteEndPoint);
 
-                    // Handle client in background task
+                    // 在后台任务中处理客户端 / Handle client in background task
                     var clientTask = HandleClientAsync(tcpClient, cancellationToken);
                     _clientTasks.Add(clientTask);
 
-                    // Clean up completed tasks
+                    // 清理已完成的任务 / Clean up completed tasks
                     _clientTasks.RemoveAll(t => t.IsCompleted);
                 }
                 catch (ObjectDisposedException)
                 {
-                    // Expected when stopping the listener
+                    // 停止监听器时预期的异常 / Expected when stopping the listener
                     break;
                 }
                 catch (InvalidOperationException)
                 {
-                    // Expected when stopping the listener
+                    // 停止监听器时预期的异常 / Expected when stopping the listener
                     break;
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error accepting client connection");
-                    await Task.Delay(1000, cancellationToken); // Brief delay before retrying
+                    await Task.Delay(1000, cancellationToken); // 重试前短暂延迟 / Brief delay before retrying
                 }
             }
         }
@@ -234,8 +262,10 @@ public class FileReceiver : IFileReceiver, IDisposable
     }
 
     /// <summary>
-    /// Handles communication with a connected client
+    /// 处理与已连接客户端的通信 / Handles communication with a connected client
     /// </summary>
+    /// <param name="client">TCP客户端 / TCP client</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
     private async Task HandleClientAsync(TcpClient client, CancellationToken cancellationToken)
     {
         var clientEndpoint = client.Client.RemoteEndPoint?.ToString() ?? "Unknown";
@@ -244,12 +274,12 @@ public class FileReceiver : IFileReceiver, IDisposable
         {
             using (client)
             {
-                client.ReceiveTimeout = 30000; // 30 second timeout
+                client.ReceiveTimeout = 30000; // 30秒超时 / 30 second timeout
                 client.SendTimeout = 30000;
 
                 using var stream = client.GetStream();
                 
-                // Read the transfer request
+                // 读取传输请求 / Read the transfer request
                 var request = await ReadTransferRequestAsync(stream, cancellationToken);
                 if (request == null)
                 {
@@ -260,10 +290,10 @@ public class FileReceiver : IFileReceiver, IDisposable
                 _logger.LogInformation("Received transfer request for {FileName} from client {Client}", 
                     request.Metadata.FileName, clientEndpoint);
 
-                // Process the file transfer
+                // 处理文件传输 / Process the file transfer
                 var result = await ProcessFileTransferAsync(stream, request, cancellationToken);
                 
-                // Send response back to client
+                // 向客户端发送响应 / Send response back to client
                 await SendResponseAsync(stream, result, cancellationToken);
 
                 _logger.LogInformation("Completed file transfer for {FileName} from client {Client}. Success: {Success}", 

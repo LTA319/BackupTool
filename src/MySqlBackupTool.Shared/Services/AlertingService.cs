@@ -9,7 +9,9 @@ using System.Text.Json;
 namespace MySqlBackupTool.Shared.Services;
 
 /// <summary>
-/// Service for sending critical error alerts and notifications
+/// 发送关键错误警报和通知的服务 / Service for sending critical error alerts and notifications
+/// 提供多渠道通知功能，包括邮件、Webhook和文件日志，支持速率限制和配置管理
+/// Provides multi-channel notification functionality including email, webhook and file logging with rate limiting and configuration management
 /// </summary>
 public class AlertingService : IAlertingService
 {
@@ -19,6 +21,12 @@ public class AlertingService : IAlertingService
     private readonly Dictionary<NotificationChannel, DateTime> _lastAlertTimes = new();
     private readonly Dictionary<NotificationChannel, int> _alertCounts = new();
 
+    /// <summary>
+    /// 初始化警报服务实例 / Initializes alerting service instance
+    /// </summary>
+    /// <param name="logger">日志记录器 / Logger instance</param>
+    /// <param name="httpClient">HTTP客户端用于Webhook通知 / HTTP client for webhook notifications</param>
+    /// <param name="configuration">警报配置，可选 / Alerting configuration, optional</param>
     public AlertingService(ILogger<AlertingService> logger, HttpClient httpClient, AlertingConfig? configuration = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -26,8 +34,15 @@ public class AlertingService : IAlertingService
         _configuration = configuration ?? new AlertingConfig();
     }
 
+    /// <summary>
+    /// 获取当前的警报配置 / Gets the current alerting configuration
+    /// </summary>
     public AlertingConfig Configuration => _configuration;
 
+    /// <summary>
+    /// 更新警报配置 / Updates the alerting configuration
+    /// </summary>
+    /// <param name="config">新的配置设置 / New configuration settings</param>
     public void UpdateConfiguration(AlertingConfig config)
     {
         _configuration = config ?? throw new ArgumentNullException(nameof(config));
@@ -35,7 +50,9 @@ public class AlertingService : IAlertingService
     }
 
     /// <summary>
-    /// Sends a critical error alert through all configured channels
+    /// 通过所有配置的渠道发送关键错误警报 / Sends a critical error alert through all configured channels
+    /// 检查速率限制，创建通知并通过启用的渠道发送警报
+    /// Checks rate limiting, creates notification and sends alert through enabled channels
     /// </summary>
     public async Task<bool> SendCriticalErrorAlertAsync(CriticalErrorAlert alert, CancellationToken cancellationToken = default)
     {
@@ -53,17 +70,17 @@ public class AlertingService : IAlertingService
             _logger.LogInformation("Sending critical error alert for operation {OperationId}, error type {ErrorType} (Alert ID: {AlertId})",
                 alert.OperationId, alert.ErrorType, operationId);
 
-            // Check rate limiting
+            // 检查速率限制 / Check rate limiting
             if (IsRateLimited())
             {
                 _logger.LogWarning("Alert rate limit exceeded, skipping alert for operation {OperationId}", alert.OperationId);
                 return false;
             }
 
-            // Convert to notification
+            // 转换为通知 / Convert to notification
             var notification = CreateNotificationFromAlert(alert);
             
-            // Determine which channels to use
+            // 确定要使用的渠道 / Determine which channels to use
             var channels = GetEnabledChannels();
             
             if (!channels.Any())
@@ -72,10 +89,10 @@ public class AlertingService : IAlertingService
                 return false;
             }
 
-            // Send notification through all channels
+            // 通过所有渠道发送通知 / Send notification through all channels
             var result = await SendNotificationAsync(notification, channels, cancellationToken);
 
-            // Update alert with notification results
+            // 使用通知结果更新警报 / Update alert with notification results
             if (alert is EnhancedCriticalErrorAlert enhancedAlert)
             {
                 enhancedAlert.NotificationChannels = channels.ToList();
@@ -84,7 +101,7 @@ public class AlertingService : IAlertingService
                 enhancedAlert.NotificationDuration = result.Duration;
             }
 
-            // Update legacy properties for backward compatibility
+            // 更新向后兼容的属性 / Update legacy properties for backward compatibility
             alert.AlertSent = result.Success;
             alert.AlertSentAt = result.Success ? DateTime.UtcNow : null;
 
@@ -104,7 +121,9 @@ public class AlertingService : IAlertingService
     }
 
     /// <summary>
-    /// Sends a notification through specified channels
+    /// 通过指定渠道发送通知 / Sends a notification through specified channels
+    /// 并行发送通知到多个渠道，收集结果并处理超时和错误
+    /// Sends notifications to multiple channels in parallel, collects results and handles timeouts and errors
     /// </summary>
     public async Task<NotificationResult> SendNotificationAsync(
         Notification notification, 
@@ -119,7 +138,7 @@ public class AlertingService : IAlertingService
         _logger.LogInformation("Sending notification {NotificationId} through {ChannelCount} channels: {Channels}",
             notification.Id, targetChannels.Count, string.Join(", ", targetChannels));
 
-        // Check severity threshold
+        // 检查严重性阈值 / Check severity threshold
         if (notification.Severity < _configuration.MinimumSeverity)
         {
             _logger.LogDebug("Notification {NotificationId} severity {Severity} is below minimum threshold {MinimumSeverity}, skipping",
@@ -129,7 +148,7 @@ public class AlertingService : IAlertingService
             return result;
         }
 
-        // Send through each channel
+        // 通过每个渠道发送 / Send through each channel
         var tasks = targetChannels.Select(async channel =>
         {
             try
@@ -194,7 +213,9 @@ public class AlertingService : IAlertingService
     }
 
     /// <summary>
-    /// Tests connectivity to all configured notification channels
+    /// 测试所有配置的通知渠道的连接性 / Tests connectivity to all configured notification channels
+    /// 向每个启用的渠道发送测试通知以验证配置和连接性
+    /// Sends test notifications to each enabled channel to verify configuration and connectivity
     /// </summary>
     public async Task<Dictionary<NotificationChannel, bool>> TestNotificationChannelsAsync(CancellationToken cancellationToken = default)
     {
@@ -229,7 +250,7 @@ public class AlertingService : IAlertingService
     #region Private Helper Methods
 
     /// <summary>
-    /// Gets all enabled notification channels
+    /// 获取所有启用的通知渠道 / Gets all enabled notification channels
     /// </summary>
     private IEnumerable<NotificationChannel> GetEnabledChannels()
     {
@@ -248,14 +269,14 @@ public class AlertingService : IAlertingService
     }
 
     /// <summary>
-    /// Checks if rate limiting should prevent sending alerts
+    /// 检查速率限制是否应阻止发送警报 / Checks if rate limiting should prevent sending alerts
     /// </summary>
     private bool IsRateLimited()
     {
         var now = DateTime.UtcNow;
         var hourAgo = now.AddHours(-1);
 
-        // Clean up old entries
+        // 清理旧条目 / Clean up old entries
         var channelsToClean = _lastAlertTimes.Where(kvp => kvp.Value < hourAgo).Select(kvp => kvp.Key).ToList();
         foreach (var channel in channelsToClean)
         {
@@ -263,13 +284,13 @@ public class AlertingService : IAlertingService
             _alertCounts.Remove(channel);
         }
 
-        // Check if we've exceeded the rate limit
+        // 检查是否超过速率限制 / Check if we've exceeded the rate limit
         var totalAlerts = _alertCounts.Values.Sum();
         return totalAlerts >= _configuration.MaxAlertsPerHour;
     }
 
     /// <summary>
-    /// Creates a notification from a critical error alert
+    /// 从关键错误警报创建通知 / Creates a notification from a critical error alert
     /// </summary>
     private Notification CreateNotificationFromAlert(CriticalErrorAlert alert)
     {
@@ -291,7 +312,7 @@ public class AlertingService : IAlertingService
     }
 
     /// <summary>
-    /// Builds the alert message content
+    /// 构建警报消息内容 / Builds the alert message content
     /// </summary>
     private string BuildAlertMessage(CriticalErrorAlert alert)
     {
@@ -328,7 +349,7 @@ public class AlertingService : IAlertingService
     }
 
     /// <summary>
-    /// Sends notification to a specific channel
+    /// 向特定渠道发送通知 / Sends notification to a specific channel
     /// </summary>
     private async Task<bool> SendToChannelAsync(Notification notification, NotificationChannel channel, CancellationToken cancellationToken)
     {
@@ -342,7 +363,7 @@ public class AlertingService : IAlertingService
     }
 
     /// <summary>
-    /// Sends notification via email
+    /// 通过邮件发送通知 / Sends notification via email
     /// </summary>
     private async Task<bool> SendEmailNotificationAsync(Notification notification, CancellationToken cancellationToken)
     {
@@ -376,7 +397,7 @@ public class AlertingService : IAlertingService
 
             await smtpClient.SendMailAsync(mailMessage, cancellationToken);
 
-            // Update rate limiting counters
+            // 更新速率限制计数器 / Update rate limiting counters
             var now = DateTime.UtcNow;
             _lastAlertTimes[NotificationChannel.Email] = now;
             _alertCounts[NotificationChannel.Email] = _alertCounts.GetValueOrDefault(NotificationChannel.Email, 0) + 1;
@@ -395,7 +416,7 @@ public class AlertingService : IAlertingService
     }
 
     /// <summary>
-    /// Sends notification via webhook
+    /// 通过Webhook发送通知 / Sends notification via webhook
     /// </summary>
     private async Task<bool> SendWebhookNotificationAsync(Notification notification, CancellationToken cancellationToken)
     {
@@ -415,13 +436,13 @@ public class AlertingService : IAlertingService
             var jsonContent = JsonSerializer.Serialize(payload);
             var httpContent = new StringContent(jsonContent, Encoding.UTF8, _configuration.Webhook.ContentType);
 
-            // Add custom headers
+            // 添加自定义头部 / Add custom headers
             foreach (var header in _configuration.Webhook.Headers)
             {
                 httpContent.Headers.Add(header.Key, header.Value);
             }
 
-            // Add authentication header if configured
+            // 如果配置了认证令牌，添加认证头部 / Add authentication header if configured
             if (!string.IsNullOrEmpty(_configuration.Webhook.AuthToken))
             {
                 httpContent.Headers.Add(_configuration.Webhook.AuthHeaderName, _configuration.Webhook.AuthToken);
@@ -442,7 +463,7 @@ public class AlertingService : IAlertingService
 
             if (response.IsSuccessStatusCode)
             {
-                // Update rate limiting counters
+                // 更新速率限制计数器 / Update rate limiting counters
                 var now = DateTime.UtcNow;
                 _lastAlertTimes[NotificationChannel.Webhook] = now;
                 _alertCounts[NotificationChannel.Webhook] = _alertCounts.GetValueOrDefault(NotificationChannel.Webhook, 0) + 1;
@@ -468,19 +489,19 @@ public class AlertingService : IAlertingService
     }
 
     /// <summary>
-    /// Sends notification to file log
+    /// 向文件日志发送通知 / Sends notification to file log
     /// </summary>
     private async Task<bool> SendFileLogNotificationAsync(Notification notification, CancellationToken cancellationToken)
     {
         try
         {
-            // Ensure log directory exists
+            // 确保日志目录存在 / Ensure log directory exists
             if (!Directory.Exists(_configuration.FileLog.LogDirectory))
             {
                 Directory.CreateDirectory(_configuration.FileLog.LogDirectory);
             }
 
-            // Generate log file name
+            // 生成日志文件名 / Generate log file name
             var fileName = _configuration.FileLog.FileNamePattern
                 .Replace("{yyyy}", DateTime.UtcNow.ToString("yyyy"))
                 .Replace("{MM}", DateTime.UtcNow.ToString("MM"))
@@ -489,16 +510,16 @@ public class AlertingService : IAlertingService
 
             var filePath = Path.Combine(_configuration.FileLog.LogDirectory, fileName);
 
-            // Create log entry
+            // 创建日志条目 / Create log entry
             var logEntry = $"[{notification.CreatedAt:yyyy-MM-dd HH:mm:ss}] [{notification.Severity}] {notification.Subject}{Environment.NewLine}{notification.Message}{Environment.NewLine}{Environment.NewLine}";
 
-            // Write to file
+            // 写入文件 / Write to file
             await File.AppendAllTextAsync(filePath, logEntry, cancellationToken);
 
-            // Check file size and rotate if necessary
+            // 检查文件大小并在必要时轮转 / Check file size and rotate if necessary
             await RotateLogFileIfNeededAsync(filePath);
 
-            // Update rate limiting counters
+            // 更新速率限制计数器 / Update rate limiting counters
             var now = DateTime.UtcNow;
             _lastAlertTimes[NotificationChannel.FileLog] = now;
             _alertCounts[NotificationChannel.FileLog] = _alertCounts.GetValueOrDefault(NotificationChannel.FileLog, 0) + 1;
@@ -517,7 +538,7 @@ public class AlertingService : IAlertingService
     }
 
     /// <summary>
-    /// Tests connectivity to a specific channel
+    /// 测试特定渠道的连接性 / Tests connectivity to a specific channel
     /// </summary>
     private async Task<bool> TestChannelAsync(NotificationChannel channel, CancellationToken cancellationToken)
     {
@@ -532,7 +553,7 @@ public class AlertingService : IAlertingService
     }
 
     /// <summary>
-    /// Rotates log file if it exceeds the maximum size
+    /// 如果日志文件超过最大大小则进行轮转 / Rotates log file if it exceeds the maximum size
     /// </summary>
     private async Task RotateLogFileIfNeededAsync(string filePath)
     {
@@ -548,19 +569,19 @@ public class AlertingService : IAlertingService
             var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
             var extension = Path.GetExtension(filePath);
 
-            // Find existing rotated files
+            // 查找现有的轮转文件 / Find existing rotated files
             var rotatedFiles = Directory.GetFiles(directory, $"{fileNameWithoutExtension}_*{extension}")
                 .OrderByDescending(f => f)
                 .ToList();
 
-            // Remove excess files
+            // 删除多余的文件 / Remove excess files
             while (rotatedFiles.Count >= _configuration.FileLog.MaxFileCount - 1)
             {
                 File.Delete(rotatedFiles.Last());
                 rotatedFiles.RemoveAt(rotatedFiles.Count - 1);
             }
 
-            // Rotate current file
+            // 轮转当前文件 / Rotate current file
             var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
             var rotatedFileName = $"{fileNameWithoutExtension}_{timestamp}{extension}";
             var rotatedFilePath = Path.Combine(directory, rotatedFileName);

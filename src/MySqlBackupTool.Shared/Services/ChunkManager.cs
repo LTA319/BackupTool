@@ -7,16 +7,42 @@ using System.Text;
 namespace MySqlBackupTool.Shared.Services;
 
 /// <summary>
-/// Manages file chunks during large file transfers
+/// 在大文件传输过程中管理文件块的服务 / Manages file chunks during large file transfers
 /// </summary>
 public class ChunkManager : IChunkManager
 {
+    /// <summary>
+    /// 日志记录器 / Logger
+    /// </summary>
     private readonly ILogger<ChunkManager> _logger;
+    
+    /// <summary>
+    /// 校验和服务 / Checksum service
+    /// </summary>
     private readonly IChecksumService _checksumService;
+    
+    /// <summary>
+    /// 恢复令牌存储库 / Resume token repository
+    /// </summary>
     private readonly IResumeTokenRepository _resumeTokenRepository;
+    
+    /// <summary>
+    /// 活动会话字典 / Active sessions dictionary
+    /// </summary>
     private readonly Dictionary<string, TransferSession> _activeSessions = new();
+    
+    /// <summary>
+    /// 锁对象，用于线程安全 / Lock object for thread safety
+    /// </summary>
     private readonly object _lockObject = new();
 
+    /// <summary>
+    /// 初始化块管理器 / Initializes the chunk manager
+    /// </summary>
+    /// <param name="logger">日志记录器 / Logger</param>
+    /// <param name="checksumService">校验和服务 / Checksum service</param>
+    /// <param name="resumeTokenRepository">恢复令牌存储库 / Resume token repository</param>
+    /// <exception cref="ArgumentNullException">当必需参数为null时抛出 / Thrown when required parameters are null</exception>
     public ChunkManager(ILogger<ChunkManager> logger, IChecksumService checksumService, IResumeTokenRepository resumeTokenRepository)
     {
         _logger = logger;
@@ -25,8 +51,10 @@ public class ChunkManager : IChunkManager
     }
 
     /// <summary>
-    /// Initializes a new file transfer session
+    /// 初始化新的文件传输会话 / Initializes a new file transfer session
     /// </summary>
+    /// <param name="metadata">文件元数据 / File metadata</param>
+    /// <returns>传输ID / Transfer ID</returns>
     public async Task<string> InitializeTransferAsync(FileMetadata metadata)
     {
         var transferId = Guid.NewGuid().ToString();
@@ -43,7 +71,7 @@ public class ChunkManager : IChunkManager
                 LastActivity = DateTime.UtcNow
             };
 
-            // Create temporary directory for chunks
+            // 为块创建临时目录 / Create temporary directory for chunks
             Directory.CreateDirectory(session.TempDirectory);
 
             lock (_lockObject)
@@ -64,8 +92,11 @@ public class ChunkManager : IChunkManager
     }
 
     /// <summary>
-    /// Receives and processes a file chunk
+    /// 接收并处理文件块 / Receives and processes a file chunk
     /// </summary>
+    /// <param name="transferId">传输ID / Transfer ID</param>
+    /// <param name="chunk">块数据 / Chunk data</param>
+    /// <returns>块处理结果 / Chunk processing result</returns>
     public async Task<ChunkResult> ReceiveChunkAsync(string transferId, ChunkData chunk)
     {
         try
@@ -85,7 +116,7 @@ public class ChunkManager : IChunkManager
                 session.LastActivity = DateTime.UtcNow;
             }
 
-            // Validate chunk checksum
+            // 验证块校验和 / Validate chunk checksum
             if (!string.IsNullOrEmpty(chunk.ChunkChecksum))
             {
                 if (!_checksumService.ValidateChunkIntegrity(chunk.Data, chunk.ChunkChecksum))
@@ -99,7 +130,7 @@ public class ChunkManager : IChunkManager
                 }
             }
 
-            // Save chunk to temporary file
+            // 将块保存到临时文件 / Save chunk to temporary file
             var chunkPath = Path.Combine(session.TempDirectory, $"chunk_{chunk.ChunkIndex:D6}.dat");
             await File.WriteAllBytesAsync(chunkPath, chunk.Data);
 
@@ -108,7 +139,7 @@ public class ChunkManager : IChunkManager
                 session.CompletedChunks.Add(chunk.ChunkIndex);
             }
 
-            // Update resume token if it exists
+            // 如果存在恢复令牌，则更新它 / Update resume token if it exists
             try
             {
                 var existingToken = await _resumeTokenRepository.GetByTransferIdAsync(transferId);
@@ -121,7 +152,7 @@ public class ChunkManager : IChunkManager
             {
                 _logger.LogWarning(ex, "Failed to update resume token for chunk {ChunkIndex} in transfer {TransferId}", 
                     chunk.ChunkIndex, transferId);
-                // Don't fail the chunk processing for resume token issues
+                // 不要因为恢复令牌问题而使块处理失败 / Don't fail the chunk processing for resume token issues
             }
 
             _logger.LogDebug("Received chunk {ChunkIndex} for transfer {TransferId}", 
@@ -149,8 +180,11 @@ public class ChunkManager : IChunkManager
     }
 
     /// <summary>
-    /// Finalizes a file transfer by reassembling all chunks
+    /// 通过重新组装所有块来完成文件传输 / Finalizes a file transfer by reassembling all chunks
     /// </summary>
+    /// <param name="transferId">传输ID / Transfer ID</param>
+    /// <returns>最终文件路径 / Final file path</returns>
+    /// <exception cref="InvalidOperationException">当传输会话不存在或文件验证失败时抛出 / Thrown when transfer session doesn't exist or file validation fails</exception>
     public async Task<string> FinalizeTransferAsync(string transferId)
     {
         try
@@ -167,12 +201,12 @@ public class ChunkManager : IChunkManager
             _logger.LogInformation("Finalizing transfer {TransferId} for file {FileName}", 
                 transferId, session.Metadata.FileName);
 
-            // Create final file path
+            // 创建最终文件路径 / Create final file path
             var finalPath = Path.Combine(
                 Path.GetDirectoryName(session.TempDirectory) ?? Path.GetTempPath(),
                 session.Metadata.FileName);
 
-            // Reassemble chunks
+            // 重新组装块 / Reassemble chunks
             using (var outputStream = new FileStream(finalPath, FileMode.Create, FileAccess.Write))
             {
                 var chunkFiles = Directory.GetFiles(session.TempDirectory, "chunk_*.dat")
@@ -191,13 +225,13 @@ public class ChunkManager : IChunkManager
                 }
 
                 await outputStream.FlushAsync();
-            } // Ensure FileStream is disposed before validation
+            } // 确保FileStream在验证前被释放 / Ensure FileStream is disposed before validation
 
-            // Force garbage collection to ensure file handle is released
+            // 强制垃圾回收以确保文件句柄被释放 / Force garbage collection to ensure file handle is released
             GC.Collect();
             GC.WaitForPendingFinalizers();
 
-            // Validate final file
+            // 验证最终文件 / Validate final file
             var fileInfo = new FileInfo(finalPath);
             if (fileInfo.Length != session.Metadata.FileSize)
             {
@@ -205,7 +239,7 @@ public class ChunkManager : IChunkManager
                     $"Final file size {fileInfo.Length} does not match expected size {session.Metadata.FileSize}");
             }
 
-            // Validate checksum if provided
+            // 如果提供了校验和，则验证校验和 / Validate checksum if provided
             if (!string.IsNullOrEmpty(session.Metadata.ChecksumMD5) || !string.IsNullOrEmpty(session.Metadata.ChecksumSHA256))
             {
                 var isValid = await _checksumService.ValidateFileIntegrityAsync(
@@ -215,7 +249,7 @@ public class ChunkManager : IChunkManager
                 
                 if (!isValid)
                 {
-                    // Log detailed checksum information for debugging
+                    // 记录详细的校验和信息用于调试 / Log detailed checksum information for debugging
                     var actualChecksum = await _checksumService.CalculateFileMD5Async(finalPath);
                     _logger.LogError("Checksum validation failed. Expected: {Expected}, Actual: {Actual}, File: {FilePath}", 
                         session.Metadata.ChecksumMD5, actualChecksum, finalPath);
@@ -223,10 +257,10 @@ public class ChunkManager : IChunkManager
                 }
             }
 
-            // Clean up temporary files
+            // 清理临时文件 / Clean up temporary files
             await CleanupSessionAsync(transferId);
 
-            // Mark resume token as completed if it exists
+            // 如果存在恢复令牌，则标记为已完成 / Mark resume token as completed if it exists
             try
             {
                 var existingToken = await _resumeTokenRepository.GetByTransferIdAsync(transferId);
@@ -238,7 +272,7 @@ public class ChunkManager : IChunkManager
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to mark resume token as completed for transfer {TransferId}", transferId);
-                // Don't fail the finalization for resume token issues
+                // 不要因为恢复令牌问题而使完成操作失败 / Don't fail the finalization for resume token issues
             }
 
             _logger.LogInformation("Successfully finalized transfer {TransferId} to {FilePath}", 
@@ -250,7 +284,7 @@ public class ChunkManager : IChunkManager
         {
             _logger.LogError(ex, "Error finalizing transfer {TransferId}", transferId);
             
-            // Clean up on error
+            // 出错时清理 / Clean up on error
             try
             {
                 await CleanupSessionAsync(transferId);

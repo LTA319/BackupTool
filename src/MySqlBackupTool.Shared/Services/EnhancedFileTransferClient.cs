@@ -5,7 +5,7 @@ using MySqlBackupTool.Shared.Models;
 namespace MySqlBackupTool.Shared.Services;
 
 /// <summary>
-/// Enhanced file transfer client with network retry and alerting capabilities
+/// 具有网络重试和警报功能的增强文件传输客户端 / Enhanced file transfer client with network retry and alerting capabilities
 /// </summary>
 public class EnhancedFileTransferClient : IFileTransferClient
 {
@@ -14,6 +14,14 @@ public class EnhancedFileTransferClient : IFileTransferClient
     private readonly INetworkRetryService _networkRetryService;
     private readonly IAlertingService _alertingService;
 
+    /// <summary>
+    /// 初始化增强文件传输客户端 / Initialize enhanced file transfer client
+    /// </summary>
+    /// <param name="logger">日志记录器 / Logger instance</param>
+    /// <param name="baseClient">基础文件传输客户端 / Base file transfer client</param>
+    /// <param name="networkRetryService">网络重试服务 / Network retry service</param>
+    /// <param name="alertingService">警报服务 / Alerting service</param>
+    /// <exception cref="ArgumentNullException">当任何参数为null时抛出 / Thrown when any parameter is null</exception>
     public EnhancedFileTransferClient(
         ILogger<EnhancedFileTransferClient> logger,
         IFileTransferClient baseClient,
@@ -27,8 +35,12 @@ public class EnhancedFileTransferClient : IFileTransferClient
     }
 
     /// <summary>
-    /// Transfers a file with enhanced retry and alerting capabilities
+    /// 使用增强的重试和警报功能传输文件 / Transfers a file with enhanced retry and alerting capabilities
     /// </summary>
+    /// <param name="filePath">要传输的文件路径 / File path to transfer</param>
+    /// <param name="config">传输配置 / Transfer configuration</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>传输结果 / Transfer result</returns>
     public async Task<TransferResult> TransferFileAsync(string filePath, TransferConfig config, CancellationToken cancellationToken = default)
     {
         var operationId = Guid.NewGuid().ToString();
@@ -39,7 +51,7 @@ public class EnhancedFileTransferClient : IFileTransferClient
             _logger.LogInformation("Starting enhanced file transfer for {FilePath} to {Server}:{Port} (Operation ID: {OperationId})",
                 filePath, config.TargetServer.IPAddress, config.TargetServer.Port, operationId);
 
-            // Test connectivity first
+            // 首先测试连接性 / Test connectivity first
             var connectivityResult = await _networkRetryService.TestConnectivityAsync(
                 config.TargetServer.IPAddress,
                 config.TargetServer.Port,
@@ -51,7 +63,7 @@ public class EnhancedFileTransferClient : IFileTransferClient
                 _logger.LogWarning("Network connectivity test failed for {Server}:{Port} - {ErrorMessage}",
                     config.TargetServer.IPAddress, config.TargetServer.Port, connectivityResult.ErrorMessage);
 
-                // Wait for connectivity to be restored
+                // 等待连接恢复 / Wait for connectivity to be restored
                 var connectivityRestored = await _networkRetryService.WaitForConnectivityAsync(
                     config.TargetServer.IPAddress,
                     config.TargetServer.Port,
@@ -72,7 +84,7 @@ public class EnhancedFileTransferClient : IFileTransferClient
                 }
             }
 
-            // Execute transfer with retry logic
+            // 使用重试逻辑执行传输 / Execute transfer with retry logic
             var result = await _networkRetryService.ExecuteWithRetryAsync(
                 async (ct) => await _baseClient.TransferFileAsync(filePath, config, ct),
                 "FileTransfer",
@@ -83,7 +95,7 @@ public class EnhancedFileTransferClient : IFileTransferClient
             _logger.LogInformation("Enhanced file transfer completed for {FilePath}: Success={Success}, Duration={Duration}ms (Operation ID: {OperationId})",
                 filePath, result.Success, duration.TotalMilliseconds, operationId);
 
-            // Send alert if transfer failed
+            // 如果传输失败则发送警报 / Send alert if transfer failed
             if (!result.Success)
             {
                 var alert = CreateTransferFailureAlert(operationId, filePath, config.TargetServer, result.ErrorMessage);
@@ -98,7 +110,7 @@ public class EnhancedFileTransferClient : IFileTransferClient
             _logger.LogError(ex, "Enhanced file transfer failed after retry attempts for {FilePath} (Operation ID: {OperationId})",
                 filePath, operationId);
 
-            // Send critical error alert
+            // 发送关键错误警报 / Send critical error alert
             var alert = CreateNetworkRetryExhaustedAlert(operationId, filePath, config.TargetServer, ex);
             await _alertingService.SendCriticalErrorAlertAsync(alert, cancellationToken);
 
@@ -115,7 +127,7 @@ public class EnhancedFileTransferClient : IFileTransferClient
             _logger.LogError(ex, "Unexpected error during enhanced file transfer for {FilePath} (Operation ID: {OperationId})",
                 filePath, operationId);
 
-            // Send critical error alert
+            // 发送关键错误警报 / Send critical error alert
             var alert = CreateUnexpectedErrorAlert(operationId, filePath, config.TargetServer, ex);
             await _alertingService.SendCriticalErrorAlertAsync(alert, cancellationToken);
 
@@ -129,8 +141,11 @@ public class EnhancedFileTransferClient : IFileTransferClient
     }
 
     /// <summary>
-    /// Resumes an interrupted file transfer with enhanced retry and alerting
+    /// 使用增强的重试和警报功能恢复中断的文件传输 / Resumes an interrupted file transfer with enhanced retry and alerting
     /// </summary>
+    /// <param name="resumeToken">恢复令牌 / Resume token</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>传输结果 / Transfer result</returns>
     public async Task<TransferResult> ResumeTransferAsync(string resumeToken, CancellationToken cancellationToken = default)
     {
         var operationId = Guid.NewGuid().ToString();
@@ -141,7 +156,7 @@ public class EnhancedFileTransferClient : IFileTransferClient
             _logger.LogInformation("Starting enhanced resume transfer with token {ResumeToken} (Operation ID: {OperationId})",
                 resumeToken, operationId);
 
-            // Execute resume with retry logic
+            // 使用重试逻辑执行恢复 / Execute resume with retry logic
             var result = await _networkRetryService.ExecuteWithRetryAsync(
                 async (ct) => await _baseClient.ResumeTransferAsync(resumeToken, ct),
                 "ResumeTransfer",
@@ -152,7 +167,7 @@ public class EnhancedFileTransferClient : IFileTransferClient
             _logger.LogInformation("Enhanced resume transfer completed: Success={Success}, Duration={Duration}ms (Operation ID: {OperationId})",
                 result.Success, duration.TotalMilliseconds, operationId);
 
-            // Send alert if resume failed
+            // 如果恢复失败则发送警报 / Send alert if resume failed
             if (!result.Success)
             {
                 var alert = CreateResumeFailureAlert(operationId, resumeToken, result.ErrorMessage);
@@ -198,8 +213,13 @@ public class EnhancedFileTransferClient : IFileTransferClient
     }
 
     /// <summary>
-    /// Resumes an interrupted file transfer with full context and enhanced capabilities
+    /// 使用完整上下文和增强功能恢复中断的文件传输 / Resumes an interrupted file transfer with full context and enhanced capabilities
     /// </summary>
+    /// <param name="resumeToken">恢复令牌 / Resume token</param>
+    /// <param name="filePath">文件路径 / File path</param>
+    /// <param name="config">传输配置 / Transfer configuration</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>传输结果 / Transfer result</returns>
     public async Task<TransferResult> ResumeTransferAsync(string resumeToken, string filePath, TransferConfig config, CancellationToken cancellationToken = default)
     {
         var operationId = Guid.NewGuid().ToString();
@@ -299,8 +319,11 @@ public class EnhancedFileTransferClient : IFileTransferClient
         }
     }
 
-    #region Alert Creation Methods
+    #region 警报创建方法 / Alert Creation Methods
 
+    /// <summary>
+    /// 创建网络连接失败警报 / Create network connectivity failure alert
+    /// </summary>
     private CriticalErrorAlert CreateNetworkConnectivityAlert(string operationId, ServerEndpoint server, string? errorMessage)
     {
         return new CriticalErrorAlert
@@ -318,6 +341,9 @@ public class EnhancedFileTransferClient : IFileTransferClient
         };
     }
 
+    /// <summary>
+    /// 创建文件传输失败警报 / Create file transfer failure alert
+    /// </summary>
     private CriticalErrorAlert CreateTransferFailureAlert(string operationId, string filePath, ServerEndpoint server, string? errorMessage)
     {
         return new CriticalErrorAlert
@@ -335,6 +361,9 @@ public class EnhancedFileTransferClient : IFileTransferClient
         };
     }
 
+    /// <summary>
+    /// 创建网络重试耗尽警报 / Create network retry exhausted alert
+    /// </summary>
     private CriticalErrorAlert CreateNetworkRetryExhaustedAlert(string operationId, string filePath, ServerEndpoint server, NetworkRetryException ex)
     {
         return new CriticalErrorAlert
@@ -355,6 +384,9 @@ public class EnhancedFileTransferClient : IFileTransferClient
         };
     }
 
+    /// <summary>
+    /// 创建意外错误警报 / Create unexpected error alert
+    /// </summary>
     private CriticalErrorAlert CreateUnexpectedErrorAlert(string operationId, string filePath, ServerEndpoint server, Exception ex)
     {
         return new CriticalErrorAlert

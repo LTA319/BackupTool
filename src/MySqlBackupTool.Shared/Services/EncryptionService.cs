@@ -7,24 +7,35 @@ using MySqlBackupTool.Shared.Models;
 namespace MySqlBackupTool.Shared.Services
 {
     /// <summary>
-    /// Service for encrypting and decrypting files using AES-256 encryption
+    /// 使用AES-256加密和解密文件的服务 / Service for encrypting and decrypting files using AES-256 encryption
     /// </summary>
     public class EncryptionService : IEncryptionService
     {
         private readonly ILoggingService _loggingService;
-        private const int DefaultBufferSize = 65536; // 64KB
-        private const int SaltSize = 32; // 256 bits
-        private const int IVSize = 16; // 128 bits for AES
-        private const int DefaultIterations = 100000;
+        private const int DefaultBufferSize = 65536; // 64KB 缓冲区大小 / 64KB buffer size
+        private const int SaltSize = 32; // 256位盐值 / 256 bits salt
+        private const int IVSize = 16; // AES的128位初始化向量 / 128 bits IV for AES
+        private const int DefaultIterations = 100000; // 默认PBKDF2迭代次数 / Default PBKDF2 iterations
         
+        /// <summary>
+        /// 初始化加密服务 / Initialize encryption service
+        /// </summary>
+        /// <param name="loggingService">日志服务 / Logging service</param>
         public EncryptionService(ILoggingService loggingService)
         {
             _loggingService = loggingService;
         }
         
         /// <summary>
-        /// Encrypts a file using AES-256 encryption
+        /// 使用AES-256加密文件 / Encrypts a file using AES-256 encryption
         /// </summary>
+        /// <param name="inputPath">输入文件路径 / Input file path</param>
+        /// <param name="outputPath">输出文件路径 / Output file path</param>
+        /// <param name="password">加密密码 / Encryption password</param>
+        /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+        /// <returns>加密元数据 / Encryption metadata</returns>
+        /// <exception cref="ArgumentException">参数无效时抛出 / Thrown when arguments are invalid</exception>
+        /// <exception cref="FileNotFoundException">输入文件不存在时抛出 / Thrown when input file not found</exception>
         public async Task<EncryptionMetadata> EncryptAsync(string inputPath, string outputPath, string password, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(inputPath))
@@ -42,14 +53,14 @@ namespace MySqlBackupTool.Shared.Services
             var fileInfo = new FileInfo(inputPath);
             var originalSize = fileInfo.Length;
             
-            // Generate salt and IV
+            // 生成盐值和初始化向量 / Generate salt and IV
             var salt = GenerateRandomBytes(SaltSize);
             var iv = GenerateRandomBytes(IVSize);
             
-            // Calculate original file checksum
+            // 计算原始文件校验和 / Calculate original file checksum
             var originalChecksum = await CalculateFileChecksumAsync(inputPath, cancellationToken);
             
-            // Create metadata
+            // 创建元数据 / Create metadata
             var metadata = new EncryptionMetadata
             {
                 Algorithm = "AES-256-CBC",
@@ -65,26 +76,26 @@ namespace MySqlBackupTool.Shared.Services
             
             try
             {
-                // Derive key from password
+                // 从密码派生密钥 / Derive key from password
                 var key = DeriveKey(password, salt, DefaultIterations);
                 
                 try
                 {
-                    // Create output directory if it doesn't exist
+                    // 如果输出目录不存在则创建 / Create output directory if it doesn't exist
                     var outputDir = Path.GetDirectoryName(outputPath);
                     if (!string.IsNullOrEmpty(outputDir) && !Directory.Exists(outputDir))
                     {
                         Directory.CreateDirectory(outputDir);
                     }
                     
-                    // Encrypt the file
+                    // 加密文件 / Encrypt the file
                     using var inputStream = new FileStream(inputPath, FileMode.Open, FileAccess.Read, FileShare.Read);
                     using var outputStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write);
                     
-                    // Write metadata header
+                    // 写入元数据头 / Write metadata header
                     await WriteMetadataHeaderAsync(outputStream, metadata, cancellationToken);
                     
-                    // Encrypt file content
+                    // 加密文件内容 / Encrypt file content
                     using var aes = Aes.Create();
                     aes.Key = key;
                     aes.IV = iv;
@@ -103,7 +114,7 @@ namespace MySqlBackupTool.Shared.Services
                         await cryptoStream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
                         totalBytesRead += bytesRead;
                         
-                        // Report progress periodically
+                        // 定期报告进度 / Report progress periodically
                         if (totalBytesRead % (DefaultBufferSize * 10) == 0)
                         {
                             var progress = (double)totalBytesRead / originalSize * 100;
@@ -120,7 +131,7 @@ namespace MySqlBackupTool.Shared.Services
                 }
                 finally
                 {
-                    // Clear the key from memory for security
+                    // 为了安全清除内存中的密钥 / Clear the key from memory for security
                     Array.Clear(key, 0, key.Length);
                 }
             }
@@ -128,7 +139,7 @@ namespace MySqlBackupTool.Shared.Services
             {
                 _loggingService.LogError($"Encryption failed: {ex.Message}");
                 
-                // Clean up partial output file
+                // 清理部分输出文件 / Clean up partial output file
                 if (File.Exists(outputPath))
                 {
                     try
@@ -146,8 +157,16 @@ namespace MySqlBackupTool.Shared.Services
         }
         
         /// <summary>
-        /// Decrypts a file that was encrypted with AES-256
+        /// 解密使用AES-256加密的文件 / Decrypts a file that was encrypted with AES-256
         /// </summary>
+        /// <param name="inputPath">加密文件路径 / Encrypted file path</param>
+        /// <param name="outputPath">解密输出路径 / Decrypted output path</param>
+        /// <param name="password">解密密码 / Decryption password</param>
+        /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+        /// <exception cref="ArgumentException">参数无效时抛出 / Thrown when arguments are invalid</exception>
+        /// <exception cref="FileNotFoundException">输入文件不存在时抛出 / Thrown when input file not found</exception>
+        /// <exception cref="UnauthorizedAccessException">密码错误时抛出 / Thrown when password is incorrect</exception>
+        /// <exception cref="InvalidDataException">文件损坏时抛出 / Thrown when file is corrupted</exception>
         public async Task DecryptAsync(string inputPath, string outputPath, string password, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(inputPath))
@@ -167,24 +186,24 @@ namespace MySqlBackupTool.Shared.Services
             {
                 using var inputStream = new FileStream(inputPath, FileMode.Open, FileAccess.Read, FileShare.Read);
                 
-                // Read metadata header
+                // 读取元数据头 / Read metadata header
                 var metadata = await ReadMetadataHeaderAsync(inputStream, cancellationToken);
                 
-                // Derive key from password
+                // 从密码派生密钥 / Derive key from password
                 var salt = Convert.FromBase64String(metadata.Salt);
                 var iv = Convert.FromBase64String(metadata.IV);
                 var key = DeriveKey(password, salt, metadata.Iterations);
                 
                 try
                 {
-                    // Create output directory if it doesn't exist
+                    // 如果输出目录不存在则创建 / Create output directory if it doesn't exist
                     var outputDir = Path.GetDirectoryName(outputPath);
                     if (!string.IsNullOrEmpty(outputDir) && !Directory.Exists(outputDir))
                     {
                         Directory.CreateDirectory(outputDir);
                     }
                     
-                    // Decrypt the file
+                    // 解密文件 / Decrypt the file
                     using (var outputStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write))
                     {
                         using var aes = Aes.Create();
@@ -205,16 +224,16 @@ namespace MySqlBackupTool.Shared.Services
                             await outputStream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
                             totalBytesWritten += bytesRead;
                             
-                            // Report progress periodically
+                            // 定期报告进度 / Report progress periodically
                             if (totalBytesWritten % (DefaultBufferSize * 10) == 0)
                             {
                                 var progress = metadata.OriginalSize > 0 ? (double)totalBytesWritten / metadata.OriginalSize * 100 : 0;
                                 _loggingService.LogDebug($"Decryption progress: {progress:F1}%");
                             }
                         }
-                    } // Ensure output stream is disposed before checksum calculation
+                    } // 确保输出流在校验和计算前被释放 / Ensure output stream is disposed before checksum calculation
                     
-                    // Verify decrypted file checksum if available
+                    // 如果可用则验证解密文件校验和 / Verify decrypted file checksum if available
                     if (!string.IsNullOrEmpty(metadata.OriginalChecksum))
                     {
                         _loggingService.LogDebug("Verifying decrypted file integrity...");
@@ -233,7 +252,7 @@ namespace MySqlBackupTool.Shared.Services
                 }
                 finally
                 {
-                    // Clear the key from memory for security
+                    // 为了安全清除内存中的密钥 / Clear the key from memory for security
                     Array.Clear(key, 0, key.Length);
                 }
             }
@@ -241,7 +260,7 @@ namespace MySqlBackupTool.Shared.Services
             {
                 _loggingService.LogError($"Decryption failed - likely incorrect password: {ex.Message}");
                 
-                // Clean up partial output file
+                // 清理部分输出文件 / Clean up partial output file
                 if (File.Exists(outputPath))
                 {
                     try
@@ -260,7 +279,7 @@ namespace MySqlBackupTool.Shared.Services
             {
                 _loggingService.LogError($"Decryption failed: {ex.Message}");
                 
-                // Clean up partial output file
+                // 清理部分输出文件 / Clean up partial output file
                 if (File.Exists(outputPath))
                 {
                     try
@@ -278,8 +297,13 @@ namespace MySqlBackupTool.Shared.Services
         }
         
         /// <summary>
-        /// Validates if the provided password can decrypt the encrypted file
+        /// 验证提供的密码是否可以解密加密文件 / Validates if the provided password can decrypt the encrypted file
         /// </summary>
+        /// <param name="encryptedFilePath">加密文件路径 / Encrypted file path</param>
+        /// <param name="password">要验证的密码 / Password to validate</param>
+        /// <returns>密码是否正确 / Whether password is correct</returns>
+        /// <exception cref="ArgumentException">参数无效时抛出 / Thrown when arguments are invalid</exception>
+        /// <exception cref="FileNotFoundException">文件不存在时抛出 / Thrown when file not found</exception>
         public async Task<bool> ValidatePasswordAsync(string encryptedFilePath, string password)
         {
             if (string.IsNullOrEmpty(encryptedFilePath))
@@ -293,17 +317,17 @@ namespace MySqlBackupTool.Shared.Services
             {
                 using var inputStream = new FileStream(encryptedFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
                 
-                // Read metadata header
+                // 读取元数据头 / Read metadata header
                 var metadata = await ReadMetadataHeaderAsync(inputStream, CancellationToken.None);
                 
-                // Derive key from password
+                // 从密码派生密钥 / Derive key from password
                 var salt = Convert.FromBase64String(metadata.Salt);
                 var iv = Convert.FromBase64String(metadata.IV);
                 var key = DeriveKey(password, salt, metadata.Iterations);
                 
                 try
                 {
-                    // Try to decrypt a small portion to validate password
+                    // 尝试解密一小部分来验证密码 / Try to decrypt a small portion to validate password
                     using var aes = Aes.Create();
                     aes.Key = key;
                     aes.IV = iv;
@@ -313,12 +337,12 @@ namespace MySqlBackupTool.Shared.Services
                     using var decryptor = aes.CreateDecryptor();
                     using var cryptoStream = new CryptoStream(inputStream, decryptor, CryptoStreamMode.Read);
                     
-                    // Try to read a small buffer - if password is wrong, this will throw
+                    // 尝试读取小缓冲区 - 如果密码错误，这将抛出异常 / Try to read a small buffer - if password is wrong, this will throw
                     var buffer = new byte[1024];
                     var bytesRead = await cryptoStream.ReadAsync(buffer, 0, buffer.Length);
                     
-                    // If we can read some data without exception, password is likely correct
-                    // But let's also try to read a bit more to be sure
+                    // 如果我们可以读取一些数据而不出现异常，密码可能是正确的 / If we can read some data without exception, password is likely correct
+                    // 但让我们也尝试读取更多一点来确保 / But let's also try to read a bit more to be sure
                     if (bytesRead > 0)
                     {
                         var secondBuffer = new byte[1024];
@@ -329,7 +353,7 @@ namespace MySqlBackupTool.Shared.Services
                 }
                 finally
                 {
-                    // Clear the key from memory for security
+                    // 为了安全清除内存中的密钥 / Clear the key from memory for security
                     Array.Clear(key, 0, key.Length);
                 }
             }
@@ -349,8 +373,12 @@ namespace MySqlBackupTool.Shared.Services
         }
         
         /// <summary>
-        /// Gets metadata from an encrypted file
+        /// 从加密文件获取元数据 / Gets metadata from an encrypted file
         /// </summary>
+        /// <param name="encryptedFilePath">加密文件路径 / Encrypted file path</param>
+        /// <returns>加密元数据 / Encryption metadata</returns>
+        /// <exception cref="ArgumentException">参数无效时抛出 / Thrown when arguments are invalid</exception>
+        /// <exception cref="FileNotFoundException">文件不存在时抛出 / Thrown when file not found</exception>
         public async Task<EncryptionMetadata> GetMetadataAsync(string encryptedFilePath)
         {
             if (string.IsNullOrEmpty(encryptedFilePath))
@@ -363,8 +391,11 @@ namespace MySqlBackupTool.Shared.Services
         }
         
         /// <summary>
-        /// Generates a secure random password
+        /// 生成安全的随机密码 / Generates a secure random password
         /// </summary>
+        /// <param name="length">密码长度（最少8个字符） / Password length (minimum 8 characters)</param>
+        /// <returns>生成的安全密码 / Generated secure password</returns>
+        /// <exception cref="ArgumentException">长度小于8时抛出 / Thrown when length is less than 8</exception>
         public string GenerateSecurePassword(int length = 32)
         {
             if (length < 8)
@@ -384,19 +415,19 @@ namespace MySqlBackupTool.Shared.Services
             
             var result = new StringBuilder(length);
             
-            // Ensure at least one character from each required category
+            // 确保每个必需类别至少有一个字符 / Ensure at least one character from each required category
             result.Append(upperChars[random[0] % upperChars.Length]);
             result.Append(lowerChars[random[1] % lowerChars.Length]);
             result.Append(digitChars[random[2] % digitChars.Length]);
             result.Append(specialChars[random[3] % specialChars.Length]);
             
-            // Fill the rest with random characters from all categories
+            // 用所有类别的随机字符填充其余部分 / Fill the rest with random characters from all categories
             for (int i = 4; i < length; i++)
             {
                 result.Append(allChars[random[i] % allChars.Length]);
             }
             
-            // Shuffle the result to avoid predictable patterns
+            // 打乱结果以避免可预测的模式 / Shuffle the result to avoid predictable patterns
             var chars = result.ToString().ToCharArray();
             for (int i = chars.Length - 1; i > 0; i--)
             {
@@ -407,8 +438,13 @@ namespace MySqlBackupTool.Shared.Services
             return new string(chars);
         }
         
-        #region Private Helper Methods
+        #region 私有辅助方法 / Private Helper Methods
         
+        /// <summary>
+        /// 生成指定大小的随机字节 / Generate random bytes of specified size
+        /// </summary>
+        /// <param name="size">字节数 / Number of bytes</param>
+        /// <returns>随机字节数组 / Random byte array</returns>
         private static byte[] GenerateRandomBytes(int size)
         {
             var bytes = new byte[size];
@@ -417,12 +453,25 @@ namespace MySqlBackupTool.Shared.Services
             return bytes;
         }
         
+        /// <summary>
+        /// 从密码和盐值派生加密密钥 / Derive encryption key from password and salt
+        /// </summary>
+        /// <param name="password">密码 / Password</param>
+        /// <param name="salt">盐值 / Salt</param>
+        /// <param name="iterations">迭代次数 / Iterations</param>
+        /// <returns>派生的密钥 / Derived key</returns>
         private static byte[] DeriveKey(string password, byte[] salt, int iterations)
         {
             using var pbkdf2 = new Rfc2898DeriveBytes(password, salt, iterations, HashAlgorithmName.SHA256);
-            return pbkdf2.GetBytes(32); // 256 bits for AES-256
+            return pbkdf2.GetBytes(32); // AES-256需要256位 / 256 bits for AES-256
         }
         
+        /// <summary>
+        /// 计算文件的SHA256校验和 / Calculate SHA256 checksum of file
+        /// </summary>
+        /// <param name="filePath">文件路径 / File path</param>
+        /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+        /// <returns>十六进制校验和字符串 / Hexadecimal checksum string</returns>
         private async Task<string> CalculateFileChecksumAsync(string filePath, CancellationToken cancellationToken)
         {
             using var sha256 = SHA256.Create();
@@ -432,6 +481,12 @@ namespace MySqlBackupTool.Shared.Services
             return Convert.ToHexString(hash);
         }
         
+        /// <summary>
+        /// 将加密元数据头写入输出流 / Write encryption metadata header to output stream
+        /// </summary>
+        /// <param name="outputStream">输出流 / Output stream</param>
+        /// <param name="metadata">加密元数据 / Encryption metadata</param>
+        /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
         private async Task WriteMetadataHeaderAsync(Stream outputStream, EncryptionMetadata metadata, CancellationToken cancellationToken)
         {
             var jsonOptions = new JsonSerializerOptions
@@ -443,21 +498,28 @@ namespace MySqlBackupTool.Shared.Services
             var metadataJson = JsonSerializer.Serialize(metadata, jsonOptions);
             var metadataBytes = Encoding.UTF8.GetBytes(metadataJson);
             
-            // Write magic header to identify encrypted files
+            // 写入魔术头以标识加密文件 / Write magic header to identify encrypted files
             var magicHeader = Encoding.ASCII.GetBytes("MYSQLBAK");
             await outputStream.WriteAsync(magicHeader, 0, magicHeader.Length, cancellationToken);
             
-            // Write metadata length (4 bytes)
+            // 写入元数据长度（4字节） / Write metadata length (4 bytes)
             var lengthBytes = BitConverter.GetBytes(metadataBytes.Length);
             await outputStream.WriteAsync(lengthBytes, 0, lengthBytes.Length, cancellationToken);
             
-            // Write metadata
+            // 写入元数据 / Write metadata
             await outputStream.WriteAsync(metadataBytes, 0, metadataBytes.Length, cancellationToken);
         }
         
+        /// <summary>
+        /// 从输入流读取加密元数据头 / Read encryption metadata header from input stream
+        /// </summary>
+        /// <param name="inputStream">输入流 / Input stream</param>
+        /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+        /// <returns>加密元数据 / Encryption metadata</returns>
+        /// <exception cref="InvalidDataException">文件格式无效时抛出 / Thrown when file format is invalid</exception>
         private async Task<EncryptionMetadata> ReadMetadataHeaderAsync(Stream inputStream, CancellationToken cancellationToken)
         {
-            // Read magic header
+            // 读取魔术头 / Read magic header
             var magicHeader = new byte[8];
             var bytesRead = await inputStream.ReadAsync(magicHeader, 0, magicHeader.Length, cancellationToken);
             if (bytesRead != 8 || Encoding.ASCII.GetString(magicHeader) != "MYSQLBAK")
@@ -465,7 +527,7 @@ namespace MySqlBackupTool.Shared.Services
                 throw new InvalidDataException("File is not a valid encrypted backup file");
             }
             
-            // Read metadata length
+            // 读取元数据长度 / Read metadata length
             var lengthBytes = new byte[4];
             bytesRead = await inputStream.ReadAsync(lengthBytes, 0, lengthBytes.Length, cancellationToken);
             if (bytesRead != 4)
@@ -474,12 +536,12 @@ namespace MySqlBackupTool.Shared.Services
             }
             
             var metadataLength = BitConverter.ToInt32(lengthBytes, 0);
-            if (metadataLength <= 0 || metadataLength > 1024 * 1024) // Max 1MB for metadata
+            if (metadataLength <= 0 || metadataLength > 1024 * 1024) // 元数据最大1MB / Max 1MB for metadata
             {
                 throw new InvalidDataException("Invalid metadata length in encrypted file");
             }
             
-            // Read metadata
+            // 读取元数据 / Read metadata
             var metadataBytes = new byte[metadataLength];
             bytesRead = await inputStream.ReadAsync(metadataBytes, 0, metadataBytes.Length, cancellationToken);
             if (bytesRead != metadataLength)

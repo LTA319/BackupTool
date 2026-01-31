@@ -8,7 +8,9 @@ using System.Text.Json;
 namespace MySqlBackupTool.Shared.Services;
 
 /// <summary>
-/// File transfer client with authentication support
+/// 支持身份验证的文件传输客户端 / File transfer client with authentication support
+/// 提供安全的文件传输功能，包括身份验证、校验和验证和断点续传支持
+/// Provides secure file transfer functionality including authentication, checksum verification and resume support
 /// </summary>
 public class AuthenticatedFileTransferClient : IFileTransferClient
 {
@@ -18,6 +20,12 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
     private string? _currentAuthToken;
     private DateTime _tokenExpiresAt = DateTime.MinValue;
 
+    /// <summary>
+    /// 初始化认证文件传输客户端 / Initializes authenticated file transfer client
+    /// </summary>
+    /// <param name="logger">日志记录器 / Logger instance</param>
+    /// <param name="authenticationService">身份验证服务 / Authentication service</param>
+    /// <param name="checksumService">校验和服务 / Checksum service</param>
     public AuthenticatedFileTransferClient(
         ILogger<AuthenticatedFileTransferClient> logger,
         IAuthenticationService authenticationService,
@@ -29,7 +37,9 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
     }
 
     /// <summary>
-    /// Transfers a file to a remote server with authentication
+    /// 使用身份验证将文件传输到远程服务器 / Transfers a file to a remote server with authentication
+    /// 验证文件存在性，获取认证令牌，计算校验和，然后执行安全的文件传输
+    /// Validates file existence, obtains authentication token, calculates checksums, then performs secure file transfer
     /// </summary>
     public async Task<TransferResult> TransferFileAsync(string filePath, TransferConfig config, CancellationToken cancellationToken = default)
     {
@@ -46,7 +56,7 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
             _logger.LogInformation("Starting authenticated file transfer for {FilePath} to {Server}:{Port}", 
                 filePath, config.TargetServer.IPAddress, config.TargetServer.Port);
 
-            // Validate file exists
+            // 验证文件是否存在 / Validate file exists
             if (!File.Exists(filePath))
             {
                 return new TransferResult
@@ -57,7 +67,7 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
                 };
             }
 
-            // Ensure we have a valid authentication token
+            // 确保我们有有效的身份验证令牌 / Ensure we have a valid authentication token
             var authToken = await EnsureValidAuthTokenAsync(config.TargetServer);
             if (string.IsNullOrEmpty(authToken))
             {
@@ -69,15 +79,15 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
                 };
             }
 
-            // Get file information
+            // 获取文件信息 / Get file information
             var fileInfo = new FileInfo(filePath);
             var fileName = string.IsNullOrEmpty(config.FileName) ? fileInfo.Name : config.FileName;
 
-            // Calculate checksums
+            // 计算校验和 / Calculate checksums
             var md5Hash = await _checksumService.CalculateFileMD5Async(filePath, cancellationToken);
             var sha256Hash = await _checksumService.CalculateFileSHA256Async(filePath, cancellationToken);
 
-            // Create transfer request
+            // 创建传输请求 / Create transfer request
             var transferRequest = new TransferRequest
             {
                 TransferId = Guid.NewGuid().ToString(),
@@ -95,7 +105,7 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
                 ResumeTransfer = false
             };
 
-            // Perform the transfer
+            // 执行传输 / Perform the transfer
             var result = await PerformTransferAsync(filePath, transferRequest, config, cancellationToken);
             result.Duration = DateTime.UtcNow - startTime;
 
@@ -127,10 +137,13 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
     }
 
     /// <summary>
-    /// Resumes an interrupted file transfer
+    /// 恢复中断的文件传输 / Resumes an interrupted file transfer
+    /// 注意：这是一个简化的实现，实际场景中需要存储传输上下文
+    /// Note: This is a simplified implementation - in a real scenario, you'd need to store transfer context
     /// </summary>
     public async Task<TransferResult> ResumeTransferAsync(string resumeToken, CancellationToken cancellationToken = default)
     {
+        // 这是一个简化的实现 - 在实际场景中，您需要存储传输上下文
         // This is a simplified implementation - in a real scenario, you'd need to store transfer context
         _logger.LogWarning("Resume transfer not fully implemented for token {ResumeToken}", resumeToken);
         return new TransferResult
@@ -141,7 +154,9 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
     }
 
     /// <summary>
-    /// Resumes an interrupted file transfer with full context
+    /// 使用完整上下文恢复中断的文件传输 / Resumes an interrupted file transfer with full context
+    /// 提供完整的传输上下文来恢复中断的传输，包括重新认证和校验和验证
+    /// Provides complete transfer context to resume interrupted transfer, including re-authentication and checksum verification
     /// </summary>
     public async Task<TransferResult> ResumeTransferAsync(string resumeToken, string filePath, TransferConfig config, CancellationToken cancellationToken = default)
     {
@@ -155,7 +170,7 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
             _logger.LogInformation("Resuming authenticated file transfer for {FilePath} with token {ResumeToken}", 
                 filePath, resumeToken);
 
-            // Ensure we have a valid authentication token
+            // 确保我们有有效的身份验证令牌 / Ensure we have a valid authentication token
             var authToken = await EnsureValidAuthTokenAsync(config.TargetServer);
             if (string.IsNullOrEmpty(authToken))
             {
@@ -167,18 +182,18 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
                 };
             }
 
-            // Get file information
+            // 获取文件信息 / Get file information
             var fileInfo = new FileInfo(filePath);
             var fileName = string.IsNullOrEmpty(config.FileName) ? fileInfo.Name : config.FileName;
 
-            // Calculate checksums
+            // 计算校验和 / Calculate checksums
             var md5Hash = await _checksumService.CalculateFileMD5Async(filePath, cancellationToken);
             var sha256Hash = await _checksumService.CalculateFileSHA256Async(filePath, cancellationToken);
 
-            // Create resume transfer request
+            // 创建恢复传输请求 / Create resume transfer request
             var transferRequest = new TransferRequest
             {
-                TransferId = resumeToken, // Use resume token as transfer ID
+                TransferId = resumeToken, // 使用恢复令牌作为传输ID / Use resume token as transfer ID
                 AuthenticationToken = authToken,
                 ClientId = config.TargetServer.ClientCredentials?.ClientId ?? "unknown",
                 Metadata = new FileMetadata
@@ -194,7 +209,7 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
                 ResumeToken = resumeToken
             };
 
-            // Perform the transfer
+            // 执行传输 / Perform the transfer
             var result = await PerformTransferAsync(filePath, transferRequest, config, cancellationToken);
             result.Duration = DateTime.UtcNow - startTime;
 
@@ -213,24 +228,29 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
     }
 
     /// <summary>
-    /// Ensures we have a valid authentication token
+    /// 确保我们有有效的身份验证令牌 / Ensures we have a valid authentication token
+    /// 检查现有令牌的有效性，如果需要则重新认证
+    /// Checks validity of existing token and re-authenticates if needed
     /// </summary>
     private async Task<string?> EnsureValidAuthTokenAsync(ServerEndpoint serverEndpoint)
     {
-        // Check if we have a valid token
+        // 检查我们是否有有效的令牌 / Check if we have a valid token
         if (!string.IsNullOrEmpty(_currentAuthToken) && DateTime.UtcNow < _tokenExpiresAt.AddMinutes(-5))
         {
-            // Token is still valid (with 5-minute buffer)
+            // 令牌仍然有效（有5分钟缓冲） / Token is still valid (with 5-minute buffer)
             return _currentAuthToken;
         }
 
-        // Need to authenticate
+        // 需要进行身份验证 / Need to authenticate
         if (serverEndpoint.ClientCredentials == null)
         {
             _logger.LogError("No client credentials configured for server endpoint");
             return null;
         }
 
+        // 目前，我们将直接使用客户端凭据作为"令牌"
+        // 服务器在收到传输请求时将验证这些凭据
+        // 这是一个简化的方法 - 在生产环境中，您需要适当的令牌交换
         // For now, we'll use the client credentials directly as the "token"
         // The server will validate these credentials when it receives the transfer request
         // This is a simplified approach - in production, you'd want proper token exchange
@@ -245,7 +265,9 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
     }
 
     /// <summary>
-    /// Performs the actual file transfer
+    /// 执行实际的文件传输 / Performs the actual file transfer
+    /// 建立TCP连接，发送传输请求，传输文件数据并处理服务器响应
+    /// Establishes TCP connection, sends transfer request, transfers file data and handles server responses
     /// </summary>
     private async Task<TransferResult> PerformTransferAsync(string filePath, TransferRequest request, TransferConfig config, CancellationToken cancellationToken)
     {
@@ -253,16 +275,16 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
         
         try
         {
-            // Connect to server
+            // 连接到服务器 / Connect to server
             await tcpClient.ConnectAsync(config.TargetServer.IPAddress, config.TargetServer.Port);
             _logger.LogDebug("Connected to server {Server}:{Port}", config.TargetServer.IPAddress, config.TargetServer.Port);
 
             using var stream = tcpClient.GetStream();
             
-            // Send transfer request
+            // 发送传输请求 / Send transfer request
             await SendTransferRequestAsync(stream, request, cancellationToken);
             
-            // Read server response
+            // 读取服务器响应 / Read server response
             var response = await ReadTransferResponseAsync(stream, cancellationToken);
             if (response == null || !response.Success)
             {
@@ -273,10 +295,10 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
                 };
             }
 
-            // Send file data
+            // 发送文件数据 / Send file data
             var bytesTransferred = await SendFileDataAsync(stream, filePath, request, cancellationToken);
             
-            // Read final response
+            // 读取最终响应 / Read final response
             var finalResponse = await ReadTransferResponseAsync(stream, cancellationToken);
             
             return new TransferResult
@@ -299,7 +321,7 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
     }
 
     /// <summary>
-    /// Sends the transfer request to the server
+    /// 向服务器发送传输请求 / Sends the transfer request to the server
     /// </summary>
     private async Task SendTransferRequestAsync(NetworkStream stream, TransferRequest request, CancellationToken cancellationToken)
     {
@@ -313,13 +335,13 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
     }
 
     /// <summary>
-    /// Reads a transfer response from the server
+    /// 从服务器读取传输响应 / Reads a transfer response from the server
     /// </summary>
     private async Task<TransferResponse?> ReadTransferResponseAsync(NetworkStream stream, CancellationToken cancellationToken)
     {
         try
         {
-            // Read message length
+            // 读取消息长度 / Read message length
             var lengthBuffer = new byte[4];
             var bytesRead = await stream.ReadAsync(lengthBuffer, 0, 4, cancellationToken);
             if (bytesRead != 4)
@@ -329,7 +351,7 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
             if (messageLength <= 0 || messageLength > 1024 * 1024)
                 return null;
 
-            // Read message content
+            // 读取消息内容 / Read message content
             var messageBuffer = new byte[messageLength];
             var totalBytesRead = 0;
             while (totalBytesRead < messageLength)
@@ -352,12 +374,14 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
     }
 
     /// <summary>
-    /// Sends file data to the server
+    /// 向服务器发送文件数据 / Sends file data to the server
+    /// 以分块方式读取和发送文件数据，提供进度报告
+    /// Reads and sends file data in chunks with progress reporting
     /// </summary>
     private async Task<long> SendFileDataAsync(NetworkStream stream, string filePath, TransferRequest request, CancellationToken cancellationToken)
     {
         long totalBytesSent = 0;
-        var buffer = new byte[64 * 1024]; // 64KB buffer
+        var buffer = new byte[64 * 1024]; // 64KB缓冲区 / 64KB buffer
 
         using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
         
@@ -374,7 +398,7 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
             await stream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
             totalBytesSent += bytesRead;
 
-            // Log progress every 10MB
+            // 每10MB记录一次进度 / Log progress every 10MB
             if (totalBytesSent % (10 * 1024 * 1024) == 0 || totalBytesSent == request.Metadata.FileSize)
             {
                 var progress = (double)totalBytesSent / request.Metadata.FileSize * 100;
