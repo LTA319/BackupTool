@@ -12,7 +12,7 @@ namespace MySqlBackupTool.Shared.Services;
 /// 使用基于文件的加密存储的安全凭据存储实现 / Secure credential storage implementation using file-based encrypted storage
 /// 提供客户端凭据的安全存储、检索、更新和删除功能 / Provides secure storage, retrieval, update and deletion of client credentials
 /// </summary>
-public class SecureCredentialStorage : ICredentialStorage
+public class SecureCredentialStorage : ICredentialStorage, ISecureCredentialStorage
 {
     private readonly ILogger<SecureCredentialStorage> _logger;
     private readonly CredentialStorageConfig _config;
@@ -71,7 +71,15 @@ public class SecureCredentialStorage : ICredentialStorage
                 allCredentials[credentials.ClientId] = hashedCredentials;
                 
                 // 保存到文件 / Save to file
-                SaveCredentialsToFile(allCredentials);
+                try
+                {
+                    SaveCredentialsToFile(allCredentials);
+                }
+                catch (Exception saveEx)
+                {
+                    _logger.LogError(saveEx, "Critical error saving credentials to file for client {ClientId}", credentials.ClientId);
+                    return false;
+                }
                 
                 // 更新缓存 / Update cache
                 _credentialsCache[credentials.ClientId] = hashedCredentials;
@@ -289,6 +297,167 @@ public class SecureCredentialStorage : ICredentialStorage
     }
 
     /// <summary>
+    /// Ensures that default client credentials exist in the database
+    /// Creates default credentials if they don't exist, preserves existing ones
+    /// </summary>
+    /// <returns>True if default credentials exist or were created successfully</returns>
+    public async Task<bool> EnsureDefaultCredentialsExistAsync()
+    {
+        const string defaultClientId = "default-client";
+        const string defaultClientSecret = "default-secret-2024";
+
+        try
+        {
+            // Check if default credentials already exist
+            var existingCredentials = await GetCredentialsAsync(defaultClientId);
+            if (existingCredentials != null)
+            {
+                _logger.LogDebug("Default credentials already exist for client {ClientId}", defaultClientId);
+                return true;
+            }
+
+            // Create default credentials
+            var defaultCredentials = new ClientCredentials
+            {
+                ClientId = defaultClientId,
+                ClientSecret = defaultClientSecret,
+                ClientName = "Default Client",
+                Permissions = new List<string> { "backup.upload", "backup.list" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var result = await StoreCredentialsAsync(defaultCredentials);
+            if (result)
+            {
+                _logger.LogInformation("Successfully created default credentials for client {ClientId}", defaultClientId);
+            }
+            else
+            {
+                _logger.LogError("Failed to create default credentials for client {ClientId}", defaultClientId);
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error ensuring default credentials exist");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Retrieves the default client credentials
+    /// </summary>
+    /// <returns>Default client credentials or null if not found</returns>
+    public async Task<ClientCredentials?> GetDefaultCredentialsAsync()
+    {
+        const string defaultClientId = "default-client";
+        
+        try
+        {
+            return await GetCredentialsAsync(defaultClientId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving default credentials");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Retrieves client credentials by client ID
+    /// </summary>
+    /// <param name="clientId">Client identifier</param>
+    /// <returns>Client credentials or null if not found</returns>
+    public async Task<ClientCredentials?> GetCredentialsByClientIdAsync(string clientId)
+    {
+        return await GetCredentialsAsync(clientId);
+    }
+
+    /// <summary>
+    /// Validates client credentials against stored values
+    /// </summary>
+    /// <param name="clientId">Client identifier</param>
+    /// <param name="clientSecret">Client secret to validate</param>
+    /// <returns>True if credentials are valid, false otherwise</returns>
+    public async Task<bool> ValidateCredentialsAsync(string clientId, string clientSecret)
+    {
+        if (string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret))
+        {
+            _logger.LogWarning("Validation failed: ClientId or ClientSecret is null or empty");
+            return false;
+        }
+
+        try
+        {
+            var storedCredentials = await GetCredentialsAsync(clientId);
+            if (storedCredentials == null)
+            {
+                _logger.LogWarning("Validation failed: No credentials found for client {ClientId}", clientId);
+                return false;
+            }
+
+            if (!storedCredentials.IsActive)
+            {
+                _logger.LogWarning("Validation failed: Client {ClientId} is not active", clientId);
+                return false;
+            }
+
+            if (storedCredentials.IsExpired)
+            {
+                _logger.LogWarning("Validation failed: Credentials for client {ClientId} have expired", clientId);
+                return false;
+            }
+
+            // The stored secret is already hashed, so we need to hash the provided secret and compare
+            using var sha256 = SHA256.Create();
+            var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(clientSecret));
+            var providedHash = Convert.ToBase64String(hashedBytes);
+            
+            var isValid = string.Equals(providedHash, storedCredentials.ClientSecret, StringComparison.Ordinal);
+            
+            if (isValid)
+            {
+                _logger.LogDebug("Credentials validated successfully for client {ClientId}", clientId);
+            }
+            else
+            {
+                _logger.LogWarning("Validation failed: Invalid secret for client {ClientId}", clientId);
+            }
+
+            return isValid;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error validating credentials for client {ClientId}", clientId);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Checks if credentials exist for the specified client ID
+    /// </summary>
+    /// <param name="clientId">Client identifier</param>
+    /// <returns>True if credentials exist, false otherwise</returns>
+    public async Task<bool> CredentialsExistAsync(string clientId)
+    {
+        if (string.IsNullOrWhiteSpace(clientId))
+            return false;
+
+        try
+        {
+            var credentials = await GetCredentialsAsync(clientId);
+            return credentials != null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking if credentials exist for client {ClientId}", clientId);
+            return false;
+        }
+    }
+
+    /// <summary>
     /// 验证配置 / Validates the configuration
     /// 检查必需的配置参数是否有效 / Checks if required configuration parameters are valid
     /// </summary>
@@ -344,9 +513,28 @@ public class SecureCredentialStorage : ICredentialStorage
 
         try
         {
+            var fileInfo = new FileInfo(_config.CredentialsFilePath);
+            if (fileInfo.Length == 0)
+            {
+                _logger.LogDebug("Credentials file is empty, returning empty dictionary");
+                return new Dictionary<string, ClientCredentials>();
+            }
+
             var encryptedData = File.ReadAllBytes(_config.CredentialsFilePath);
+            if (encryptedData.Length == 0)
+            {
+                _logger.LogDebug("Credentials file contains no data, returning empty dictionary");
+                return new Dictionary<string, ClientCredentials>();
+            }
+
             var decryptedData = DecryptData(encryptedData);
             var json = Encoding.UTF8.GetString(decryptedData);
+            
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                _logger.LogDebug("Decrypted credentials data is empty, returning empty dictionary");
+                return new Dictionary<string, ClientCredentials>();
+            }
             
             var credentials = JsonSerializer.Deserialize<Dictionary<string, ClientCredentials>>(json);
             
@@ -390,13 +578,23 @@ public class SecureCredentialStorage : ICredentialStorage
             
             // 先写入临时文件，然后移动以避免损坏 / Write to temporary file first, then move to avoid corruption
             var tempFile = _config.CredentialsFilePath + ".tmp";
+            
+            // 确保临时文件不存在 / Ensure temp file doesn't exist
+            if (File.Exists(tempFile))
+            {
+                File.Delete(tempFile);
+            }
+            
             File.WriteAllBytes(tempFile, encryptedData);
             
-            // 原子移动 / Atomic move
+            // 原子移动 / Atomic move - handle Windows file locking issues
             if (File.Exists(_config.CredentialsFilePath))
             {
+                // On Windows, we need to delete the target file first
                 File.Delete(_config.CredentialsFilePath);
             }
+            
+            // Move temp file to final location
             File.Move(tempFile, _config.CredentialsFilePath);
             
             _logger.LogDebug("Successfully saved credentials to file");
