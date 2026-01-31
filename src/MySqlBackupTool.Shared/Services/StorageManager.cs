@@ -5,15 +5,22 @@ using MySqlBackupTool.Shared.Models;
 namespace MySqlBackupTool.Shared.Services;
 
 /// <summary>
-/// Manages backup file storage and organization
+/// 备份文件存储和组织管理器 / Manages backup file storage and organization
+/// 提供备份路径创建、存储空间验证、保留策略应用和目录管理功能 / Provides backup path creation, storage space validation, retention policy application, and directory management
 /// </summary>
 public class StorageManager : IStorageManager
 {
     private readonly ILogger<StorageManager> _logger;
-    private readonly string _baseStoragePath;
-    private readonly DirectoryOrganizer _directoryOrganizer;
-    private readonly DirectoryOrganizationStrategy _organizationStrategy;
+    private readonly string _baseStoragePath; // 基础存储路径 / Base storage path
+    private readonly DirectoryOrganizer _directoryOrganizer; // 目录组织器 / Directory organizer
+    private readonly DirectoryOrganizationStrategy _organizationStrategy; // 组织策略 / Organization strategy
 
+    /// <summary>
+    /// 构造函数，初始化存储管理器 / Constructor, initializes storage manager
+    /// </summary>
+    /// <param name="logger">日志服务 / Logger service</param>
+    /// <param name="baseStoragePath">基础存储路径，为空时使用默认路径 / Base storage path, uses default if empty</param>
+    /// <param name="organizationStrategy">目录组织策略，为空时使用默认策略 / Directory organization strategy, uses default if null</param>
     public StorageManager(
         ILogger<StorageManager> logger, 
         string baseStoragePath = "",
@@ -33,8 +40,11 @@ public class StorageManager : IStorageManager
     }
 
     /// <summary>
-    /// Creates a storage path for a backup file
+    /// 为备份文件创建存储路径 / Creates a storage path for a backup file
+    /// 使用目录组织器创建目录结构，生成唯一的文件名 / Uses directory organizer to create directory structure and generates unique filename
     /// </summary>
+    /// <param name="metadata">备份元数据 / Backup metadata</param>
+    /// <returns>创建的备份文件路径 / Created backup file path</returns>
     public async Task<string> CreateBackupPathAsync(BackupMetadata metadata)
     {
         try
@@ -68,8 +78,11 @@ public class StorageManager : IStorageManager
     }
 
     /// <summary>
-    /// Validates that sufficient storage space is available
+    /// 验证是否有足够的存储空间可用 / Validates that sufficient storage space is available
+    /// 检查磁盘可用空间，并添加10%的缓冲区 / Checks available disk space and adds 10% buffer
     /// </summary>
+    /// <param name="requiredSpace">所需空间（字节） / Required space in bytes</param>
+    /// <returns>如果有足够空间返回true，否则返回false / Returns true if sufficient space available, false otherwise</returns>
     public async Task<bool> ValidateStorageSpaceAsync(long requiredSpace)
     {
         try
@@ -97,8 +110,12 @@ public class StorageManager : IStorageManager
     }
 
     /// <summary>
-    /// Applies retention policies to manage old backup files
+    /// 应用保留策略来管理旧备份文件 / Applies retention policies to manage old backup files
+    /// 根据年龄、数量和存储大小限制删除过期的备份文件 / Deletes expired backup files based on age, count, and storage size limits
     /// </summary>
+    /// <param name="retentionPolicy">保留策略 / Retention policy</param>
+    /// <param name="backupDirectory">备份目录 / Backup directory</param>
+    /// <returns>删除的文件数量 / Number of files deleted</returns>
     public async Task<int> ApplyRetentionPolicyAsync(RetentionPolicy retentionPolicy, string backupDirectory)
     {
         try
@@ -199,8 +216,10 @@ public class StorageManager : IStorageManager
     }
 
     /// <summary>
-    /// Gets available storage space in bytes
+    /// 获取指定路径的可用存储空间（字节） / Gets available storage space in bytes for specified path
     /// </summary>
+    /// <param name="path">路径 / Path</param>
+    /// <returns>可用空间字节数 / Available space in bytes</returns>
     public async Task<long> GetAvailableSpaceAsync(string path)
     {
         try
@@ -216,8 +235,11 @@ public class StorageManager : IStorageManager
     }
 
     /// <summary>
-    /// Ensures the storage directory exists and is accessible
+    /// 确保存储目录存在且可访问 / Ensures the storage directory exists and is accessible
+    /// 创建目录（如果不存在）并测试写入权限 / Creates directory if it doesn't exist and tests write permissions
     /// </summary>
+    /// <param name="path">目录路径 / Directory path</param>
+    /// <returns>如果目录可用返回true，否则返回false / Returns true if directory is available, false otherwise</returns>
     public async Task<bool> EnsureDirectoryAsync(string path)
     {
         try

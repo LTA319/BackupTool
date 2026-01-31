@@ -5,7 +5,8 @@ using MySqlBackupTool.Shared.Models;
 namespace MySqlBackupTool.Shared.Services;
 
 /// <summary>
-/// Service for managing retention policies and automatic cleanup
+/// 管理保留策略和自动清理的服务 / Service for managing retention policies and automatic cleanup
+/// 提供备份文件和日志的自动清理、策略管理和影响评估功能 / Provides automatic cleanup of backup files and logs, policy management and impact assessment
 /// </summary>
 public class RetentionManagementService : IRetentionPolicyService
 {
@@ -14,6 +15,13 @@ public class RetentionManagementService : IRetentionPolicyService
     private readonly ILogger<RetentionManagementService> _logger;
     private readonly RetentionPolicyValidator _validator;
 
+    /// <summary>
+    /// 初始化保留管理服务 / Initialize retention management service
+    /// </summary>
+    /// <param name="retentionPolicyRepository">保留策略仓储 / Retention policy repository</param>
+    /// <param name="backupLogRepository">备份日志仓储 / Backup log repository</param>
+    /// <param name="logger">日志记录器 / Logger instance</param>
+    /// <exception cref="ArgumentNullException">当任何参数为null时抛出 / Thrown when any parameter is null</exception>
     public RetentionManagementService(
         IRetentionPolicyRepository retentionPolicyRepository,
         IBackupLogRepository backupLogRepository,
@@ -26,8 +34,10 @@ public class RetentionManagementService : IRetentionPolicyService
     }
 
     /// <summary>
-    /// Executes all enabled retention policies
+    /// 执行所有启用的保留策略 / Executes all enabled retention policies
+    /// 自动清理过期的备份文件和日志记录 / Automatically cleans up expired backup files and log records
     /// </summary>
+    /// <returns>保留策略执行结果 / Retention policy execution result</returns>
     public async Task<RetentionExecutionResult> ExecuteRetentionPoliciesAsync()
     {
         _logger.LogInformation("Starting retention policy execution");
@@ -41,7 +51,7 @@ public class RetentionManagementService : IRetentionPolicyService
 
         try
         {
-            // Get all enabled retention policies
+            // 获取所有启用的保留策略 / Get all enabled retention policies
             var enabledPolicies = await _retentionPolicyRepository.GetEnabledPoliciesAsync();
             var policiesList = enabledPolicies.ToList();
 
@@ -55,7 +65,7 @@ public class RetentionManagementService : IRetentionPolicyService
             result.AppliedPolicies = policiesList;
             _logger.LogInformation("Found {PolicyCount} enabled retention policies", policiesList.Count);
 
-            // Execute log cleanup for each policy
+            // 为每个策略执行日志清理 / Execute log cleanup for each policy
             foreach (var policy in policiesList)
             {
                 try
@@ -109,8 +119,12 @@ public class RetentionManagementService : IRetentionPolicyService
     }
 
     /// <summary>
-    /// Applies a specific retention policy
+    /// 应用指定的保留策略 / Applies a specific retention policy
+    /// 根据策略配置清理过期的备份文件和日志 / Cleans up expired backup files and logs based on policy configuration
     /// </summary>
+    /// <param name="policy">要应用的保留策略 / Retention policy to apply</param>
+    /// <returns>保留策略执行结果 / Retention policy execution result</returns>
+    /// <exception cref="ArgumentNullException">当policy为null时抛出 / Thrown when policy is null</exception>
     public async Task<RetentionExecutionResult> ApplyRetentionPolicyAsync(RetentionPolicy policy)
     {
         if (policy == null)
@@ -135,7 +149,7 @@ public class RetentionManagementService : IRetentionPolicyService
 
         try
         {
-            // Apply log cleanup based on policy
+            // 根据策略应用日志清理 / Apply log cleanup based on policy
             var logsDeleted = 0;
 
             if (policy.MaxAgeDays.HasValue)
@@ -144,13 +158,13 @@ public class RetentionManagementService : IRetentionPolicyService
             }
             else if (policy.MaxCount.HasValue)
             {
-                // If only max count is specified, use a very large age (effectively unlimited)
+                // 如果只指定了最大数量，使用一个非常大的年龄（实际上无限制） / If only max count is specified, use a very large age (effectively unlimited)
                 logsDeleted += await _backupLogRepository.CleanupOldLogsAsync(int.MaxValue, policy.MaxCount.Value);
             }
 
             result.LogsDeleted = logsDeleted;
 
-            // Apply file cleanup based on policy
+            // 根据策略应用文件清理 / Apply file cleanup based on policy
             var fileCleanupResult = await ApplyFileRetentionPolicyAsync(policy);
             result.FilesDeleted = fileCleanupResult.FilesDeleted;
             result.BytesFreed = fileCleanupResult.BytesFreed;
@@ -174,15 +188,18 @@ public class RetentionManagementService : IRetentionPolicyService
     }
 
     /// <summary>
-    /// Applies file retention policy to backup files
+    /// 对备份文件应用文件保留策略 / Applies file retention policy to backup files
+    /// 根据策略规则删除不需要保留的备份文件 / Deletes backup files that don't need to be retained based on policy rules
     /// </summary>
+    /// <param name="policy">保留策略 / Retention policy</param>
+    /// <returns>保留结果 / Retention result</returns>
     private async Task<RetentionResult> ApplyFileRetentionPolicyAsync(RetentionPolicy policy)
     {
         var result = new RetentionResult();
 
         try
         {
-            // Get all backup logs with file information
+            // 获取所有带有文件信息的备份日志 / Get all backup logs with file information
             var allBackupLogs = await _backupLogRepository.GetAllAsync();
             var backupLogsWithFiles = allBackupLogs
                 .Where(bl => !string.IsNullOrEmpty(bl.FilePath) && bl.FileSize.HasValue)
@@ -199,7 +216,7 @@ public class RetentionManagementService : IRetentionPolicyService
             var currentBackupCount = backupLogsWithFiles.Count;
             var currentStorageUsed = backupLogsWithFiles.Sum(bl => bl.FileSize ?? 0);
 
-            // Apply retention logic
+            // 应用保留逻辑 / Apply retention logic
             foreach (var backupLog in backupLogsWithFiles)
             {
                 var shouldRetain = policy.ShouldRetainBackup(
@@ -216,7 +233,7 @@ public class RetentionManagementService : IRetentionPolicyService
                 }
             }
 
-            // Delete the files
+            // 删除文件 / Delete the files
             foreach (var backupLog in filesToDelete)
             {
                 try
@@ -255,8 +272,13 @@ public class RetentionManagementService : IRetentionPolicyService
     }
 
     /// <summary>
-    /// Creates a new retention policy with validation
+    /// 创建新的保留策略并进行验证 / Creates a new retention policy with validation
+    /// 验证策略配置并检查名称唯一性 / Validates policy configuration and checks name uniqueness
     /// </summary>
+    /// <param name="policy">要创建的保留策略 / Retention policy to create</param>
+    /// <returns>创建的保留策略 / Created retention policy</returns>
+    /// <exception cref="ArgumentNullException">当policy为null时抛出 / Thrown when policy is null</exception>
+    /// <exception cref="InvalidOperationException">当策略名称已存在时抛出 / Thrown when policy name already exists</exception>
     public async Task<RetentionPolicy> CreateRetentionPolicyAsync(RetentionPolicy policy)
     {
         if (policy == null)
@@ -264,17 +286,17 @@ public class RetentionManagementService : IRetentionPolicyService
 
         _logger.LogInformation("Creating new retention policy: {PolicyName}", policy.Name);
 
-        // Validate policy
+        // 验证策略 / Validate policy
         await ValidateRetentionPolicyInternalAsync(policy);
 
-        // Check name uniqueness
+        // 检查名称唯一性 / Check name uniqueness
         var isUnique = await _retentionPolicyRepository.IsNameUniqueAsync(policy.Name);
         if (!isUnique)
         {
             throw new InvalidOperationException($"A retention policy with the name '{policy.Name}' already exists");
         }
 
-        // Set creation time
+        // 设置创建时间 / Set creation time
         policy.CreatedAt = DateTime.UtcNow;
 
         var result = await _retentionPolicyRepository.AddAsync(policy);
@@ -287,8 +309,13 @@ public class RetentionManagementService : IRetentionPolicyService
     }
 
     /// <summary>
-    /// Updates an existing retention policy
+    /// 更新现有的保留策略 / Updates an existing retention policy
+    /// 验证策略配置并检查名称唯一性（排除当前策略） / Validates policy configuration and checks name uniqueness (excluding current policy)
     /// </summary>
+    /// <param name="policy">要更新的保留策略 / Retention policy to update</param>
+    /// <returns>更新后的保留策略 / Updated retention policy</returns>
+    /// <exception cref="ArgumentNullException">当policy为null时抛出 / Thrown when policy is null</exception>
+    /// <exception cref="InvalidOperationException">当策略名称已存在时抛出 / Thrown when policy name already exists</exception>
     public async Task<RetentionPolicy> UpdateRetentionPolicyAsync(RetentionPolicy policy)
     {
         if (policy == null)
@@ -297,10 +324,10 @@ public class RetentionManagementService : IRetentionPolicyService
         _logger.LogInformation("Updating retention policy: {PolicyName} (ID: {PolicyId})", 
             policy.Name, policy.Id);
 
-        // Validate policy
+        // 验证策略 / Validate policy
         await ValidateRetentionPolicyInternalAsync(policy);
 
-        // Check name uniqueness (excluding current policy)
+        // 检查名称唯一性（排除当前策略） / Check name uniqueness (excluding current policy)
         var isUnique = await _retentionPolicyRepository.IsNameUniqueAsync(policy.Name, policy.Id);
         if (!isUnique)
         {
@@ -317,8 +344,10 @@ public class RetentionManagementService : IRetentionPolicyService
     }
 
     /// <summary>
-    /// Deletes a retention policy
+    /// 删除保留策略 / Deletes a retention policy
     /// </summary>
+    /// <param name="policyId">策略ID / Policy ID</param>
+    /// <returns>删除成功返回true，失败返回false / Returns true if deleted successfully, false if failed</returns>
     public async Task<bool> DeleteRetentionPolicyAsync(int policyId)
     {
         _logger.LogInformation("Deleting retention policy with ID: {PolicyId}", policyId);
@@ -348,40 +377,48 @@ public class RetentionManagementService : IRetentionPolicyService
     }
 
     /// <summary>
-    /// Gets all retention policies
+    /// 获取所有保留策略 / Gets all retention policies
     /// </summary>
+    /// <returns>保留策略集合 / Collection of retention policies</returns>
     public async Task<IEnumerable<RetentionPolicy>> GetAllRetentionPoliciesAsync()
     {
         return await _retentionPolicyRepository.GetAllAsync();
     }
 
     /// <summary>
-    /// Gets all enabled retention policies
+    /// 获取所有启用的保留策略 / Gets all enabled retention policies
     /// </summary>
+    /// <returns>启用的保留策略集合 / Collection of enabled retention policies</returns>
     public async Task<IEnumerable<RetentionPolicy>> GetEnabledRetentionPoliciesAsync()
     {
         return await _retentionPolicyRepository.GetEnabledPoliciesAsync();
     }
 
     /// <summary>
-    /// Gets a retention policy by ID
+    /// 根据ID获取保留策略 / Gets a retention policy by ID
     /// </summary>
+    /// <param name="policyId">策略ID / Policy ID</param>
+    /// <returns>保留策略或null（如果未找到） / Retention policy or null if not found</returns>
     public async Task<RetentionPolicy?> GetRetentionPolicyByIdAsync(int policyId)
     {
         return await _retentionPolicyRepository.GetByIdAsync(policyId);
     }
 
     /// <summary>
-    /// Gets a retention policy by name
+    /// 根据名称获取保留策略 / Gets a retention policy by name
     /// </summary>
+    /// <param name="name">策略名称 / Policy name</param>
+    /// <returns>保留策略或null（如果未找到） / Retention policy or null if not found</returns>
     public async Task<RetentionPolicy?> GetRetentionPolicyByNameAsync(string name)
     {
         return await _retentionPolicyRepository.GetByNameAsync(name);
     }
 
     /// <summary>
-    /// Enables a retention policy
+    /// 启用保留策略 / Enables a retention policy
     /// </summary>
+    /// <param name="policyId">策略ID / Policy ID</param>
+    /// <returns>启用成功返回true，失败返回false / Returns true if enabled successfully, false if failed</returns>
     public async Task<bool> EnableRetentionPolicyAsync(int policyId)
     {
         _logger.LogInformation("Enabling retention policy with ID: {PolicyId}", policyId);
@@ -389,8 +426,10 @@ public class RetentionManagementService : IRetentionPolicyService
     }
 
     /// <summary>
-    /// Disables a retention policy
+    /// 禁用保留策略 / Disables a retention policy
     /// </summary>
+    /// <param name="policyId">策略ID / Policy ID</param>
+    /// <returns>禁用成功返回true，失败返回false / Returns true if disabled successfully, false if failed</returns>
     public async Task<bool> DisableRetentionPolicyAsync(int policyId)
     {
         _logger.LogInformation("Disabling retention policy with ID: {PolicyId}", policyId);
@@ -398,13 +437,15 @@ public class RetentionManagementService : IRetentionPolicyService
     }
 
     /// <summary>
-    /// Validates a retention policy configuration
+    /// 验证保留策略配置 / Validates a retention policy configuration
     /// </summary>
+    /// <param name="policy">要验证的保留策略 / Retention policy to validate</param>
+    /// <returns>验证结果和错误列表 / Validation result and error list</returns>
     public async Task<(bool IsValid, List<string> Errors)> ValidateRetentionPolicyAsync(RetentionPolicy policy)
     {
         var validationResult = _validator.ValidatePolicy(policy);
         
-        // Add warnings to errors for backward compatibility
+        // 为了向后兼容，将警告添加到错误中 / Add warnings to errors for backward compatibility
         var allErrors = new List<string>();
         allErrors.AddRange(validationResult.Errors);
         allErrors.AddRange(validationResult.Warnings.Select(w => $"Warning: {w}"));
@@ -413,15 +454,18 @@ public class RetentionManagementService : IRetentionPolicyService
     }
 
     /// <summary>
-    /// Estimates the impact of applying a retention policy
+    /// 估算应用保留策略的影响 / Estimates the impact of applying a retention policy
+    /// 预测将删除的文件数量和释放的存储空间 / Predicts the number of files to be deleted and storage space to be freed
     /// </summary>
+    /// <param name="policy">要评估的保留策略 / Retention policy to evaluate</param>
+    /// <returns>保留影响估算结果 / Retention impact estimate result</returns>
     public async Task<RetentionImpactEstimate> EstimateRetentionImpactAsync(RetentionPolicy policy)
     {
         var estimate = new RetentionImpactEstimate();
 
         try
         {
-            // Get all backup logs with file information
+            // 获取所有带有文件信息的备份日志 / Get all backup logs with file information
             var allBackupLogs = await _backupLogRepository.GetAllAsync();
             var backupLogsWithFiles = allBackupLogs
                 .Where(bl => !string.IsNullOrEmpty(bl.FilePath) && bl.FileSize.HasValue)
@@ -437,7 +481,7 @@ public class RetentionManagementService : IRetentionPolicyService
             var currentBackupCount = backupLogsWithFiles.Count;
             var currentStorageUsed = backupLogsWithFiles.Sum(bl => bl.FileSize ?? 0);
 
-            // Apply retention logic to estimate impact
+            // 应用保留逻辑来估算影响 / Apply retention logic to estimate impact
             foreach (var backupLog in backupLogsWithFiles)
             {
                 var shouldRetain = policy.ShouldRetainBackup(
@@ -462,7 +506,7 @@ public class RetentionManagementService : IRetentionPolicyService
                 .Select(bl => bl.FilePath!)
                 .ToList();
 
-            // Add warnings for large deletions
+            // 为大量删除添加警告 / Add warnings for large deletions
             if (estimate.EstimatedFilesToDelete > 10)
             {
                 estimate.Warnings.Add($"This policy will delete {estimate.EstimatedFilesToDelete} backup files");
@@ -485,8 +529,10 @@ public class RetentionManagementService : IRetentionPolicyService
     }
 
     /// <summary>
-    /// Internal validation method for retention policies
+    /// 保留策略的内部验证方法 / Internal validation method for retention policies
     /// </summary>
+    /// <param name="policy">要验证的保留策略 / Retention policy to validate</param>
+    /// <exception cref="ArgumentException">当策略验证失败时抛出 / Thrown when policy validation fails</exception>
     private async Task ValidateRetentionPolicyInternalAsync(RetentionPolicy policy)
     {
         var validationResult = _validator.ValidatePolicy(policy);
@@ -496,7 +542,7 @@ public class RetentionManagementService : IRetentionPolicyService
             throw new ArgumentException($"Retention policy validation failed: {string.Join(", ", validationResult.Errors)}");
         }
         
-        // Log warnings
+        // 记录警告 / Log warnings
         foreach (var warning in validationResult.Warnings)
         {
             _logger.LogWarning("Retention policy validation warning: {Warning}", warning);
@@ -504,8 +550,10 @@ public class RetentionManagementService : IRetentionPolicyService
     }
 
     /// <summary>
-    /// Gets retention policy recommendations based on current backup patterns
+    /// 根据当前备份模式获取保留策略建议 / Gets retention policy recommendations based on current backup patterns
+    /// 分析备份历史并生成适合的保留策略建议 / Analyzes backup history and generates suitable retention policy recommendations
     /// </summary>
+    /// <returns>保留策略建议列表 / List of retention policy recommendations</returns>
     public async Task<List<RetentionPolicy>> GetRetentionPolicyRecommendationsAsync()
     {
         _logger.LogInformation("Generating retention policy recommendations");
@@ -514,7 +562,7 @@ public class RetentionManagementService : IRetentionPolicyService
 
         try
         {
-            // Analyze current backup patterns
+            // 分析当前备份模式 / Analyze current backup patterns
             var recentLogs = await _backupLogRepository.GetByDateRangeAsync(
                 DateTime.UtcNow.AddDays(-90), DateTime.UtcNow);
 
@@ -522,7 +570,7 @@ public class RetentionManagementService : IRetentionPolicyService
             
             if (!backupLogsList.Any())
             {
-                // Default recommendations if no backup history
+                // 如果没有备份历史，返回默认建议 / Default recommendations if no backup history
                 recommendations.AddRange(GetDefaultRetentionPolicies());
                 return recommendations;
             }
@@ -534,7 +582,7 @@ public class RetentionManagementService : IRetentionPolicyService
                 ? backupLogsList.Where(bl => bl.FileSize.HasValue).Average(bl => bl.FileSize!.Value)
                 : 0;
 
-            // Conservative policy (keep more backups)
+            // 保守策略（保留更多备份） / Conservative policy (keep more backups)
             recommendations.Add(new RetentionPolicy
             {
                 Name = "Conservative (Recommended)",
@@ -544,7 +592,7 @@ public class RetentionManagementService : IRetentionPolicyService
                 IsEnabled = false
             });
 
-            // Balanced policy
+            // 平衡策略 / Balanced policy
             recommendations.Add(new RetentionPolicy
             {
                 Name = "Balanced",
@@ -554,7 +602,7 @@ public class RetentionManagementService : IRetentionPolicyService
                 IsEnabled = false
             });
 
-            // Aggressive policy (keep fewer backups)
+            // 激进策略（保留较少备份） / Aggressive policy (keep fewer backups)
             recommendations.Add(new RetentionPolicy
             {
                 Name = "Aggressive",
@@ -564,10 +612,10 @@ public class RetentionManagementService : IRetentionPolicyService
                 IsEnabled = false
             });
 
-            // Storage-based policy
+            // 基于存储的策略 / Storage-based policy
             if (totalStorage > 0)
             {
-                var recommendedStorageLimit = (long)(totalStorage * 1.5); // 50% buffer
+                var recommendedStorageLimit = (long)(totalStorage * 1.5); // 50%缓冲 / 50% buffer
                 recommendations.Add(new RetentionPolicy
                 {
                     Name = "Storage-Based",
@@ -589,6 +637,10 @@ public class RetentionManagementService : IRetentionPolicyService
         }
     }
 
+    /// <summary>
+    /// 获取默认保留策略 / Gets default retention policies
+    /// </summary>
+    /// <returns>默认保留策略列表 / List of default retention policies</returns>
     private List<RetentionPolicy> GetDefaultRetentionPolicies()
     {
         return new List<RetentionPolicy>
@@ -610,6 +662,11 @@ public class RetentionManagementService : IRetentionPolicyService
         };
     }
 
+    /// <summary>
+    /// 格式化字节数为人类可读的字符串 / Formats bytes to human-readable string
+    /// </summary>
+    /// <param name="bytes">字节数 / Number of bytes</param>
+    /// <returns>格式化的字符串 / Formatted string</returns>
     private static string FormatBytes(long bytes)
     {
         if (bytes == 0) return "0 B";

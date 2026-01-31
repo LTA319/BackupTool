@@ -12,7 +12,8 @@ using System.Text.Json;
 namespace MySqlBackupTool.Shared.Services;
 
 /// <summary>
-/// SSL/TLS-enabled TCP server implementation for receiving backup files
+/// 支持SSL/TLS的TCP服务器实现，用于接收备份文件 / SSL/TLS-enabled TCP server implementation for receiving backup files
+/// 提供安全的文件接收功能，支持SSL加密、客户端证书验证、分块传输和断点续传 / Provides secure file reception with SSL encryption, client certificate validation, chunked transfer, and resume capability
 /// </summary>
 public class SecureFileReceiver : IFileReceiver, IDisposable
 {
@@ -25,10 +26,20 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
     private readonly List<Task> _clientTasks = new();
     private bool _isListening = false;
     private readonly object _lockObject = new();
-    private X509Certificate2? _serverCertificate;
-    private readonly bool _requireClientCertificate;
-    private readonly bool _useSSL;
+    private X509Certificate2? _serverCertificate; // 服务器SSL证书 / Server SSL certificate
+    private readonly bool _requireClientCertificate; // 是否要求客户端证书 / Whether to require client certificate
+    private readonly bool _useSSL; // 是否使用SSL加密 / Whether to use SSL encryption
 
+    /// <summary>
+    /// 构造函数，初始化安全文件接收器 / Constructor, initializes secure file receiver
+    /// </summary>
+    /// <param name="logger">日志服务 / Logger service</param>
+    /// <param name="storageManager">存储管理器 / Storage manager</param>
+    /// <param name="chunkManager">分块管理器 / Chunk manager</param>
+    /// <param name="checksumService">校验和服务 / Checksum service</param>
+    /// <param name="serverCertificate">服务器SSL证书（可选） / Server SSL certificate (optional)</param>
+    /// <param name="requireClientCertificate">是否要求客户端证书 / Whether to require client certificate</param>
+    /// <param name="useSSL">是否使用SSL加密 / Whether to use SSL encryption</param>
     public SecureFileReceiver(
         ILogger<SecureFileReceiver> logger,
         IStorageManager storageManager,
@@ -48,8 +59,11 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
     }
 
     /// <summary>
-    /// Starts listening for incoming file transfer connections
+    /// 开始监听传入的文件传输连接 / Starts listening for incoming file transfer connections
+    /// 在指定端口上启动TCP监听器，支持SSL加密连接 / Starts TCP listener on specified port with SSL encryption support
     /// </summary>
+    /// <param name="port">监听端口 / Port to listen on</param>
+    /// <returns>异步任务 / Async task</returns>
     public async Task StartListeningAsync(int port)
     {
         lock (_lockObject)
@@ -85,8 +99,10 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
     }
 
     /// <summary>
-    /// Stops listening for incoming connections
+    /// 停止监听传入连接 / Stops listening for incoming connections
+    /// 停止TCP监听器并等待所有客户端连接完成 / Stops TCP listener and waits for all client connections to complete
     /// </summary>
+    /// <returns>异步任务 / Async task</returns>
     public async Task StopListeningAsync()
     {
         lock (_lockObject)
@@ -127,8 +143,11 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
     }
 
     /// <summary>
-    /// Receives a file from a client (used for direct file reception)
+    /// 从客户端接收文件（用于直接文件接收） / Receives a file from a client (used for direct file reception)
+    /// 验证存储空间并创建目标目录，处理文件接收请求 / Validates storage space and creates target directory, handles file reception request
     /// </summary>
+    /// <param name="request">接收请求 / Receive request</param>
+    /// <returns>接收结果 / Receive result</returns>
     public async Task<ReceiveResult> ReceiveFileAsync(ReceiveRequest request)
     {
         var startTime = DateTime.UtcNow;
@@ -177,8 +196,9 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
     }
 
     /// <summary>
-    /// Sets the server certificate for SSL/TLS connections
+    /// 设置用于SSL/TLS连接的服务器证书 / Sets the server certificate for SSL/TLS connections
     /// </summary>
+    /// <param name="certificate">X509证书 / X509 certificate</param>
     public void SetServerCertificate(X509Certificate2 certificate)
     {
         _serverCertificate = certificate ?? throw new ArgumentNullException(nameof(certificate));
@@ -187,8 +207,11 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
     }
 
     /// <summary>
-    /// Accepts incoming client connections
+    /// 接受传入的客户端连接 / Accepts incoming client connections
+    /// 在后台循环接受客户端连接并为每个连接创建处理任务 / Loops in background to accept client connections and creates handling task for each connection
     /// </summary>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>异步任务 / Async task</returns>
     private async Task AcceptClientsAsync(CancellationToken cancellationToken)
     {
         try
@@ -236,8 +259,12 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
     }
 
     /// <summary>
-    /// Handles communication with a connected client
+    /// 处理与已连接客户端的通信 / Handles communication with a connected client
+    /// 创建SSL流、读取传输请求、处理文件传输并发送响应 / Creates SSL stream, reads transfer request, processes file transfer and sends response
     /// </summary>
+    /// <param name="client">TCP客户端 / TCP client</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>异步任务 / Async task</returns>
     private async Task HandleClientAsync(TcpClient client, CancellationToken cancellationToken)
     {
         var clientEndpoint = client.Client.RemoteEndPoint?.ToString() ?? "Unknown";
@@ -295,8 +322,14 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
     }
 
     /// <summary>
-    /// Creates an SSL stream for secure server communication
+    /// 为安全服务器通信创建SSL流 / Creates an SSL stream for secure server communication
+    /// 配置SSL服务器选项并执行SSL握手 / Configures SSL server options and performs SSL handshake
     /// </summary>
+    /// <param name="tcpClient">TCP客户端 / TCP client</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>配置好的SSL流 / Configured SSL stream</returns>
+    /// <exception cref="InvalidOperationException">当未配置服务器证书时抛出 / Thrown when server certificate is not configured</exception>
+    /// <exception cref="AuthenticationException">当SSL握手失败时抛出 / Thrown when SSL handshake fails</exception>
     private async Task<SslStream> CreateSslStreamAsync(TcpClient tcpClient, CancellationToken cancellationToken)
     {
         if (_serverCertificate == null)
@@ -338,8 +371,14 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
     }
 
     /// <summary>
-    /// Validates the client certificate
+    /// 验证客户端证书 / Validates the client certificate
+    /// 根据配置决定是否要求客户端证书，并验证证书的有效性 / Determines whether to require client certificate based on configuration and validates certificate validity
     /// </summary>
+    /// <param name="sender">发送者对象 / Sender object</param>
+    /// <param name="certificate">客户端证书 / Client certificate</param>
+    /// <param name="chain">证书链 / Certificate chain</param>
+    /// <param name="sslPolicyErrors">SSL策略错误 / SSL policy errors</param>
+    /// <returns>如果证书有效返回true，否则返回false / Returns true if certificate is valid, false otherwise</returns>
     private bool ValidateClientCertificate(object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors)
     {
         // If client certificates are not required, accept the connection
@@ -366,8 +405,12 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
         return false;
     }
     /// <summary>
-    /// Reads a transfer request from the client stream
+    /// 从客户端流中读取传输请求 / Reads a transfer request from the client stream
+    /// 读取消息长度和内容，反序列化为传输请求对象 / Reads message length and content, deserializes to transfer request object
     /// </summary>
+    /// <param name="stream">客户端流 / Client stream</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>传输请求对象，失败时返回null / Transfer request object, null on failure</returns>
     private async Task<TransferRequest?> ReadTransferRequestAsync(Stream stream, CancellationToken cancellationToken)
     {
         try
@@ -412,8 +455,13 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
     }
 
     /// <summary>
-    /// Processes the file transfer from the client
+    /// 处理来自客户端的文件传输 / Processes the file transfer from the client
+    /// 创建备份路径、验证存储空间、初始化传输会话并接收文件数据 / Creates backup path, validates storage space, initializes transfer session and receives file data
     /// </summary>
+    /// <param name="stream">客户端流 / Client stream</param>
+    /// <param name="request">传输请求 / Transfer request</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>接收结果 / Receive result</returns>
     private async Task<ReceiveResult> ProcessFileTransferAsync(Stream stream, TransferRequest request, CancellationToken cancellationToken)
     {
         var startTime = DateTime.UtcNow;

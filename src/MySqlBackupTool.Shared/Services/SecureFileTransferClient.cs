@@ -11,16 +11,22 @@ using MySqlBackupTool.Shared.Models;
 namespace MySqlBackupTool.Shared.Services;
 
 /// <summary>
-/// SSL/TLS-enabled file transfer client implementation
+/// 支持SSL/TLS的文件传输客户端实现 / SSL/TLS-enabled file transfer client implementation
+/// 提供安全的文件传输功能，支持SSL加密、服务器证书验证、分块传输和断点续传 / Provides secure file transfer with SSL encryption, server certificate validation, chunked transfer, and resume capability
 /// </summary>
 public class SecureFileTransferClient : IFileTransferClient, IFileTransferService
 {
     private readonly ILogger<SecureFileTransferClient> _logger;
     private readonly IChecksumService _checksumService;
-    private const int BufferSize = 8192; // 8KB buffer for file reading
-    private const int MaxRetryAttempts = 3;
-    private const int BaseRetryDelayMs = 1000; // 1 second base delay
+    private const int BufferSize = 8192; // 8KB文件读取缓冲区 / 8KB buffer for file reading
+    private const int MaxRetryAttempts = 3; // 最大重试次数 / Maximum retry attempts
+    private const int BaseRetryDelayMs = 1000; // 1秒基础重试延迟 / 1 second base retry delay
 
+    /// <summary>
+    /// 构造函数，初始化安全文件传输客户端 / Constructor, initializes secure file transfer client
+    /// </summary>
+    /// <param name="logger">日志服务 / Logger service</param>
+    /// <param name="checksumService">校验和服务 / Checksum service</param>
     public SecureFileTransferClient(ILogger<SecureFileTransferClient> logger, IChecksumService checksumService)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -28,8 +34,13 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
     }
 
     /// <summary>
-    /// Transfers a file to a remote server using SSL/TLS
+    /// 使用SSL/TLS将文件传输到远程服务器 / Transfers a file to a remote server using SSL/TLS
+    /// 验证输入、创建文件元数据、执行带重试逻辑的传输 / Validates inputs, creates file metadata, performs transfer with retry logic
     /// </summary>
+    /// <param name="filePath">要传输的文件路径 / Path of file to transfer</param>
+    /// <param name="config">传输配置 / Transfer configuration</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>传输结果 / Transfer result</returns>
     public async Task<TransferResult> TransferFileAsync(string filePath, TransferConfig config, CancellationToken cancellationToken = default)
     {
         var startTime = DateTime.UtcNow;
@@ -110,8 +121,12 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
     }
 
     /// <summary>
-    /// Resumes an interrupted file transfer
+    /// 恢复中断的文件传输 / Resumes an interrupted file transfer
+    /// 需要服务器端协调，建议使用带完整上下文的重载方法 / Requires server-side coordination, recommend using overload with full context
     /// </summary>
+    /// <param name="resumeToken">恢复令牌 / Resume token</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>传输结果 / Transfer result</returns>
     public async Task<TransferResult> ResumeTransferAsync(string resumeToken, CancellationToken cancellationToken = default)
     {
         var startTime = DateTime.UtcNow;
@@ -140,8 +155,14 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
     }
 
     /// <summary>
-    /// Resumes an interrupted file transfer with full context
+    /// 使用完整上下文恢复中断的文件传输 / Resumes an interrupted file transfer with full context
+    /// 验证输入、创建恢复传输请求并执行带重试逻辑的传输 / Validates inputs, creates resume transfer request and performs transfer with retry logic
     /// </summary>
+    /// <param name="resumeToken">恢复令牌 / Resume token</param>
+    /// <param name="filePath">文件路径 / File path</param>
+    /// <param name="config">传输配置 / Transfer configuration</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>传输结果 / Transfer result</returns>
     public async Task<TransferResult> ResumeTransferAsync(string resumeToken, string filePath, TransferConfig config, CancellationToken cancellationToken = default)
     {
         var startTime = DateTime.UtcNow;

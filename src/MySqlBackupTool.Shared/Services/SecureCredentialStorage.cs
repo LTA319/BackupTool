@@ -9,7 +9,8 @@ using System.Text.Json;
 namespace MySqlBackupTool.Shared.Services;
 
 /// <summary>
-/// Secure credential storage implementation using file-based encrypted storage
+/// 使用基于文件的加密存储的安全凭据存储实现 / Secure credential storage implementation using file-based encrypted storage
+/// 提供客户端凭据的安全存储、检索、更新和删除功能 / Provides secure storage, retrieval, update and deletion of client credentials
 /// </summary>
 public class SecureCredentialStorage : ICredentialStorage
 {
@@ -20,6 +21,12 @@ public class SecureCredentialStorage : ICredentialStorage
     private DateTime _lastCacheUpdate = DateTime.MinValue;
     private readonly TimeSpan _cacheExpiry = TimeSpan.FromMinutes(5);
 
+    /// <summary>
+    /// 初始化安全凭据存储 / Initialize secure credential storage
+    /// </summary>
+    /// <param name="logger">日志记录器 / Logger instance</param>
+    /// <param name="config">凭据存储配置 / Credential storage configuration</param>
+    /// <exception cref="ArgumentNullException">当config为null时抛出 / Thrown when config is null</exception>
     public SecureCredentialStorage(ILogger<SecureCredentialStorage> logger, CredentialStorageConfig config)
     {
         _logger = logger;
@@ -30,8 +37,12 @@ public class SecureCredentialStorage : ICredentialStorage
     }
 
     /// <summary>
-    /// Stores client credentials securely
+    /// 安全存储客户端凭据 / Stores client credentials securely
+    /// 对密钥进行哈希处理并使用AES加密存储到文件 / Hashes the secret and stores to file using AES encryption
     /// </summary>
+    /// <param name="credentials">要存储的客户端凭据 / Client credentials to store</param>
+    /// <returns>存储成功返回true，失败返回false / Returns true if stored successfully, false if failed</returns>
+    /// <exception cref="ArgumentNullException">当credentials为null时抛出 / Thrown when credentials is null</exception>
     public async Task<bool> StoreCredentialsAsync(ClientCredentials credentials)
     {
         if (credentials == null)
@@ -41,11 +52,11 @@ public class SecureCredentialStorage : ICredentialStorage
         {
             lock (_lockObject)
             {
-                // Hash the secret before storing
+                // 存储前对密钥进行哈希处理 / Hash the secret before storing
                 var hashedCredentials = new ClientCredentials
                 {
                     ClientId = credentials.ClientId,
-                    ClientSecret = credentials.HashSecret(), // Store hashed version
+                    ClientSecret = credentials.HashSecret(), // 存储哈希版本 / Store hashed version
                     ClientName = credentials.ClientName,
                     Permissions = new List<string>(credentials.Permissions),
                     IsActive = credentials.IsActive,
@@ -53,16 +64,16 @@ public class SecureCredentialStorage : ICredentialStorage
                     ExpiresAt = credentials.ExpiresAt
                 };
 
-                // Load existing credentials
+                // 加载现有凭据 / Load existing credentials
                 var allCredentials = LoadCredentialsFromFile();
                 
-                // Add or update credentials
+                // 添加或更新凭据 / Add or update credentials
                 allCredentials[credentials.ClientId] = hashedCredentials;
                 
-                // Save to file
+                // 保存到文件 / Save to file
                 SaveCredentialsToFile(allCredentials);
                 
-                // Update cache
+                // 更新缓存 / Update cache
                 _credentialsCache[credentials.ClientId] = hashedCredentials;
                 _lastCacheUpdate = DateTime.UtcNow;
             }
@@ -78,8 +89,11 @@ public class SecureCredentialStorage : ICredentialStorage
     }
 
     /// <summary>
-    /// Retrieves client credentials by client ID
+    /// 根据客户端ID检索客户端凭据 / Retrieves client credentials by client ID
+    /// 首先检查缓存，然后从加密文件加载 / Checks cache first, then loads from encrypted file
     /// </summary>
+    /// <param name="clientId">客户端ID / Client ID</param>
+    /// <returns>客户端凭据或null（如果未找到） / Client credentials or null if not found</returns>
     public async Task<ClientCredentials?> GetCredentialsAsync(string clientId)
     {
         if (string.IsNullOrWhiteSpace(clientId))
@@ -89,18 +103,18 @@ public class SecureCredentialStorage : ICredentialStorage
         {
             lock (_lockObject)
             {
-                // Check cache first
+                // 首先检查缓存 / Check cache first
                 if (IsCacheValid() && _credentialsCache.TryGetValue(clientId, out var cachedCredentials))
                 {
                     return cachedCredentials;
                 }
 
-                // Load from file
+                // 从文件加载 / Load from file
                 var allCredentials = LoadCredentialsFromFile();
                 
                 if (allCredentials.TryGetValue(clientId, out var credentials))
                 {
-                    // Update cache
+                    // 更新缓存 / Update cache
                     _credentialsCache[clientId] = credentials;
                     return credentials;
                 }
@@ -116,8 +130,12 @@ public class SecureCredentialStorage : ICredentialStorage
     }
 
     /// <summary>
-    /// Updates client credentials
+    /// 更新客户端凭据 / Updates client credentials
+    /// 保留原始创建时间并更新其他字段 / Preserves original creation time and updates other fields
     /// </summary>
+    /// <param name="credentials">要更新的客户端凭据 / Client credentials to update</param>
+    /// <returns>更新成功返回true，失败返回false / Returns true if updated successfully, false if failed</returns>
+    /// <exception cref="ArgumentNullException">当credentials为null时抛出 / Thrown when credentials is null</exception>
     public async Task<bool> UpdateCredentialsAsync(ClientCredentials credentials)
     {
         if (credentials == null)
@@ -135,22 +153,22 @@ public class SecureCredentialStorage : ICredentialStorage
                     return false;
                 }
 
-                // Hash the secret before storing
+                // 存储前对密钥进行哈希处理 / Hash the secret before storing
                 var hashedCredentials = new ClientCredentials
                 {
                     ClientId = credentials.ClientId,
-                    ClientSecret = credentials.HashSecret(), // Store hashed version
+                    ClientSecret = credentials.HashSecret(), // 存储哈希版本 / Store hashed version
                     ClientName = credentials.ClientName,
                     Permissions = new List<string>(credentials.Permissions),
                     IsActive = credentials.IsActive,
-                    CreatedAt = allCredentials[credentials.ClientId].CreatedAt, // Preserve original creation time
+                    CreatedAt = allCredentials[credentials.ClientId].CreatedAt, // 保留原始创建时间 / Preserve original creation time
                     ExpiresAt = credentials.ExpiresAt
                 };
 
                 allCredentials[credentials.ClientId] = hashedCredentials;
                 SaveCredentialsToFile(allCredentials);
                 
-                // Update cache
+                // 更新缓存 / Update cache
                 _credentialsCache[credentials.ClientId] = hashedCredentials;
                 _lastCacheUpdate = DateTime.UtcNow;
             }
@@ -166,8 +184,10 @@ public class SecureCredentialStorage : ICredentialStorage
     }
 
     /// <summary>
-    /// Deletes client credentials
+    /// 删除客户端凭据 / Deletes client credentials
     /// </summary>
+    /// <param name="clientId">要删除的客户端ID / Client ID to delete</param>
+    /// <returns>删除成功返回true，失败返回false / Returns true if deleted successfully, false if failed</returns>
     public async Task<bool> DeleteCredentialsAsync(string clientId)
     {
         if (string.IsNullOrWhiteSpace(clientId))
@@ -187,7 +207,7 @@ public class SecureCredentialStorage : ICredentialStorage
 
                 SaveCredentialsToFile(allCredentials);
                 
-                // Remove from cache
+                // 从缓存中移除 / Remove from cache
                 _credentialsCache.Remove(clientId);
             }
 
@@ -202,8 +222,9 @@ public class SecureCredentialStorage : ICredentialStorage
     }
 
     /// <summary>
-    /// Lists all client IDs
+    /// 列出所有客户端ID / Lists all client IDs
     /// </summary>
+    /// <returns>客户端ID列表 / List of client IDs</returns>
     public async Task<List<string>> ListClientIdsAsync()
     {
         try
@@ -222,8 +243,10 @@ public class SecureCredentialStorage : ICredentialStorage
     }
 
     /// <summary>
-    /// Validates the integrity of the credential storage
+    /// 验证凭据存储的完整性 / Validates the integrity of the credential storage
+    /// 检查文件是否可以正确解密和读取 / Checks if file can be properly decrypted and read
     /// </summary>
+    /// <returns>验证通过返回true，失败返回false / Returns true if validation passes, false if failed</returns>
     public async Task<bool> ValidateStorageIntegrityAsync()
     {
         try
@@ -236,10 +259,10 @@ public class SecureCredentialStorage : ICredentialStorage
                     return true;
                 }
 
-                // Try to load and decrypt the file
+                // 尝试加载和解密文件 / Try to load and decrypt the file
                 var credentials = LoadCredentialsFromFile();
                 
-                // Validate each credential entry
+                // 验证每个凭据条目 / Validate each credential entry
                 foreach (var kvp in credentials)
                 {
                     var clientId = kvp.Key;
@@ -266,8 +289,10 @@ public class SecureCredentialStorage : ICredentialStorage
     }
 
     /// <summary>
-    /// Validates the configuration
+    /// 验证配置 / Validates the configuration
+    /// 检查必需的配置参数是否有效 / Checks if required configuration parameters are valid
     /// </summary>
+    /// <exception cref="ArgumentException">当配置无效时抛出 / Thrown when configuration is invalid</exception>
     private void ValidateConfiguration()
     {
         if (string.IsNullOrWhiteSpace(_config.CredentialsFilePath))
@@ -281,7 +306,8 @@ public class SecureCredentialStorage : ICredentialStorage
     }
 
     /// <summary>
-    /// Ensures the credentials directory exists
+    /// 确保凭据目录存在 / Ensures the credentials directory exists
+    /// 如果目录不存在则创建它 / Creates the directory if it doesn't exist
     /// </summary>
     private void EnsureCredentialsDirectoryExists()
     {
@@ -294,16 +320,20 @@ public class SecureCredentialStorage : ICredentialStorage
     }
 
     /// <summary>
-    /// Checks if the cache is still valid
+    /// 检查缓存是否仍然有效 / Checks if the cache is still valid
     /// </summary>
+    /// <returns>缓存有效返回true，否则返回false / Returns true if cache is valid, false otherwise</returns>
     private bool IsCacheValid()
     {
         return DateTime.UtcNow - _lastCacheUpdate < _cacheExpiry;
     }
 
     /// <summary>
-    /// Loads credentials from the encrypted file
+    /// 从加密文件加载凭据 / Loads credentials from the encrypted file
+    /// 解密文件内容并反序列化为凭据字典 / Decrypts file content and deserializes to credentials dictionary
     /// </summary>
+    /// <returns>凭据字典 / Dictionary of credentials</returns>
+    /// <exception cref="InvalidOperationException">当加载失败时抛出 / Thrown when loading fails</exception>
     private Dictionary<string, ClientCredentials> LoadCredentialsFromFile()
     {
         if (!File.Exists(_config.CredentialsFilePath))
@@ -320,7 +350,7 @@ public class SecureCredentialStorage : ICredentialStorage
             
             var credentials = JsonSerializer.Deserialize<Dictionary<string, ClientCredentials>>(json);
             
-            // Update cache
+            // 更新缓存 / Update cache
             _credentialsCache.Clear();
             if (credentials != null)
             {
@@ -341,8 +371,11 @@ public class SecureCredentialStorage : ICredentialStorage
     }
 
     /// <summary>
-    /// Saves credentials to the encrypted file
+    /// 将凭据保存到加密文件 / Saves credentials to the encrypted file
+    /// 序列化凭据字典并加密保存到文件 / Serializes credentials dictionary and saves encrypted to file
     /// </summary>
+    /// <param name="credentials">要保存的凭据字典 / Dictionary of credentials to save</param>
+    /// <exception cref="InvalidOperationException">当保存失败时抛出 / Thrown when saving fails</exception>
     private void SaveCredentialsToFile(Dictionary<string, ClientCredentials> credentials)
     {
         try
@@ -355,11 +388,11 @@ public class SecureCredentialStorage : ICredentialStorage
             var data = Encoding.UTF8.GetBytes(json);
             var encryptedData = EncryptData(data);
             
-            // Write to temporary file first, then move to avoid corruption
+            // 先写入临时文件，然后移动以避免损坏 / Write to temporary file first, then move to avoid corruption
             var tempFile = _config.CredentialsFilePath + ".tmp";
             File.WriteAllBytes(tempFile, encryptedData);
             
-            // Atomic move
+            // 原子移动 / Atomic move
             if (File.Exists(_config.CredentialsFilePath))
             {
                 File.Delete(_config.CredentialsFilePath);
@@ -376,8 +409,11 @@ public class SecureCredentialStorage : ICredentialStorage
     }
 
     /// <summary>
-    /// Encrypts data using AES encryption
+    /// 使用AES加密数据 / Encrypts data using AES encryption
+    /// 生成随机IV并将其添加到加密数据的开头 / Generates random IV and prepends it to encrypted data
     /// </summary>
+    /// <param name="data">要加密的数据 / Data to encrypt</param>
+    /// <returns>加密后的数据 / Encrypted data</returns>
     private byte[] EncryptData(byte[] data)
     {
         using var aes = Aes.Create();
@@ -387,7 +423,7 @@ public class SecureCredentialStorage : ICredentialStorage
         using var encryptor = aes.CreateEncryptor();
         using var msEncrypt = new MemoryStream();
         
-        // Write IV first
+        // 首先写入IV / Write IV first
         msEncrypt.Write(aes.IV, 0, aes.IV.Length);
         
         using (var csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
@@ -397,27 +433,24 @@ public class SecureCredentialStorage : ICredentialStorage
 
         var encryptedData = msEncrypt.ToArray();
         
-        // Note: Windows DPAPI is disabled for cross-platform compatibility
+        // 注意：为了跨平台兼容性，禁用了Windows DPAPI / Note: Windows DPAPI is disabled for cross-platform compatibility
         return encryptedData;
     }
 
     /// <summary>
-    /// Decrypts data using AES decryption
+    /// 使用AES解密数据 / Decrypts data using AES decryption
+    /// 从数据开头提取IV并用于解密 / Extracts IV from beginning of data and uses it for decryption
     /// </summary>
+    /// <param name="encryptedData">要解密的加密数据 / Encrypted data to decrypt</param>
+    /// <returns>解密后的数据 / Decrypted data</returns>
     private byte[] DecryptData(byte[] encryptedData)
     {
-        // Note: Windows DPAPI is disabled for cross-platform compatibility
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //         _logger.LogWarning(ex, "Failed to remove Windows DPAPI protection, assuming AES-only encryption");
-        //     }
-        // }
+        // 注意：为了跨平台兼容性，禁用了Windows DPAPI / Note: Windows DPAPI is disabled for cross-platform compatibility
 
         using var aes = Aes.Create();
         aes.Key = DeriveKey(_config.EncryptionKey);
 
-        // Extract IV from the beginning of the data
+        // 从数据开头提取IV / Extract IV from the beginning of the data
         var iv = new byte[aes.IV.Length];
         Array.Copy(encryptedData, 0, iv, 0, iv.Length);
         aes.IV = iv;
@@ -432,8 +465,11 @@ public class SecureCredentialStorage : ICredentialStorage
     }
 
     /// <summary>
-    /// Derives a 256-bit key from the encryption key string
+    /// 从加密密钥字符串派生256位密钥 / Derives a 256-bit key from the encryption key string
+    /// 使用SHA256哈希算法生成固定长度的密钥 / Uses SHA256 hash algorithm to generate fixed-length key
     /// </summary>
+    /// <param name="key">加密密钥字符串 / Encryption key string</param>
+    /// <returns>派生的256位密钥 / Derived 256-bit key</returns>
     private byte[] DeriveKey(string key)
     {
         using var sha256 = SHA256.Create();

@@ -5,17 +5,33 @@ using System.ServiceProcess;
 
 namespace MySqlBackupTool.Shared.Services;
 
+/// <summary>
+/// Windows服务检查器实现 / Windows service checker implementation
+/// 提供服务状态检查、权限验证、依赖关系分析和备份建议功能 / Provides service status checking, permission validation, dependency analysis, and backup advice
+/// </summary>
 public class ServiceChecker : IServiceChecker
 {
     private readonly ILogger<ServiceChecker> _logger;
     private readonly IMemoryProfiler _memoryProfiler;
 
+    /// <summary>
+    /// 构造函数，初始化服务检查器 / Constructor, initializes service checker
+    /// </summary>
+    /// <param name="logger">日志服务 / Logger service</param>
+    /// <param name="memoryProfiler">内存分析器（可选） / Memory profiler (optional)</param>
     public ServiceChecker(ILogger<ServiceChecker> logger, IMemoryProfiler memoryProfiler = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _memoryProfiler = memoryProfiler;
     }
 
+    /// <summary>
+    /// 异步检查指定服务的状态和属性 / Asynchronously checks the status and properties of specified service
+    /// 检查服务是否存在、状态、权限、依赖关系并生成备份建议 / Checks if service exists, status, permissions, dependencies and generates backup advice
+    /// </summary>
+    /// <param name="serviceName">服务名称 / Service name</param>
+    /// <returns>服务检查结果 / Service check result</returns>
+    /// <exception cref="ArgumentException">当服务名称为空时抛出 / Thrown when service name is empty</exception>
     public async Task<ServiceCheckResult> CheckServiceAsync(string serviceName)
     {
         if (string.IsNullOrWhiteSpace(serviceName))
@@ -80,6 +96,11 @@ public class ServiceChecker : IServiceChecker
         return result;
     }
 
+    /// <summary>
+    /// 列出系统中所有MySQL相关服务 / Lists all MySQL-related services in the system
+    /// 扫描所有Windows服务，筛选出MySQL和MariaDB相关的服务 / Scans all Windows services and filters MySQL and MariaDB related services
+    /// </summary>
+    /// <returns>MySQL服务信息列表 / List of MySQL service information</returns>
     public async Task<List<ServiceInfo>> ListMySQLServicesAsync()
     {
         var services = new List<ServiceInfo>();
@@ -122,6 +143,11 @@ public class ServiceChecker : IServiceChecker
         return services.OrderBy(s => s.ServiceName).ToList();
     }
 
+    /// <summary>
+    /// 检查指定服务是否存在 / Checks if specified service exists
+    /// </summary>
+    /// <param name="serviceName">服务名称 / Service name</param>
+    /// <returns>如果服务存在返回true，否则返回false / Returns true if service exists, false otherwise</returns>
     public async Task<bool> ServiceExistsAsync(string serviceName)
     {
         try
@@ -135,6 +161,11 @@ public class ServiceChecker : IServiceChecker
         }
     }
 
+    /// <summary>
+    /// 获取指定服务的当前状态 / Gets the current status of specified service
+    /// </summary>
+    /// <param name="serviceName">服务名称 / Service name</param>
+    /// <returns>服务状态，服务不存在时返回null / Service status, null if service doesn't exist</returns>
     public async Task<ServiceControllerStatus?> GetServiceStatusAsync(string serviceName)
     {
         try
@@ -148,6 +179,12 @@ public class ServiceChecker : IServiceChecker
         }
     }
 
+    /// <summary>
+    /// 检查是否有权限控制指定服务 / Checks if has permission to control specified service
+    /// 尝试访问服务的控制属性来验证权限 / Attempts to access service control properties to verify permissions
+    /// </summary>
+    /// <param name="serviceName">服务名称 / Service name</param>
+    /// <returns>如果有权限返回true，否则返回false / Returns true if has permission, false otherwise</returns>
     public async Task<bool> HasPermissionToControlServiceAsync(string serviceName)
     {
         try
@@ -170,6 +207,12 @@ public class ServiceChecker : IServiceChecker
         }
     }
 
+    /// <summary>
+    /// 检查服务是否可以被停止 / Checks if service can be stopped
+    /// 验证服务是否支持停止操作且当前正在运行 / Verifies if service supports stop operation and is currently running
+    /// </summary>
+    /// <param name="serviceName">服务名称 / Service name</param>
+    /// <returns>如果可以停止返回true，否则返回false / Returns true if can be stopped, false otherwise</returns>
     public async Task<bool> CanServiceBeStoppedAsync(string serviceName)
     {
         try
@@ -186,6 +229,12 @@ public class ServiceChecker : IServiceChecker
         }
     }
 
+    /// <summary>
+    /// 获取服务的详细信息 / Gets detailed information of service
+    /// 包括服务能力、依赖关系等详细属性 / Includes service capabilities, dependencies and other detailed properties
+    /// </summary>
+    /// <param name="serviceName">服务名称 / Service name</param>
+    /// <returns>服务详细信息，服务不存在时返回null / Service detail information, null if service doesn't exist</returns>
     public async Task<ServiceDetailInfo?> GetServiceDetailAsync(string serviceName)
     {
         try

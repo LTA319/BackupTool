@@ -8,13 +8,19 @@ using System.Text;
 namespace MySqlBackupTool.Shared.Services;
 
 /// <summary>
-/// Service for validating service registration and configuration during application startup
+/// 应用程序启动期间验证服务注册和配置的服务 / Service for validating service registration and configuration during application startup
+/// 提供依赖注入容器中服务的解析验证、配置检查和详细错误分析 / Provides service resolution validation, configuration checking, and detailed error analysis for dependency injection container
 /// </summary>
 public class StartupValidationService
 {
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IServiceProvider _serviceProvider; // 服务提供者 / Service provider
     private readonly ILogger<StartupValidationService> _logger;
 
+    /// <summary>
+    /// 构造函数，初始化启动验证服务 / Constructor, initializes startup validation service
+    /// </summary>
+    /// <param name="serviceProvider">依赖注入服务提供者 / Dependency injection service provider</param>
+    /// <param name="logger">日志服务 / Logger service</param>
     public StartupValidationService(IServiceProvider serviceProvider, ILogger<StartupValidationService> logger)
     {
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
@@ -22,8 +28,10 @@ public class StartupValidationService
     }
 
     /// <summary>
-    /// Validates all required services can be resolved and logs configuration status
+    /// 验证所有必需的服务是否可以解析并记录配置状态 / Validates all required services can be resolved and logs configuration status
+    /// 执行核心服务、HTTP客户端、配置服务、存储库服务和业务服务的全面验证 / Performs comprehensive validation of core services, HTTP clients, configuration services, repository services, and business services
     /// </summary>
+    /// <returns>启动验证结果，包含成功和失败的服务列表 / Startup validation result containing lists of successful and failed services</returns>
     public async Task<StartupValidationResult> ValidateServicesAsync()
     {
         var stopwatch = Stopwatch.StartNew();
@@ -86,8 +94,11 @@ public class StartupValidationService
     }
 
     /// <summary>
-    /// Validates core infrastructure services
+    /// 验证核心基础设施服务 / Validates core infrastructure services
+    /// 包括日志服务、数据库上下文、迁移服务、内存分析器、加密服务和验证服务 / Includes logging services, database context, migration service, memory profiler, encryption service, and validation service
     /// </summary>
+    /// <param name="result">验证结果对象 / Validation result object</param>
+    /// <returns>异步任务 / Async task</returns>
     private async Task ValidateCoreServicesAsync(StartupValidationResult result)
     {
         _logger.LogDebug("Validating core infrastructure services...");
@@ -114,8 +125,11 @@ public class StartupValidationService
     }
 
     /// <summary>
-    /// Validates HTTP client and alerting services
+    /// 验证HTTP客户端和警报服务 / Validates HTTP client and alerting services
+    /// 包括HttpClientFactory、AlertingConfig和AlertingService的配置和依赖关系验证 / Includes configuration and dependency validation for HttpClientFactory, AlertingConfig, and AlertingService
     /// </summary>
+    /// <param name="result">验证结果对象 / Validation result object</param>
+    /// <returns>异步任务 / Async task</returns>
     private async Task ValidateHttpClientServicesAsync(StartupValidationResult result)
     {
         _logger.LogDebug("Validating HTTP client and alerting services...");
@@ -185,8 +199,11 @@ public class StartupValidationService
     }
 
     /// <summary>
-    /// Validates configuration services
+    /// 验证配置服务 / Validates configuration services
+    /// 包括错误恢复配置和SSL配置的验证 / Includes validation of error recovery configuration and SSL configuration
     /// </summary>
+    /// <param name="result">验证结果对象 / Validation result object</param>
+    /// <returns>异步任务 / Async task</returns>
     private async Task ValidateConfigurationServicesAsync(StartupValidationResult result)
     {
         _logger.LogDebug("Validating configuration services...");
@@ -231,8 +248,11 @@ public class StartupValidationService
     }
 
     /// <summary>
-    /// Validates repository services
+    /// 验证存储库服务 / Validates repository services
+    /// 包括所有数据访问存储库的依赖注入验证 / Includes dependency injection validation for all data access repositories
     /// </summary>
+    /// <param name="result">验证结果对象 / Validation result object</param>
+    /// <returns>异步任务 / Async task</returns>
     private async Task ValidateRepositoryServicesAsync(StartupValidationResult result)
     {
         _logger.LogDebug("Validating repository services...");
@@ -245,8 +265,11 @@ public class StartupValidationService
     }
 
     /// <summary>
-    /// Validates business services
+    /// 验证业务服务 / Validates business services
+    /// 包括备份、保留策略、网络重试、身份验证和错误恢复等业务逻辑服务 / Includes business logic services for backup, retention policies, network retry, authentication, and error recovery
     /// </summary>
+    /// <param name="result">验证结果对象 / Validation result object</param>
+    /// <returns>异步任务 / Async task</returns>
     private async Task ValidateBusinessServicesAsync(StartupValidationResult result)
     {
         _logger.LogDebug("Validating business services...");
