@@ -72,6 +72,20 @@ public class BackupConfiguration : IValidatableObject
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>
+    /// 客户端标识符，用于身份验证
+    /// </summary>
+    [Required(ErrorMessage = "Client ID is required")]
+    [StringLength(100, MinimumLength = 1, ErrorMessage = "Client ID must be between 1 and 100 characters")]
+    public string ClientId { get; set; } = "default-client";
+
+    /// <summary>
+    /// 客户端密钥，用于身份验证
+    /// </summary>
+    [Required(ErrorMessage = "Client Secret is required")]
+    [StringLength(200, MinimumLength = 1, ErrorMessage = "Client Secret must be between 1 and 200 characters")]
+    public string ClientSecret { get; set; } = "default-secret-2024";
+
+    /// <summary>
     /// 对备份配置执行自定义验证逻辑
     /// </summary>
     /// <param name="validationContext">验证上下文</param>
@@ -181,5 +195,15 @@ public class BackupConfiguration : IValidatableObject
         }
 
         return (errors.Count == 0, errors);
+    }
+
+    /// <summary>
+    /// 验证此配置是否具有有效的身份验证凭据
+    /// </summary>
+    /// <returns>如果凭据有效则返回true，否则返回false</returns>
+    public bool HasValidCredentials()
+    {
+        return !string.IsNullOrWhiteSpace(ClientId) && 
+               !string.IsNullOrWhiteSpace(ClientSecret);
     }
 }

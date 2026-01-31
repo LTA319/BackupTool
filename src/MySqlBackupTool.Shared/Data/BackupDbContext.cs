@@ -113,6 +113,10 @@ public class BackupDbContext : DbContext
             entity.Property(e => e.TargetDirectory).IsRequired().HasMaxLength(500);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("datetime('now')");
 
+            // 配置身份验证字段约束
+            entity.Property(e => e.ClientId).IsRequired().HasMaxLength(100).HasDefaultValue("default-client");
+            entity.Property(e => e.ClientSecret).IsRequired().HasMaxLength(200).HasDefaultValue("default-secret-2024");
+
             // 将复杂对象序列化为JSON存储
             // MySQL连接信息作为JSON字段存储，便于灵活扩展
             entity.Property(e => e.MySQLConnection)

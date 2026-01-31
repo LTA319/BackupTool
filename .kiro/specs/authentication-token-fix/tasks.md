@@ -25,19 +25,19 @@ This implementation plan addresses the authentication token failure issue by enh
     - **Property 10: Credential storage interface completeness**
     - **Validates: Requirements 3.3**
 
-- [ ] 2. Update BackupConfiguration model
-  - [ ] 2.1 Add authentication properties to BackupConfiguration
+- [x] 2. Update BackupConfiguration model
+  - [x] 2.1 Add authentication properties to BackupConfiguration
     - Add ClientId and ClientSecret properties with default values
     - Add HasValidCredentials validation method
     - Update model in MySqlBackupTool.Shared/Models/
     - _Requirements: 6.1, 6.4_
   
-  - [ ] 2.2 Update database schema and Entity Framework configuration
+  - [x] 2.2 Update database schema and Entity Framework configuration
     - Add migration for new authentication fields
     - Update BackupDbContext configuration
     - _Requirements: 6.5_
   
-  - [ ] 2.3 Write property test for configuration model completeness
+  - [x] 2.3 Write property test for configuration model completeness
     - **Property 9: Configuration model completeness**
     - **Validates: Requirements 6.1, 6.2, 6.4**
 
