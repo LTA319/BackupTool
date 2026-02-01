@@ -1,10 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net8.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
 
   <ItemGroup>
@@ -33,6 +34,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\MySqlBackupTool.Shared\MySqlBackupTool.Shared.csproj" />
+    <ProjectReference Include="..\..\src\MySqlBackupTool.Client\MySqlBackupTool.Client.csproj" />
   </ItemGroup>
 
 </Project>

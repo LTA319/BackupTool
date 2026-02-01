@@ -428,6 +428,228 @@ public partial class BackupMonitorForm : Form
         return $"{len:0.##} {sizes[order]}";
     }
 
+    /// <summary>
+    /// 将异常转换为用户友好的错误消息
+    /// 特别处理身份验证相关的错误，提供清晰的解决建议
+    /// </summary>
+    /// <param name="exception">发生的异常</param>
+    /// <returns>用户友好的错误消息</returns>
+    private string GetUserFriendlyErrorMessage(Exception exception)
+    {
+        // Check for authentication-related error messages
+        var message = exception.Message;
+        var innerMessage = exception.InnerException?.Message ?? "";
+        var fullMessage = $"{message} {innerMessage}".ToLower();
+
+        // Handle authentication token failures
+        if (fullMessage.Contains("authentication token") || 
+            fullMessage.Contains("failed to obtain authentication token") ||
+            fullMessage.Contains("备份失败，failed to obtain authentication token"))
+        {
+            return "身份验证失败：无法获取身份验证令牌。\n\n" +
+                   "可能的原因：\n" +
+                   "• 客户端凭据配置不正确\n" +
+                   "• 服务器连接问题\n" +
+                   "• 默认凭据未正确初始化\n\n" +
+                   "建议解决方案：\n" +
+                   "• 检查备份配置中的客户端ID和密钥设置\n" +
+                   "• 确认服务器正在运行并可访问\n" +
+                   "• 重新启动应用程序以重新初始化默认凭据";
+        }
+
+        // Handle invalid credentials
+        if (fullMessage.Contains("invalid credentials") || 
+            fullMessage.Contains("authentication failed") ||
+            fullMessage.Contains("凭据无效") ||
+            fullMessage.Contains("身份验证失败"))
+        {
+            return "身份验证失败：提供的凭据无效。\n\n" +
+                   "可能的原因：\n" +
+                   "• 客户端ID或密钥不正确\n" +
+                   "• 凭据已过期或被禁用\n" +
+                   "• 服务器端凭据存储问题\n\n" +
+                   "建议解决方案：\n" +
+                   "• 验证备份配置中的客户端凭据\n" +
+                   "• 联系系统管理员检查服务器端凭据设置\n" +
+                   "• 尝试使用默认凭据重新配置";
+        }
+
+        // Handle malformed token errors
+        if (fullMessage.Contains("malformed") || 
+            fullMessage.Contains("invalid token format") ||
+            fullMessage.Contains("token format") ||
+            fullMessage.Contains("令牌格式"))
+        {
+            return "身份验证失败：令牌格式错误。\n\n" +
+                   "这是一个系统内部错误，可能的原因：\n" +
+                   "• 凭据编码过程中出现问题\n" +
+                   "• 客户端和服务器版本不兼容\n\n" +
+                   "建议解决方案：\n" +
+                   "• 重新启动客户端应用程序\n" +
+                   "• 检查客户端和服务器是否为相同版本\n" +
+                   "• 如果问题持续，请联系技术支持";
+        }
+
+        // Handle connection/network errors
+        if (fullMessage.Contains("connection") || 
+            fullMessage.Contains("network") ||
+            fullMessage.Contains("timeout") ||
+            fullMessage.Contains("连接") ||
+            fullMessage.Contains("网络") ||
+            fullMessage.Contains("超时"))
+        {
+            return "连接错误：无法连接到备份服务器。\n\n" +
+                   "可能的原因：\n" +
+                   "• 服务器未运行或不可访问\n" +
+                   "• 网络连接问题\n" +
+                   "• 防火墙阻止连接\n\n" +
+                   "建议解决方案：\n" +
+                   "• 确认备份服务器正在运行\n" +
+                   "• 检查网络连接和服务器地址配置\n" +
+                   "• 验证防火墙设置允许连接";
+        }
+
+        // Handle permission errors
+        if (fullMessage.Contains("permission") || 
+            fullMessage.Contains("unauthorized") ||
+            fullMessage.Contains("access denied") ||
+            fullMessage.Contains("权限") ||
+            fullMessage.Contains("未授权") ||
+            fullMessage.Contains("访问被拒绝"))
+        {
+            return "权限错误：没有执行此操作的权限。\n\n" +
+                   "可能的原因：\n" +
+                   "• 客户端权限不足\n" +
+                   "• 目标目录访问权限问题\n" +
+                   "• 服务器端权限配置错误\n\n" +
+                   "建议解决方案：\n" +
+                   "• 联系系统管理员检查客户端权限\n" +
+                   "• 确认目标备份目录的访问权限\n" +
+                   "• 尝试以管理员身份运行应用程序";
+        }
+
+        // For other errors, return the original message with some context
+        return $"操作失败：{exception.Message}\n\n" +
+               "如果问题持续存在，请：\n" +
+               "• 检查应用程序日志获取详细信息\n" +
+               "• 确认所有服务正常运行\n" +
+               "• 联系技术支持获取帮助";
+    }
+
+    /// <summary>
+    /// 将备份结果错误消息转换为用户友好的错误消息
+    /// 特别处理身份验证相关的错误，提供清晰的解决建议
+    /// </summary>
+    /// <param name="errorMessage">备份操作的错误消息</param>
+    /// <returns>用户友好的错误消息</returns>
+    private string GetUserFriendlyBackupErrorMessage(string? errorMessage)
+    {
+        if (string.IsNullOrEmpty(errorMessage))
+        {
+            return "备份操作失败，但未提供具体错误信息。\n\n" +
+                   "建议解决方案：\n" +
+                   "• 检查应用程序日志获取详细信息\n" +
+                   "• 确认备份服务器正常运行\n" +
+                   "• 验证备份配置设置";
+        }
+
+        var message = errorMessage.ToLower();
+
+        // Handle authentication token failures
+        if (message.Contains("authentication token") || 
+            message.Contains("failed to obtain authentication token") ||
+            message.Contains("备份失败，failed to obtain authentication token"))
+        {
+            return "身份验证失败：无法获取身份验证令牌。\n\n" +
+                   "可能的原因：\n" +
+                   "• 客户端凭据配置不正确\n" +
+                   "• 服务器连接问题\n" +
+                   "• 默认凭据未正确初始化\n\n" +
+                   "建议解决方案：\n" +
+                   "• 检查备份配置中的客户端ID和密钥设置\n" +
+                   "• 确认服务器正在运行并可访问\n" +
+                   "• 重新启动应用程序以重新初始化默认凭据";
+        }
+
+        // Handle invalid credentials
+        if (message.Contains("invalid credentials") || 
+            message.Contains("authentication failed") ||
+            message.Contains("凭据无效") ||
+            message.Contains("身份验证失败"))
+        {
+            return "身份验证失败：提供的凭据无效。\n\n" +
+                   "可能的原因：\n" +
+                   "• 客户端ID或密钥不正确\n" +
+                   "• 凭据已过期或被禁用\n" +
+                   "• 服务器端凭据存储问题\n\n" +
+                   "建议解决方案：\n" +
+                   "• 验证备份配置中的客户端凭据\n" +
+                   "• 联系系统管理员检查服务器端凭据设置\n" +
+                   "• 尝试使用默认凭据重新配置";
+        }
+
+        // Handle malformed token errors
+        if (message.Contains("malformed") || 
+            message.Contains("invalid token format") ||
+            message.Contains("token format") ||
+            message.Contains("令牌格式"))
+        {
+            return "身份验证失败：令牌格式错误。\n\n" +
+                   "这是一个系统内部错误，可能的原因：\n" +
+                   "• 凭据编码过程中出现问题\n" +
+                   "• 客户端和服务器版本不兼容\n\n" +
+                   "建议解决方案：\n" +
+                   "• 重新启动客户端应用程序\n" +
+                   "• 检查客户端和服务器是否为相同版本\n" +
+                   "• 如果问题持续，请联系技术支持";
+        }
+
+        // Handle connection/network errors
+        if (message.Contains("connection") || 
+            message.Contains("network") ||
+            message.Contains("timeout") ||
+            message.Contains("连接") ||
+            message.Contains("网络") ||
+            message.Contains("超时"))
+        {
+            return "连接错误：无法连接到备份服务器。\n\n" +
+                   "可能的原因：\n" +
+                   "• 服务器未运行或不可访问\n" +
+                   "• 网络连接问题\n" +
+                   "• 防火墙阻止连接\n\n" +
+                   "建议解决方案：\n" +
+                   "• 确认备份服务器正在运行\n" +
+                   "• 检查网络连接和服务器地址配置\n" +
+                   "• 验证防火墙设置允许连接";
+        }
+
+        // Handle permission errors
+        if (message.Contains("permission") || 
+            message.Contains("unauthorized") ||
+            message.Contains("access denied") ||
+            message.Contains("权限") ||
+            message.Contains("未授权") ||
+            message.Contains("访问被拒绝"))
+        {
+            return "权限错误：没有执行此操作的权限。\n\n" +
+                   "可能的原因：\n" +
+                   "• 客户端权限不足\n" +
+                   "• 目标目录访问权限问题\n" +
+                   "• 服务器端权限配置错误\n\n" +
+                   "建议解决方案：\n" +
+                   "• 联系系统管理员检查客户端权限\n" +
+                   "• 确认目标备份目录的访问权限\n" +
+                   "• 尝试以管理员身份运行应用程序";
+        }
+
+        // For other errors, return the original message with some context
+        return $"备份失败：{errorMessage}\n\n" +
+               "如果问题持续存在，请：\n" +
+               "• 检查应用程序日志获取详细信息\n" +
+               "• 确认所有服务正常运行\n" +
+               "• 联系技术支持获取帮助";
+    }
+
     #endregion
 
     #region 事件处理程序
@@ -615,7 +837,9 @@ public partial class BackupMonitorForm : Form
                     lblStatus.Text = $"'{selectedConfig.Name}' 备份失败: {backupResult.ErrorMessage}";
                     lblStatus.ForeColor = Color.Red;
                     
-                    MessageBox.Show($"备份失败:\n\n{backupResult.ErrorMessage}", 
+                    // Handle authentication-specific errors in backup result
+                    var errorMessage = GetUserFriendlyBackupErrorMessage(backupResult.ErrorMessage);
+                    MessageBox.Show($"备份失败:\n\n{errorMessage}", 
                         "备份失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
@@ -633,7 +857,10 @@ public partial class BackupMonitorForm : Form
                 lblStatus.ForeColor = Color.Red;
                 
                 _logger.LogError(ex, "备份操作过程中发生错误");
-                MessageBox.Show($"备份错误:\n\n{ex.Message}", "备份错误", 
+                
+                // Handle authentication-specific errors with user-friendly messages
+                var errorMessage = GetUserFriendlyErrorMessage(ex);
+                MessageBox.Show($"备份错误:\n\n{errorMessage}", "备份错误", 
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             finally
