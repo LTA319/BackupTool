@@ -408,6 +408,172 @@ public class AuthenticationResult
 }
 
 /// <summary>
+/// 身份验证错误的标准化错误响应类
+/// 提供统一的错误格式和常见错误类型的工厂方法
+/// </summary>
+public class AuthenticationError
+{
+    /// <summary>
+    /// 错误代码，用于程序化处理
+    /// </summary>
+    public string ErrorCode { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 用户友好的错误消息
+    /// </summary>
+    public string Message { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 详细的错误描述或解决建议
+    /// </summary>
+    public string Details { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 错误发生的时间戳
+    /// </summary>
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// 私有构造函数，强制使用静态工厂方法
+    /// </summary>
+    private AuthenticationError() { }
+
+    /// <summary>
+    /// 创建客户端凭据缺失或无效的错误
+    /// </summary>
+    /// <returns>标准化的身份验证错误实例</returns>
+    public static AuthenticationError MissingCredentials()
+    {
+        return new AuthenticationError
+        {
+            ErrorCode = "AUTH_001",
+            Message = "Client credentials are missing or invalid",
+            Details = "Please check your backup configuration settings and ensure valid ClientId and ClientSecret are provided",
+            Timestamp = DateTime.UtcNow
+        };
+    }
+
+    /// <summary>
+    /// 创建身份验证令牌格式错误的错误
+    /// </summary>
+    /// <returns>标准化的身份验证错误实例</returns>
+    public static AuthenticationError InvalidToken()
+    {
+        return new AuthenticationError
+        {
+            ErrorCode = "AUTH_002",
+            Message = "Authentication token is malformed",
+            Details = "Token must be base64-encoded in the format 'clientId:clientSecret'",
+            Timestamp = DateTime.UtcNow
+        };
+    }
+
+    /// <summary>
+    /// 创建凭据验证失败的错误
+    /// </summary>
+    /// <returns>标准化的身份验证错误实例</returns>
+    public static AuthenticationError InvalidCredentials()
+    {
+        return new AuthenticationError
+        {
+            ErrorCode = "AUTH_003",
+            Message = "Authentication failed",
+            Details = "The provided credentials are not valid. Please verify your ClientId and ClientSecret",
+            Timestamp = DateTime.UtcNow
+        };
+    }
+
+    /// <summary>
+    /// 创建令牌过期的错误
+    /// </summary>
+    /// <returns>标准化的身份验证错误实例</returns>
+    public static AuthenticationError TokenExpired()
+    {
+        return new AuthenticationError
+        {
+            ErrorCode = "AUTH_004",
+            Message = "Authentication token has expired",
+            Details = "Please obtain a new authentication token and retry the operation",
+            Timestamp = DateTime.UtcNow
+        };
+    }
+
+    /// <summary>
+    /// 创建权限不足的错误
+    /// </summary>
+    /// <param name="requiredPermission">所需的权限</param>
+    /// <returns>标准化的身份验证错误实例</returns>
+    public static AuthenticationError InsufficientPermissions(string requiredPermission)
+    {
+        return new AuthenticationError
+        {
+            ErrorCode = "AUTH_005",
+            Message = "Insufficient permissions",
+            Details = $"This operation requires the '{requiredPermission}' permission",
+            Timestamp = DateTime.UtcNow
+        };
+    }
+
+    /// <summary>
+    /// 创建服务器内部错误
+    /// </summary>
+    /// <returns>标准化的身份验证错误实例</returns>
+    public static AuthenticationError ServerError()
+    {
+        return new AuthenticationError
+        {
+            ErrorCode = "AUTH_006",
+            Message = "Authentication service error",
+            Details = "An internal error occurred during authentication. Please try again later",
+            Timestamp = DateTime.UtcNow
+        };
+    }
+
+    /// <summary>
+    /// 创建客户端被锁定的错误
+    /// </summary>
+    /// <param name="lockoutDuration">锁定持续时间</param>
+    /// <returns>标准化的身份验证错误实例</returns>
+    public static AuthenticationError ClientLocked(TimeSpan lockoutDuration)
+    {
+        return new AuthenticationError
+        {
+            ErrorCode = "AUTH_007",
+            Message = "Client account is temporarily locked",
+            Details = $"Too many failed authentication attempts. Please try again in {lockoutDuration.TotalMinutes:F0} minutes",
+            Timestamp = DateTime.UtcNow
+        };
+    }
+
+    /// <summary>
+    /// 创建自定义身份验证错误
+    /// </summary>
+    /// <param name="errorCode">错误代码</param>
+    /// <param name="message">错误消息</param>
+    /// <param name="details">错误详情</param>
+    /// <returns>标准化的身份验证错误实例</returns>
+    public static AuthenticationError Custom(string errorCode, string message, string details)
+    {
+        return new AuthenticationError
+        {
+            ErrorCode = errorCode,
+            Message = message,
+            Details = details,
+            Timestamp = DateTime.UtcNow
+        };
+    }
+
+    /// <summary>
+    /// 将错误转换为字符串表示形式
+    /// </summary>
+    /// <returns>格式化的错误字符串</returns>
+    public override string ToString()
+    {
+        return $"[{ErrorCode}] {Message}: {Details}";
+    }
+}
+
+/// <summary>
 /// 备份系统的标准权限定义
 /// 定义了系统中所有可用的权限常量
 /// </summary>
