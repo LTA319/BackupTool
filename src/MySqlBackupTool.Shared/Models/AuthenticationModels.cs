@@ -346,6 +346,68 @@ public class AuthorizationContext
 }
 
 /// <summary>
+/// 身份验证操作的结果
+/// 用于表示身份验证操作的成功或失败状态
+/// </summary>
+public class AuthenticationResult
+{
+    /// <summary>
+    /// 身份验证是否成功
+    /// </summary>
+    public bool IsSuccess { get; private set; }
+
+    /// <summary>
+    /// 验证成功时的客户端标识符
+    /// </summary>
+    public string? ClientId { get; private set; }
+
+    /// <summary>
+    /// 验证失败时的错误消息
+    /// </summary>
+    public string? ErrorMessage { get; private set; }
+
+    /// <summary>
+    /// 验证操作的时间戳
+    /// </summary>
+    public DateTime Timestamp { get; private set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// 私有构造函数，强制使用静态工厂方法
+    /// </summary>
+    private AuthenticationResult() { }
+
+    /// <summary>
+    /// 创建成功的身份验证结果
+    /// </summary>
+    /// <param name="clientId">验证成功的客户端标识符</param>
+    /// <returns>表示成功的AuthenticationResult实例</returns>
+    public static AuthenticationResult Success(string clientId)
+    {
+        return new AuthenticationResult
+        {
+            IsSuccess = true,
+            ClientId = clientId,
+            ErrorMessage = null
+        };
+    }
+
+    /// <summary>
+    /// 创建失败的身份验证结果
+    /// </summary>
+    /// <param name="errorMessage">描述失败原因的错误消息</param>
+    /// <returns>表示失败的AuthenticationResult实例</returns>
+    public static AuthenticationResult Failure(string errorMessage)
+    {
+        return new AuthenticationResult
+        {
+            IsSuccess = false,
+            ClientId = null,
+            ErrorMessage = errorMessage
+        };
+    }
+}
+
+/// <summary>
 /// 备份系统的标准权限定义
 /// 定义了系统中所有可用的权限常量
 /// </summary>

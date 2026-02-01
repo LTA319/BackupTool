@@ -17,6 +17,7 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
     private readonly ILogger<AuthenticatedFileTransferClient> _logger;
     private readonly IAuthenticationService _authenticationService;
     private readonly IChecksumService _checksumService;
+    private readonly ISecureCredentialStorage _credentialStorage;
     private string? _currentAuthToken;
     private DateTime _tokenExpiresAt = DateTime.MinValue;
 
@@ -26,14 +27,17 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
     /// <param name="logger">日志记录器 / Logger instance</param>
     /// <param name="authenticationService">身份验证服务 / Authentication service</param>
     /// <param name="checksumService">校验和服务 / Checksum service</param>
+    /// <param name="credentialStorage">凭据存储服务 / Credential storage service</param>
     public AuthenticatedFileTransferClient(
         ILogger<AuthenticatedFileTransferClient> logger,
         IAuthenticationService authenticationService,
-        IChecksumService checksumService)
+        IChecksumService checksumService,
+        ISecureCredentialStorage credentialStorage)
     {
         _logger = logger;
         _authenticationService = authenticationService ?? throw new ArgumentNullException(nameof(authenticationService));
         _checksumService = checksumService ?? throw new ArgumentNullException(nameof(checksumService));
+        _credentialStorage = credentialStorage ?? throw new ArgumentNullException(nameof(credentialStorage));
     }
 
     /// <summary>
@@ -68,13 +72,35 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
             }
 
             // 确保我们有有效的身份验证令牌 / Ensure we have a valid authentication token
-            var authToken = await EnsureValidAuthTokenAsync(config.TargetServer);
-            if (string.IsNullOrEmpty(authToken))
+            string authToken;
+            try
+            {
+                authToken = await CreateAuthenticationTokenAsync(config);
+                if (string.IsNullOrEmpty(authToken))
+                {
+                    return new TransferResult
+                    {
+                        Success = false,
+                        ErrorMessage = "Failed to obtain authentication token - please check your credentials configuration",
+                        Duration = DateTime.UtcNow - startTime
+                    };
+                }
+            }
+            catch (ArgumentException ex)
             {
                 return new TransferResult
                 {
                     Success = false,
-                    ErrorMessage = "Failed to obtain authentication token",
+                    ErrorMessage = $"Authentication configuration error: {ex.Message}",
+                    Duration = DateTime.UtcNow - startTime
+                };
+            }
+            catch (InvalidOperationException ex)
+            {
+                return new TransferResult
+                {
+                    Success = false,
+                    ErrorMessage = $"Authentication system error: {ex.Message}",
                     Duration = DateTime.UtcNow - startTime
                 };
             }
@@ -171,13 +197,35 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
                 filePath, resumeToken);
 
             // 确保我们有有效的身份验证令牌 / Ensure we have a valid authentication token
-            var authToken = await EnsureValidAuthTokenAsync(config.TargetServer);
-            if (string.IsNullOrEmpty(authToken))
+            string authToken;
+            try
+            {
+                authToken = await CreateAuthenticationTokenAsync(config);
+                if (string.IsNullOrEmpty(authToken))
+                {
+                    return new TransferResult
+                    {
+                        Success = false,
+                        ErrorMessage = "Failed to obtain authentication token for resume - please check your credentials configuration",
+                        Duration = DateTime.UtcNow - startTime
+                    };
+                }
+            }
+            catch (ArgumentException ex)
             {
                 return new TransferResult
                 {
                     Success = false,
-                    ErrorMessage = "Failed to obtain authentication token for resume",
+                    ErrorMessage = $"Authentication configuration error during resume: {ex.Message}",
+                    Duration = DateTime.UtcNow - startTime
+                };
+            }
+            catch (InvalidOperationException ex)
+            {
+                return new TransferResult
+                {
+                    Success = false,
+                    ErrorMessage = $"Authentication system error during resume: {ex.Message}",
                     Duration = DateTime.UtcNow - startTime
                 };
             }
@@ -228,6 +276,215 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
     }
 
     /// <summary>
+    /// 创建身份验证令牌 / Creates an authentication token
+    /// 从配置中检索凭据，如果缺失则使用默认凭据，然后创建base64编码的令牌
+    /// Retrieves credentials from configuration, falls back to default credentials if missing, then creates base64-encoded token
+    /// </summary>
+    /// <param name="config">传输配置 / Transfer configuration</param>
+    /// <returns>Base64编码的身份验证令牌 / Base64-encoded authentication token</returns>
+    public async Task<string?> CreateAuthenticationTokenAsync(TransferConfig config)
+    {
+        if (config?.TargetServer == null)
+        {
+            const string errorMsg = "Transfer configuration or target server is null - cannot create authentication token";
+            _logger.LogError(errorMsg);
+            throw new ArgumentException(errorMsg, nameof(config));
+        }
+
+        try
+        {
+            string clientId;
+            string clientSecret;
+
+            // Check if configuration has valid credentials
+            if (config.TargetServer.ClientCredentials != null && 
+                !string.IsNullOrWhiteSpace(config.TargetServer.ClientCredentials.ClientId) &&
+                !string.IsNullOrWhiteSpace(config.TargetServer.ClientCredentials.ClientSecret))
+            {
+                clientId = config.TargetServer.ClientCredentials.ClientId;
+                clientSecret = config.TargetServer.ClientCredentials.ClientSecret;
+                _logger.LogDebug("Using credentials from configuration for client {ClientId}", clientId);
+            }
+            else
+            {
+                // Fallback to default credentials
+                _logger.LogDebug("Configuration missing credentials, falling back to default credentials");
+                
+                // Ensure default credentials exist
+                var defaultsExist = await _credentialStorage.EnsureDefaultCredentialsExistAsync();
+                if (!defaultsExist)
+                {
+                    const string errorMsg = "Failed to ensure default credentials exist in the system";
+                    _logger.LogError(errorMsg);
+                    throw new InvalidOperationException(errorMsg);
+                }
+
+                var defaultCredentials = await _credentialStorage.GetDefaultCredentialsAsync();
+                
+                if (defaultCredentials == null)
+                {
+                    const string errorMsg = "No default credentials found and configuration credentials are missing. Please check your authentication configuration.";
+                    _logger.LogError(errorMsg);
+                    throw new InvalidOperationException(errorMsg);
+                }
+
+                if (string.IsNullOrWhiteSpace(defaultCredentials.ClientId) || 
+                    string.IsNullOrWhiteSpace(defaultCredentials.ClientSecret))
+                {
+                    const string errorMsg = "Default credentials are invalid (empty ClientId or ClientSecret). Please check your credential storage.";
+                    _logger.LogError(errorMsg);
+                    throw new InvalidOperationException(errorMsg);
+                }
+
+                clientId = defaultCredentials.ClientId;
+                clientSecret = defaultCredentials.ClientSecret;
+                _logger.LogDebug("Using default credentials for client {ClientId}", clientId);
+            }
+
+            // Validate credentials format
+            if (string.IsNullOrWhiteSpace(clientId))
+            {
+                const string errorMsg = "Client ID cannot be null or empty";
+                _logger.LogError(errorMsg);
+                throw new ArgumentException(errorMsg);
+            }
+
+            if (string.IsNullOrWhiteSpace(clientSecret))
+            {
+                const string errorMsg = "Client Secret cannot be null or empty";
+                _logger.LogError(errorMsg);
+                throw new ArgumentException(errorMsg);
+            }
+
+            if (clientId.Contains(':'))
+            {
+                const string errorMsg = "Client ID cannot contain colon (:) character as it conflicts with token format";
+                _logger.LogError(errorMsg + " for client {ClientId}", clientId);
+                throw new ArgumentException(errorMsg);
+            }
+
+            // Create base64-encoded token in format "clientId:clientSecret"
+            var credentials = $"{clientId}:{clientSecret}";
+            var token = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
+            
+            _logger.LogInformation("Successfully created authentication token for client {ClientId}", clientId);
+            return token;
+        }
+        catch (Exception ex) when (!(ex is ArgumentException || ex is InvalidOperationException))
+        {
+            const string errorMsg = "Unexpected error occurred while creating authentication token";
+            _logger.LogError(ex, errorMsg);
+            throw new InvalidOperationException(errorMsg, ex);
+        }
+    }
+
+    /// <summary>
+    /// 创建身份验证令牌（从BackupConfiguration） / Creates an authentication token from BackupConfiguration
+    /// 从备份配置中检索凭据，如果缺失则使用默认凭据，然后创建base64编码的令牌
+    /// Retrieves credentials from backup configuration, falls back to default credentials if missing, then creates base64-encoded token
+    /// </summary>
+    /// <param name="config">备份配置 / Backup configuration</param>
+    /// <returns>Base64编码的身份验证令牌 / Base64-encoded authentication token</returns>
+    public async Task<string?> CreateAuthenticationTokenAsync(BackupConfiguration config)
+    {
+        if (config == null)
+        {
+            const string errorMsg = "Backup configuration is null - cannot create authentication token";
+            _logger.LogError(errorMsg);
+            throw new ArgumentNullException(nameof(config), errorMsg);
+        }
+
+        try
+        {
+            string clientId;
+            string clientSecret;
+
+            // Check if configuration has valid credentials
+            if (config.HasValidCredentials())
+            {
+                clientId = config.ClientId;
+                clientSecret = config.ClientSecret;
+                _logger.LogDebug("Using credentials from backup configuration for client {ClientId}", clientId);
+            }
+            else
+            {
+                // Fallback to default credentials
+                _logger.LogDebug("Backup configuration missing credentials, falling back to default credentials");
+                
+                // Ensure default credentials exist
+                var defaultsExist = await _credentialStorage.EnsureDefaultCredentialsExistAsync();
+                if (!defaultsExist)
+                {
+                    const string errorMsg = "Failed to ensure default credentials exist in the system";
+                    _logger.LogError(errorMsg);
+                    throw new InvalidOperationException(errorMsg);
+                }
+
+                var defaultCredentials = await _credentialStorage.GetDefaultCredentialsAsync();
+                
+                if (defaultCredentials == null)
+                {
+                    const string errorMsg = "No default credentials found and backup configuration credentials are missing. Please check your authentication configuration.";
+                    _logger.LogError(errorMsg);
+                    throw new InvalidOperationException(errorMsg);
+                }
+
+                if (string.IsNullOrWhiteSpace(defaultCredentials.ClientId) || 
+                    string.IsNullOrWhiteSpace(defaultCredentials.ClientSecret))
+                {
+                    const string errorMsg = "Default credentials are invalid (empty ClientId or ClientSecret). Please check your credential storage.";
+                    _logger.LogError(errorMsg);
+                    throw new InvalidOperationException(errorMsg);
+                }
+
+                clientId = defaultCredentials.ClientId;
+                clientSecret = defaultCredentials.ClientSecret;
+                
+                // Update the configuration with default credentials for future use
+                config.ClientId = clientId;
+                config.ClientSecret = clientSecret;
+                
+                _logger.LogDebug("Using default credentials for client {ClientId}", clientId);
+            }
+
+            // Validate credentials format
+            if (string.IsNullOrWhiteSpace(clientId))
+            {
+                const string errorMsg = "Client ID cannot be null or empty";
+                _logger.LogError(errorMsg);
+                throw new ArgumentException(errorMsg);
+            }
+
+            if (string.IsNullOrWhiteSpace(clientSecret))
+            {
+                const string errorMsg = "Client Secret cannot be null or empty";
+                _logger.LogError(errorMsg);
+                throw new ArgumentException(errorMsg);
+            }
+
+            if (clientId.Contains(':'))
+            {
+                const string errorMsg = "Client ID cannot contain colon (:) character as it conflicts with token format";
+                _logger.LogError(errorMsg + " for client {ClientId}", clientId);
+                throw new ArgumentException(errorMsg);
+            }
+
+            // Create base64-encoded token in format "clientId:clientSecret"
+            var credentials = $"{clientId}:{clientSecret}";
+            var token = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
+            
+            _logger.LogInformation("Successfully created authentication token for client {ClientId}", clientId);
+            return token;
+        }
+        catch (Exception ex) when (!(ex is ArgumentException || ex is ArgumentNullException || ex is InvalidOperationException))
+        {
+            const string errorMsg = "Unexpected error occurred while creating authentication token from backup configuration";
+            _logger.LogError(ex, errorMsg);
+            throw new InvalidOperationException(errorMsg, ex);
+        }
+    }
+
+    /// <summary>
     /// 确保我们有有效的身份验证令牌 / Ensures we have a valid authentication token
     /// 检查现有令牌的有效性，如果需要则重新认证
     /// Checks validity of existing token and re-authenticates if needed
@@ -242,26 +499,87 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
         }
 
         // 需要进行身份验证 / Need to authenticate
-        if (serverEndpoint.ClientCredentials == null)
+        try
         {
-            _logger.LogError("No client credentials configured for server endpoint");
+            string clientId;
+            string clientSecret;
+
+            // Check if server endpoint has valid credentials
+            if (serverEndpoint.ClientCredentials != null && 
+                !string.IsNullOrWhiteSpace(serverEndpoint.ClientCredentials.ClientId) &&
+                !string.IsNullOrWhiteSpace(serverEndpoint.ClientCredentials.ClientSecret))
+            {
+                clientId = serverEndpoint.ClientCredentials.ClientId;
+                clientSecret = serverEndpoint.ClientCredentials.ClientSecret;
+                _logger.LogDebug("Using credentials from server endpoint for client {ClientId}", clientId);
+            }
+            else
+            {
+                // Fallback to default credentials
+                _logger.LogDebug("Server endpoint missing credentials, falling back to default credentials");
+                
+                // Ensure default credentials exist
+                var defaultsExist = await _credentialStorage.EnsureDefaultCredentialsExistAsync();
+                if (!defaultsExist)
+                {
+                    _logger.LogError("Failed to ensure default credentials exist in the system");
+                    return null;
+                }
+
+                var defaultCredentials = await _credentialStorage.GetDefaultCredentialsAsync();
+                
+                if (defaultCredentials == null)
+                {
+                    _logger.LogError("No default credentials found and server endpoint credentials are missing");
+                    return null;
+                }
+
+                if (string.IsNullOrWhiteSpace(defaultCredentials.ClientId) || 
+                    string.IsNullOrWhiteSpace(defaultCredentials.ClientSecret))
+                {
+                    _logger.LogError("Default credentials are invalid (empty ClientId or ClientSecret)");
+                    return null;
+                }
+
+                clientId = defaultCredentials.ClientId;
+                clientSecret = defaultCredentials.ClientSecret;
+                _logger.LogDebug("Using default credentials for client {ClientId}", clientId);
+            }
+
+            // Validate credentials format
+            if (string.IsNullOrWhiteSpace(clientId))
+            {
+                _logger.LogError("Client ID cannot be null or empty");
+                return null;
+            }
+
+            if (string.IsNullOrWhiteSpace(clientSecret))
+            {
+                _logger.LogError("Client Secret cannot be null or empty");
+                return null;
+            }
+
+            if (clientId.Contains(':'))
+            {
+                _logger.LogError("Client ID cannot contain colon (:) character as it conflicts with token format for client {ClientId}", clientId);
+                return null;
+            }
+
+            // Create base64-encoded token in format "clientId:clientSecret"
+            var credentials = $"{clientId}:{clientSecret}";
+            var token = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
+            
+            _currentAuthToken = token;
+            _tokenExpiresAt = DateTime.UtcNow.AddHours(1);
+            
+            _logger.LogInformation("Successfully prepared authentication token for client {ClientId}", clientId);
+            return _currentAuthToken;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error occurred while ensuring valid authentication token");
             return null;
         }
-
-        // 目前，我们将直接使用客户端凭据作为"令牌"
-        // 服务器在收到传输请求时将验证这些凭据
-        // 这是一个简化的方法 - 在生产环境中，您需要适当的令牌交换
-        // For now, we'll use the client credentials directly as the "token"
-        // The server will validate these credentials when it receives the transfer request
-        // This is a simplified approach - in production, you'd want proper token exchange
-        var credentials = $"{serverEndpoint.ClientCredentials.ClientId}:{serverEndpoint.ClientCredentials.ClientSecret}";
-        var token = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(credentials));
-        
-        _currentAuthToken = token;
-        _tokenExpiresAt = DateTime.UtcNow.AddHours(1);
-        
-        _logger.LogInformation("Successfully prepared authentication token for client {ClientId}", serverEndpoint.ClientCredentials.ClientId);
-        return _currentAuthToken;
     }
 
     /// <summary>

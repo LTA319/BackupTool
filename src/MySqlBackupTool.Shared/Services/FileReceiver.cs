@@ -40,7 +40,7 @@ public class FileReceiver : IFileReceiver, IDisposable
     private readonly IChecksumService _checksumService;
     private readonly IAuthenticationService _authenticationService;
     private readonly IAuthorizationService _authorizationService;
-    private readonly ICredentialStorage _credentialStorage;
+    private readonly ISecureCredentialStorage _credentialStorage;
     private TcpListener? _tcpListener;
     private CancellationTokenSource? _cancellationTokenSource;
     private readonly List<Task> _clientTasks = new();
@@ -65,7 +65,7 @@ public class FileReceiver : IFileReceiver, IDisposable
         IChecksumService checksumService,
         IAuthenticationService authenticationService,
         IAuthorizationService authorizationService,
-        ICredentialStorage credentialStorage)
+        ISecureCredentialStorage credentialStorage)
     {
         _logger = logger;
         _storageManager = storageManager;
@@ -156,6 +156,74 @@ public class FileReceiver : IFileReceiver, IDisposable
         {
             _cancellationTokenSource?.Dispose();
             _cancellationTokenSource = null;
+        }
+    }
+
+    /// <summary>
+    /// 验证身份验证令牌 / Validates authentication token
+    /// 解码base64令牌并验证格式和凭据 / Decodes base64 token and validates format and credentials
+    /// </summary>
+    /// <param name="token">Base64编码的身份验证令牌 / Base64-encoded authentication token</param>
+    /// <returns>身份验证结果 / Authentication result</returns>
+    public async Task<AuthenticationResult> ValidateTokenAsync(string token)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                _logger.LogWarning("Authentication failed: empty or null token");
+                return AuthenticationResult.Failure("Authentication token is required");
+            }
+
+            // 解码base64令牌 / Decode base64 token
+            byte[] decodedBytes;
+            try
+            {
+                decodedBytes = Convert.FromBase64String(token);
+            }
+            catch (FormatException ex)
+            {
+                _logger.LogWarning(ex, "Authentication failed: invalid base64 token format");
+                return AuthenticationResult.Failure("Invalid token format");
+            }
+
+            var credentials = Encoding.UTF8.GetString(decodedBytes);
+
+            // 解析clientId:clientSecret格式 / Parse clientId:clientSecret format
+            var parts = credentials.Split(':', 2);
+            if (parts.Length != 2)
+            {
+                _logger.LogWarning("Authentication failed: token does not match clientId:clientSecret format");
+                return AuthenticationResult.Failure("Invalid token format");
+            }
+
+            var clientId = parts[0];
+            var clientSecret = parts[1];
+
+            if (string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret))
+            {
+                _logger.LogWarning("Authentication failed: empty clientId or clientSecret");
+                return AuthenticationResult.Failure("Invalid credentials format");
+            }
+
+            // 验证凭据 / Validate credentials
+            var isValid = await _credentialStorage.ValidateCredentialsAsync(clientId, clientSecret);
+
+            if (isValid)
+            {
+                _logger.LogInformation("Authentication successful for client {ClientId}", clientId);
+                return AuthenticationResult.Success(clientId);
+            }
+            else
+            {
+                _logger.LogWarning("Authentication failed for client {ClientId}: invalid credentials", clientId);
+                return AuthenticationResult.Failure("Invalid credentials");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error validating authentication token");
+            return AuthenticationResult.Failure("Token validation error");
         }
     }
 
@@ -365,54 +433,18 @@ public class FileReceiver : IFileReceiver, IDisposable
         
         try
         {
-            // Authenticate and authorize the request
+            // 身份验证和授权请求 / Authenticate and authorize the request
             AuthorizationContext? authContext = null;
             
-            // Try to decode the authentication token as base64-encoded credentials
-            try
-            {
-                var credentialsBytes = Convert.FromBase64String(request.AuthenticationToken);
-                var credentialsString = System.Text.Encoding.UTF8.GetString(credentialsBytes);
-                var parts = credentialsString.Split(':', 2);
-                
-                if (parts.Length == 2)
-                {
-                    var clientId = parts[0];
-                    var clientSecret = parts[1];
-                    
-                    // Validate credentials directly
-                    var storedCredentials = await _credentialStorage.GetCredentialsAsync(clientId);
-                    if (storedCredentials != null && 
-                        storedCredentials.IsActive && 
-                        !storedCredentials.IsExpired &&
-                        storedCredentials.VerifySecret(clientSecret, storedCredentials.ClientSecret))
-                    {
-                        authContext = new AuthorizationContext
-                        {
-                            ClientId = clientId,
-                            Permissions = new List<string>(storedCredentials.Permissions),
-                            RequestTime = DateTime.UtcNow
-                        };
-                        
-                        _logger.LogInformation("Successfully authenticated client {ClientId} using direct credentials", clientId);
-                    }
-                    else
-                    {
-                        _logger.LogWarning("Authentication failed for client {ClientId}: invalid credentials or inactive client", clientId);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogDebug(ex, "Failed to decode authentication token as base64 credentials, trying token validation");
-                
-                // Fallback to token-based authentication
-                authContext = await _authenticationService.GetAuthorizationContextAsync(request.AuthenticationToken);
-            }
+            // 使用新的ValidateTokenAsync方法进行身份验证 / Use new ValidateTokenAsync method for authentication
+            var authResult = await ValidateTokenAsync(request.AuthenticationToken);
             
-            if (authContext == null)
+            if (!authResult.IsSuccess)
             {
-                await SendTransferResponseAsync(stream, false, "Invalid authentication token", cancellationToken);
+                // 记录身份验证失败，不暴露敏感信息 / Log authentication failure without exposing sensitive information
+                _logger.LogWarning("Authentication failed for token validation: {ErrorMessage}", authResult.ErrorMessage);
+                
+                await SendTransferResponseAsync(stream, false, "Authentication failed", cancellationToken);
                 return new ReceiveResult
                 {
                     Success = false,
@@ -420,10 +452,35 @@ public class FileReceiver : IFileReceiver, IDisposable
                 };
             }
 
-            // Check authorization for upload operation
+            // 获取客户端凭据以构建授权上下文 / Get client credentials to build authorization context
+            var clientCredentials = await _credentialStorage.GetCredentialsByClientIdAsync(authResult.ClientId!);
+            if (clientCredentials == null)
+            {
+                _logger.LogError("Client credentials not found for authenticated client {ClientId}", authResult.ClientId);
+                
+                await SendTransferResponseAsync(stream, false, "Authorization failed", cancellationToken);
+                return new ReceiveResult
+                {
+                    Success = false,
+                    ErrorMessage = "Authorization failed"
+                };
+            }
+
+            authContext = new AuthorizationContext
+            {
+                ClientId = authResult.ClientId!,
+                Permissions = new List<string>(clientCredentials.Permissions),
+                RequestTime = DateTime.UtcNow,
+                Operation = "upload_backup"
+            };
+
+            // 检查上传操作的授权 / Check authorization for upload operation
             var isAuthorized = await _authorizationService.IsAuthorizedAsync(authContext, "upload_backup");
             if (!isAuthorized)
             {
+                // 记录授权失败，包含客户端ID用于审计 / Log authorization failure with client ID for audit
+                _logger.LogWarning("Authorization failed for client {ClientId}: insufficient permissions for backup upload", authContext.ClientId);
+                
                 await SendTransferResponseAsync(stream, false, "Insufficient permissions for backup upload", cancellationToken);
                 return new ReceiveResult
                 {
@@ -432,7 +489,8 @@ public class FileReceiver : IFileReceiver, IDisposable
                 };
             }
 
-            _logger.LogInformation("Authenticated file transfer request from client {ClientId} for {FileName}", 
+            // 记录成功的身份验证和授权 / Log successful authentication and authorization
+            _logger.LogInformation("Successfully authenticated and authorized file transfer request from client {ClientId} for {FileName}", 
                 authContext.ClientId, request.Metadata.FileName);
 
             // Create backup path
