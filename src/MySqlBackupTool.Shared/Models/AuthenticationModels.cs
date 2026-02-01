@@ -574,6 +574,179 @@ public class AuthenticationError
 }
 
 /// <summary>
+/// 身份验证审计日志条目
+/// 记录所有身份验证操作的详细信息用于安全审计
+/// </summary>
+public class AuthenticationAuditLog
+{
+    /// <summary>
+    /// 审计日志条目的唯一标识符
+    /// </summary>
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+
+    /// <summary>
+    /// 身份验证事件的时间戳
+    /// </summary>
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// 客户端标识符（如果可用）
+    /// </summary>
+    public string? ClientId { get; set; }
+
+    /// <summary>
+    /// 身份验证操作类型
+    /// </summary>
+    public AuthenticationOperation Operation { get; set; }
+
+    /// <summary>
+    /// 操作结果（成功或失败）
+    /// </summary>
+    public AuthenticationOutcome Outcome { get; set; }
+
+    /// <summary>
+    /// 错误消息（如果操作失败）
+    /// </summary>
+    public string? ErrorMessage { get; set; }
+
+    /// <summary>
+    /// 错误代码（如果操作失败）
+    /// </summary>
+    public string? ErrorCode { get; set; }
+
+    /// <summary>
+    /// 客户端IP地址
+    /// </summary>
+    public string? ClientIPAddress { get; set; }
+
+    /// <summary>
+    /// 用户代理字符串
+    /// </summary>
+    public string? UserAgent { get; set; }
+
+    /// <summary>
+    /// 会话标识符（如果适用）
+    /// </summary>
+    public string? SessionId { get; set; }
+
+    /// <summary>
+    /// 操作持续时间（毫秒）
+    /// </summary>
+    public long DurationMs { get; set; }
+
+    /// <summary>
+    /// 附加的上下文数据
+    /// </summary>
+    public Dictionary<string, object> AdditionalData { get; set; } = new();
+
+    /// <summary>
+    /// 创建成功的身份验证审计日志
+    /// </summary>
+    /// <param name="clientId">客户端标识符</param>
+    /// <param name="operation">身份验证操作</param>
+    /// <param name="durationMs">操作持续时间</param>
+    /// <param name="clientIP">客户端IP地址</param>
+    /// <returns>审计日志条目</returns>
+    public static AuthenticationAuditLog Success(string clientId, AuthenticationOperation operation, long durationMs, string? clientIP = null)
+    {
+        return new AuthenticationAuditLog
+        {
+            ClientId = clientId,
+            Operation = operation,
+            Outcome = AuthenticationOutcome.Success,
+            DurationMs = durationMs,
+            ClientIPAddress = clientIP
+        };
+    }
+
+    /// <summary>
+    /// 创建失败的身份验证审计日志
+    /// </summary>
+    /// <param name="clientId">客户端标识符（如果可用）</param>
+    /// <param name="operation">身份验证操作</param>
+    /// <param name="errorCode">错误代码</param>
+    /// <param name="errorMessage">错误消息</param>
+    /// <param name="durationMs">操作持续时间</param>
+    /// <param name="clientIP">客户端IP地址</param>
+    /// <returns>审计日志条目</returns>
+    public static AuthenticationAuditLog Failure(string? clientId, AuthenticationOperation operation, string errorCode, string errorMessage, long durationMs, string? clientIP = null)
+    {
+        return new AuthenticationAuditLog
+        {
+            ClientId = clientId,
+            Operation = operation,
+            Outcome = AuthenticationOutcome.Failure,
+            ErrorCode = errorCode,
+            ErrorMessage = errorMessage,
+            DurationMs = durationMs,
+            ClientIPAddress = clientIP
+        };
+    }
+}
+
+/// <summary>
+/// 身份验证操作类型枚举
+/// </summary>
+public enum AuthenticationOperation
+{
+    /// <summary>
+    /// 令牌创建操作
+    /// </summary>
+    TokenCreation,
+
+    /// <summary>
+    /// 令牌验证操作
+    /// </summary>
+    TokenValidation,
+
+    /// <summary>
+    /// 客户端身份验证操作
+    /// </summary>
+    ClientAuthentication,
+
+    /// <summary>
+    /// 凭据验证操作
+    /// </summary>
+    CredentialValidation,
+
+    /// <summary>
+    /// 令牌撤销操作
+    /// </summary>
+    TokenRevocation,
+
+    /// <summary>
+    /// 权限检查操作
+    /// </summary>
+    PermissionCheck,
+
+    /// <summary>
+    /// 会话初始化操作
+    /// </summary>
+    SessionInitialization,
+
+    /// <summary>
+    /// 会话终止操作
+    /// </summary>
+    SessionTermination
+}
+
+/// <summary>
+/// 身份验证操作结果枚举
+/// </summary>
+public enum AuthenticationOutcome
+{
+    /// <summary>
+    /// 操作成功
+    /// </summary>
+    Success,
+
+    /// <summary>
+    /// 操作失败
+    /// </summary>
+    Failure
+}
+
+/// <summary>
 /// 备份系统的标准权限定义
 /// 定义了系统中所有可用的权限常量
 /// </summary>

@@ -72,6 +72,7 @@ public class AuthenticationErrorHandlingPropertyTests : IDisposable
                     var mockChecksumService = new Mock<IChecksumService>();
                     var mockAuthService = new Mock<IAuthenticationService>();
                     var mockAuthorizationService = new Mock<IAuthorizationService>();
+                    var mockAuditService = new Mock<IAuthenticationAuditService>();
 
                     // Create FileReceiver
                     var fileReceiver = new FileReceiver(
@@ -81,7 +82,8 @@ public class AuthenticationErrorHandlingPropertyTests : IDisposable
                         mockChecksumService.Object,
                         mockAuthService.Object,
                         mockAuthorizationService.Object,
-                        credentialStorage);
+                        credentialStorage,
+                        mockAuditService.Object);
 
                     // Act - Try to validate invalid token
                     var result = fileReceiver.ValidateTokenAsync(invalidToken).Result;
@@ -171,6 +173,7 @@ public class AuthenticationErrorHandlingPropertyTests : IDisposable
                     var mockChecksumService = new Mock<IChecksumService>();
                     var mockAuthService = new Mock<IAuthenticationService>();
                     var mockAuthorizationService = new Mock<IAuthorizationService>();
+                    var mockAuditService = new Mock<IAuthenticationAuditService>();
 
                     // Create FileReceiver
                     var fileReceiver = new FileReceiver(
@@ -180,7 +183,8 @@ public class AuthenticationErrorHandlingPropertyTests : IDisposable
                         mockChecksumService.Object,
                         mockAuthService.Object,
                         mockAuthorizationService.Object,
-                        credentialStorage);
+                        credentialStorage,
+                        mockAuditService.Object);
 
                     // Act - Try to validate null/empty token
                     var result = fileReceiver.ValidateTokenAsync(token!).Result;
@@ -248,6 +252,7 @@ public class AuthenticationErrorHandlingPropertyTests : IDisposable
                     var mockChecksumService = new Mock<IChecksumService>();
                     var mockAuthService = new Mock<IAuthenticationService>();
                     var mockAuthorizationService = new Mock<IAuthorizationService>();
+                    var mockAuditService = new Mock<IAuthenticationAuditService>();
 
                     // Create FileReceiver
                     var fileReceiver = new FileReceiver(
@@ -257,7 +262,8 @@ public class AuthenticationErrorHandlingPropertyTests : IDisposable
                         mockChecksumService.Object,
                         mockAuthService.Object,
                         mockAuthorizationService.Object,
-                        credentialStorage);
+                        credentialStorage,
+                        mockAuditService.Object);
 
                     // Act - Try to validate token with sensitive data (should fail since credentials don't exist)
                     var result = fileReceiver.ValidateTokenAsync(sensitiveToken).Result;

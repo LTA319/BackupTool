@@ -84,6 +84,7 @@ public class CredentialValidationPropertyTests : IDisposable
                     var mockChecksumService = new Mock<IChecksumService>();
                     var mockAuthService = new Mock<IAuthenticationService>();
                     var mockAuthorizationService = new Mock<IAuthorizationService>();
+                    var mockAuditService = new Mock<IAuthenticationAuditService>();
 
                     // Create FileReceiver
                     var fileReceiver = new FileReceiver(
@@ -93,7 +94,8 @@ public class CredentialValidationPropertyTests : IDisposable
                         mockChecksumService.Object,
                         mockAuthService.Object,
                         mockAuthorizationService.Object,
-                        credentialStorage);
+                        credentialStorage,
+                        mockAuditService.Object);
 
                     // Act - Create valid token and validate it
                     var validToken = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{clientId}:{clientSecret}"));
@@ -172,6 +174,7 @@ public class CredentialValidationPropertyTests : IDisposable
                 var mockChecksumService = new Mock<IChecksumService>();
                 var mockAuthService = new Mock<IAuthenticationService>();
                 var mockAuthorizationService = new Mock<IAuthorizationService>();
+                var mockAuditService = new Mock<IAuthenticationAuditService>();
 
                 // Create FileReceiver
                 var fileReceiver = new FileReceiver(
@@ -181,7 +184,8 @@ public class CredentialValidationPropertyTests : IDisposable
                     mockChecksumService.Object,
                     mockAuthService.Object,
                     mockAuthorizationService.Object,
-                    credentialStorage);
+                    credentialStorage,
+                    mockAuditService.Object);
 
                 // Act - Try to validate malformed token
                 var result = fileReceiver.ValidateTokenAsync(malformedInput).Result;

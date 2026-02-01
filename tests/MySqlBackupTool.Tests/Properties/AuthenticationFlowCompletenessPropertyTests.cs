@@ -85,11 +85,13 @@ public class AuthenticationFlowCompletenessPropertyTests : IDisposable
                     .ReturnsAsync("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
 
                 // Create client with authentication
+                var mockAuditService = new Mock<IAuthenticationAuditService>();
                 var client = new AuthenticatedFileTransferClient(
                     _clientLogger,
                     mockAuthService.Object,
                     mockChecksumService.Object,
-                    credentialStorage);
+                    credentialStorage,
+                    mockAuditService.Object);
 
                 // Create backup configuration with test credentials
                 var backupConfig = new BackupConfiguration
@@ -197,11 +199,13 @@ public class AuthenticationFlowCompletenessPropertyTests : IDisposable
                 mockChecksumService.Setup(x => x.CalculateFileSHA256Async(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                     .ReturnsAsync("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
 
+                var mockAuditService = new Mock<IAuthenticationAuditService>();
                 var client = new AuthenticatedFileTransferClient(
                     _clientLogger,
                     mockAuthService.Object,
                     mockChecksumService.Object,
-                    credentialStorage);
+                    credentialStorage,
+                    mockAuditService.Object);
 
                 // Create backup configuration WITHOUT credentials (should fallback to defaults)
                 var backupConfig = new BackupConfiguration
@@ -302,11 +306,13 @@ public class AuthenticationFlowCompletenessPropertyTests : IDisposable
                 var mockAuthService = new Mock<IAuthenticationService>();
                 var mockChecksumService = new Mock<IChecksumService>();
 
+                var mockAuditService = new Mock<IAuthenticationAuditService>();
                 var client = new AuthenticatedFileTransferClient(
                     _clientLogger,
                     mockAuthService.Object,
                     mockChecksumService.Object,
-                    credentialStorage);
+                    credentialStorage,
+                    mockAuditService.Object);
 
                 // Create backup configuration with invalid credentials
                 var backupConfig = new BackupConfiguration

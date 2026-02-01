@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
+using System.Diagnostics;
 
 namespace MySqlBackupTool.Shared.Services;
 
@@ -41,6 +42,7 @@ public class FileReceiver : IFileReceiver, IDisposable
     private readonly IAuthenticationService _authenticationService;
     private readonly IAuthorizationService _authorizationService;
     private readonly ISecureCredentialStorage _credentialStorage;
+    private readonly IAuthenticationAuditService _auditService;
     private TcpListener? _tcpListener;
     private CancellationTokenSource? _cancellationTokenSource;
     private readonly List<Task> _clientTasks = new();
@@ -57,6 +59,7 @@ public class FileReceiver : IFileReceiver, IDisposable
     /// <param name="authenticationService">身份验证服务 / Authentication service</param>
     /// <param name="authorizationService">授权服务 / Authorization service</param>
     /// <param name="credentialStorage">凭据存储 / Credential storage</param>
+    /// <param name="auditService">审计服务 / Audit service</param>
     /// <exception cref="ArgumentNullException">当必需参数为null时抛出 / Thrown when required parameters are null</exception>
     public FileReceiver(
         ILogger<FileReceiver> logger,
@@ -65,7 +68,8 @@ public class FileReceiver : IFileReceiver, IDisposable
         IChecksumService checksumService,
         IAuthenticationService authenticationService,
         IAuthorizationService authorizationService,
-        ISecureCredentialStorage credentialStorage)
+        ISecureCredentialStorage credentialStorage,
+        IAuthenticationAuditService auditService)
     {
         _logger = logger;
         _storageManager = storageManager;
@@ -74,7 +78,7 @@ public class FileReceiver : IFileReceiver, IDisposable
         _authenticationService = authenticationService ?? throw new ArgumentNullException(nameof(authenticationService));
         _authorizationService = authorizationService ?? throw new ArgumentNullException(nameof(authorizationService));
         _credentialStorage = credentialStorage ?? throw new ArgumentNullException(nameof(credentialStorage));
-        _authorizationService = authorizationService ?? throw new ArgumentNullException(nameof(authorizationService));
+        _auditService = auditService ?? throw new ArgumentNullException(nameof(auditService));
     }
 
     /// <summary>
@@ -167,12 +171,22 @@ public class FileReceiver : IFileReceiver, IDisposable
     /// <returns>身份验证结果 / Authentication result</returns>
     public async Task<AuthenticationResult> ValidateTokenAsync(string token)
     {
+        var stopwatch = Stopwatch.StartNew();
+        string? clientId = null;
+
         try
         {
             if (string.IsNullOrWhiteSpace(token))
             {
+                const string errorMsg = "Authentication token is required";
                 _logger.LogWarning("Authentication failed: empty or null token");
-                return AuthenticationResult.Failure("Authentication token is required");
+                
+                // 记录审计日志
+                await _auditService.LogAuthenticationEventAsync(
+                    AuthenticationAuditLog.Failure(null, AuthenticationOperation.TokenValidation, 
+                        "AUTH_001", errorMsg, stopwatch.ElapsedMilliseconds));
+                
+                return AuthenticationResult.Failure(errorMsg);
             }
 
             // 解码base64令牌 / Decode base64 token
@@ -183,8 +197,15 @@ public class FileReceiver : IFileReceiver, IDisposable
             }
             catch (FormatException ex)
             {
+                const string errorMsg = "Invalid token format";
                 _logger.LogWarning(ex, "Authentication failed: invalid base64 token format");
-                return AuthenticationResult.Failure("Invalid token format");
+                
+                // 记录审计日志
+                await _auditService.LogAuthenticationEventAsync(
+                    AuthenticationAuditLog.Failure(null, AuthenticationOperation.TokenValidation, 
+                        "AUTH_002", errorMsg, stopwatch.ElapsedMilliseconds));
+                
+                return AuthenticationResult.Failure(errorMsg);
             }
 
             var credentials = Encoding.UTF8.GetString(decodedBytes);
@@ -193,17 +214,31 @@ public class FileReceiver : IFileReceiver, IDisposable
             var parts = credentials.Split(':', 2);
             if (parts.Length != 2)
             {
+                const string errorMsg = "Invalid token format";
                 _logger.LogWarning("Authentication failed: token does not match clientId:clientSecret format");
-                return AuthenticationResult.Failure("Invalid token format");
+                
+                // 记录审计日志
+                await _auditService.LogAuthenticationEventAsync(
+                    AuthenticationAuditLog.Failure(null, AuthenticationOperation.TokenValidation, 
+                        "AUTH_003", errorMsg, stopwatch.ElapsedMilliseconds));
+                
+                return AuthenticationResult.Failure(errorMsg);
             }
 
-            var clientId = parts[0];
+            clientId = parts[0];
             var clientSecret = parts[1];
 
             if (string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret))
             {
+                const string errorMsg = "Invalid credentials format";
                 _logger.LogWarning("Authentication failed: empty clientId or clientSecret");
-                return AuthenticationResult.Failure("Invalid credentials format");
+                
+                // 记录审计日志
+                await _auditService.LogAuthenticationEventAsync(
+                    AuthenticationAuditLog.Failure(clientId, AuthenticationOperation.TokenValidation, 
+                        "AUTH_004", errorMsg, stopwatch.ElapsedMilliseconds));
+                
+                return AuthenticationResult.Failure(errorMsg);
             }
 
             // 验证凭据 / Validate credentials
@@ -212,18 +247,37 @@ public class FileReceiver : IFileReceiver, IDisposable
             if (isValid)
             {
                 _logger.LogInformation("Authentication successful for client {ClientId}", clientId);
+                
+                // 记录成功的审计日志
+                await _auditService.LogAuthenticationEventAsync(
+                    AuthenticationAuditLog.Success(clientId, AuthenticationOperation.TokenValidation, stopwatch.ElapsedMilliseconds));
+                
                 return AuthenticationResult.Success(clientId);
             }
             else
             {
+                const string errorMsg = "Invalid credentials";
                 _logger.LogWarning("Authentication failed for client {ClientId}: invalid credentials", clientId);
-                return AuthenticationResult.Failure("Invalid credentials");
+                
+                // 记录失败的审计日志
+                await _auditService.LogAuthenticationEventAsync(
+                    AuthenticationAuditLog.Failure(clientId, AuthenticationOperation.TokenValidation, 
+                        "AUTH_005", errorMsg, stopwatch.ElapsedMilliseconds));
+                
+                return AuthenticationResult.Failure(errorMsg);
             }
         }
         catch (Exception ex)
         {
+            const string errorMsg = "Token validation error";
             _logger.LogError(ex, "Error validating authentication token");
-            return AuthenticationResult.Failure("Token validation error");
+            
+            // 记录审计日志
+            await _auditService.LogAuthenticationEventAsync(
+                AuthenticationAuditLog.Failure(clientId, AuthenticationOperation.TokenValidation, 
+                    "AUTH_006", $"{errorMsg}: {ex.Message}", stopwatch.ElapsedMilliseconds));
+            
+            return AuthenticationResult.Failure(errorMsg);
         }
     }
 

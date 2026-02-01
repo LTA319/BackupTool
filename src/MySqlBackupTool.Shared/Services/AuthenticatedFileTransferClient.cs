@@ -4,6 +4,7 @@ using MySqlBackupTool.Shared.Models;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
+using System.Diagnostics;
 
 namespace MySqlBackupTool.Shared.Services;
 
@@ -18,6 +19,7 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
     private readonly IAuthenticationService _authenticationService;
     private readonly IChecksumService _checksumService;
     private readonly ISecureCredentialStorage _credentialStorage;
+    private readonly IAuthenticationAuditService _auditService;
     private string? _currentAuthToken;
     private DateTime _tokenExpiresAt = DateTime.MinValue;
 
@@ -28,16 +30,19 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
     /// <param name="authenticationService">身份验证服务 / Authentication service</param>
     /// <param name="checksumService">校验和服务 / Checksum service</param>
     /// <param name="credentialStorage">凭据存储服务 / Credential storage service</param>
+    /// <param name="auditService">审计服务 / Audit service</param>
     public AuthenticatedFileTransferClient(
         ILogger<AuthenticatedFileTransferClient> logger,
         IAuthenticationService authenticationService,
         IChecksumService checksumService,
-        ISecureCredentialStorage credentialStorage)
+        ISecureCredentialStorage credentialStorage,
+        IAuthenticationAuditService auditService)
     {
         _logger = logger;
         _authenticationService = authenticationService ?? throw new ArgumentNullException(nameof(authenticationService));
         _checksumService = checksumService ?? throw new ArgumentNullException(nameof(checksumService));
         _credentialStorage = credentialStorage ?? throw new ArgumentNullException(nameof(credentialStorage));
+        _auditService = auditService ?? throw new ArgumentNullException(nameof(auditService));
     }
 
     /// <summary>
@@ -284,16 +289,24 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
     /// <returns>Base64编码的身份验证令牌 / Base64-encoded authentication token</returns>
     public async Task<string?> CreateAuthenticationTokenAsync(TransferConfig config)
     {
-        if (config?.TargetServer == null)
-        {
-            const string errorMsg = "Transfer configuration or target server is null - cannot create authentication token";
-            _logger.LogError(errorMsg);
-            throw new ArgumentException(errorMsg, nameof(config));
-        }
+        var stopwatch = Stopwatch.StartNew();
+        string? clientId = null;
 
         try
         {
-            string clientId;
+            if (config?.TargetServer == null)
+            {
+                const string errorMsg = "Transfer configuration or target server is null - cannot create authentication token";
+                _logger.LogError(errorMsg);
+                
+                // 记录审计日志
+                await _auditService.LogAuthenticationEventAsync(
+                    AuthenticationAuditLog.Failure(null, AuthenticationOperation.TokenCreation, 
+                        "AUTH_001", errorMsg, stopwatch.ElapsedMilliseconds));
+                
+                throw new ArgumentException(errorMsg, nameof(config));
+            }
+
             string clientSecret;
 
             // Check if configuration has valid credentials
@@ -316,6 +329,12 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
                 {
                     const string errorMsg = "Failed to ensure default credentials exist in the system";
                     _logger.LogError(errorMsg);
+                    
+                    // 记录审计日志
+                    await _auditService.LogAuthenticationEventAsync(
+                        AuthenticationAuditLog.Failure(clientId, AuthenticationOperation.TokenCreation, 
+                            "AUTH_002", errorMsg, stopwatch.ElapsedMilliseconds));
+                    
                     throw new InvalidOperationException(errorMsg);
                 }
 
@@ -325,6 +344,12 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
                 {
                     const string errorMsg = "No default credentials found and configuration credentials are missing. Please check your authentication configuration.";
                     _logger.LogError(errorMsg);
+                    
+                    // 记录审计日志
+                    await _auditService.LogAuthenticationEventAsync(
+                        AuthenticationAuditLog.Failure(clientId, AuthenticationOperation.TokenCreation, 
+                            "AUTH_003", errorMsg, stopwatch.ElapsedMilliseconds));
+                    
                     throw new InvalidOperationException(errorMsg);
                 }
 
@@ -333,6 +358,12 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
                 {
                     const string errorMsg = "Default credentials are invalid (empty ClientId or ClientSecret). Please check your credential storage.";
                     _logger.LogError(errorMsg);
+                    
+                    // 记录审计日志
+                    await _auditService.LogAuthenticationEventAsync(
+                        AuthenticationAuditLog.Failure(clientId, AuthenticationOperation.TokenCreation, 
+                            "AUTH_004", errorMsg, stopwatch.ElapsedMilliseconds));
+                    
                     throw new InvalidOperationException(errorMsg);
                 }
 
@@ -346,6 +377,12 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
             {
                 const string errorMsg = "Client ID cannot be null or empty";
                 _logger.LogError(errorMsg);
+                
+                // 记录审计日志
+                await _auditService.LogAuthenticationEventAsync(
+                    AuthenticationAuditLog.Failure(clientId, AuthenticationOperation.TokenCreation, 
+                        "AUTH_005", errorMsg, stopwatch.ElapsedMilliseconds));
+                
                 throw new ArgumentException(errorMsg);
             }
 
@@ -353,6 +390,12 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
             {
                 const string errorMsg = "Client Secret cannot be null or empty";
                 _logger.LogError(errorMsg);
+                
+                // 记录审计日志
+                await _auditService.LogAuthenticationEventAsync(
+                    AuthenticationAuditLog.Failure(clientId, AuthenticationOperation.TokenCreation, 
+                        "AUTH_006", errorMsg, stopwatch.ElapsedMilliseconds));
+                
                 throw new ArgumentException(errorMsg);
             }
 
@@ -360,6 +403,12 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
             {
                 const string errorMsg = "Client ID cannot contain colon (:) character as it conflicts with token format";
                 _logger.LogError(errorMsg + " for client {ClientId}", clientId);
+                
+                // 记录审计日志
+                await _auditService.LogAuthenticationEventAsync(
+                    AuthenticationAuditLog.Failure(clientId, AuthenticationOperation.TokenCreation, 
+                        "AUTH_007", errorMsg, stopwatch.ElapsedMilliseconds));
+                
                 throw new ArgumentException(errorMsg);
             }
 
@@ -368,12 +417,23 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
             var token = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
             
             _logger.LogInformation("Successfully created authentication token for client {ClientId}", clientId);
+            
+            // 记录成功的审计日志
+            await _auditService.LogAuthenticationEventAsync(
+                AuthenticationAuditLog.Success(clientId, AuthenticationOperation.TokenCreation, stopwatch.ElapsedMilliseconds));
+            
             return token;
         }
         catch (Exception ex) when (!(ex is ArgumentException || ex is InvalidOperationException))
         {
             const string errorMsg = "Unexpected error occurred while creating authentication token";
             _logger.LogError(ex, errorMsg);
+            
+            // 记录审计日志
+            await _auditService.LogAuthenticationEventAsync(
+                AuthenticationAuditLog.Failure(clientId, AuthenticationOperation.TokenCreation, 
+                    "AUTH_008", $"{errorMsg}: {ex.Message}", stopwatch.ElapsedMilliseconds));
+            
             throw new InvalidOperationException(errorMsg, ex);
         }
     }
@@ -387,16 +447,24 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
     /// <returns>Base64编码的身份验证令牌 / Base64-encoded authentication token</returns>
     public async Task<string?> CreateAuthenticationTokenAsync(BackupConfiguration config)
     {
-        if (config == null)
-        {
-            const string errorMsg = "Backup configuration is null - cannot create authentication token";
-            _logger.LogError(errorMsg);
-            throw new ArgumentNullException(nameof(config), errorMsg);
-        }
+        var stopwatch = Stopwatch.StartNew();
+        string? clientId = null;
 
         try
         {
-            string clientId;
+            if (config == null)
+            {
+                const string errorMsg = "Backup configuration is null - cannot create authentication token";
+                _logger.LogError(errorMsg);
+                
+                // 记录审计日志
+                await _auditService.LogAuthenticationEventAsync(
+                    AuthenticationAuditLog.Failure(null, AuthenticationOperation.TokenCreation, 
+                        "AUTH_001", errorMsg, stopwatch.ElapsedMilliseconds));
+                
+                throw new ArgumentNullException(nameof(config), errorMsg);
+            }
+
             string clientSecret;
 
             // Check if configuration has valid credentials
@@ -417,6 +485,12 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
                 {
                     const string errorMsg = "Failed to ensure default credentials exist in the system";
                     _logger.LogError(errorMsg);
+                    
+                    // 记录审计日志
+                    await _auditService.LogAuthenticationEventAsync(
+                        AuthenticationAuditLog.Failure(clientId, AuthenticationOperation.TokenCreation, 
+                            "AUTH_002", errorMsg, stopwatch.ElapsedMilliseconds));
+                    
                     throw new InvalidOperationException(errorMsg);
                 }
 
@@ -426,6 +500,12 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
                 {
                     const string errorMsg = "No default credentials found and backup configuration credentials are missing. Please check your authentication configuration.";
                     _logger.LogError(errorMsg);
+                    
+                    // 记录审计日志
+                    await _auditService.LogAuthenticationEventAsync(
+                        AuthenticationAuditLog.Failure(clientId, AuthenticationOperation.TokenCreation, 
+                            "AUTH_003", errorMsg, stopwatch.ElapsedMilliseconds));
+                    
                     throw new InvalidOperationException(errorMsg);
                 }
 
@@ -434,6 +514,12 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
                 {
                     const string errorMsg = "Default credentials are invalid (empty ClientId or ClientSecret). Please check your credential storage.";
                     _logger.LogError(errorMsg);
+                    
+                    // 记录审计日志
+                    await _auditService.LogAuthenticationEventAsync(
+                        AuthenticationAuditLog.Failure(clientId, AuthenticationOperation.TokenCreation, 
+                            "AUTH_004", errorMsg, stopwatch.ElapsedMilliseconds));
+                    
                     throw new InvalidOperationException(errorMsg);
                 }
 
@@ -452,6 +538,12 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
             {
                 const string errorMsg = "Client ID cannot be null or empty";
                 _logger.LogError(errorMsg);
+                
+                // 记录审计日志
+                await _auditService.LogAuthenticationEventAsync(
+                    AuthenticationAuditLog.Failure(clientId, AuthenticationOperation.TokenCreation, 
+                        "AUTH_005", errorMsg, stopwatch.ElapsedMilliseconds));
+                
                 throw new ArgumentException(errorMsg);
             }
 
@@ -459,6 +551,12 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
             {
                 const string errorMsg = "Client Secret cannot be null or empty";
                 _logger.LogError(errorMsg);
+                
+                // 记录审计日志
+                await _auditService.LogAuthenticationEventAsync(
+                    AuthenticationAuditLog.Failure(clientId, AuthenticationOperation.TokenCreation, 
+                        "AUTH_006", errorMsg, stopwatch.ElapsedMilliseconds));
+                
                 throw new ArgumentException(errorMsg);
             }
 
@@ -466,6 +564,12 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
             {
                 const string errorMsg = "Client ID cannot contain colon (:) character as it conflicts with token format";
                 _logger.LogError(errorMsg + " for client {ClientId}", clientId);
+                
+                // 记录审计日志
+                await _auditService.LogAuthenticationEventAsync(
+                    AuthenticationAuditLog.Failure(clientId, AuthenticationOperation.TokenCreation, 
+                        "AUTH_007", errorMsg, stopwatch.ElapsedMilliseconds));
+                
                 throw new ArgumentException(errorMsg);
             }
 
@@ -474,12 +578,23 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
             var token = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
             
             _logger.LogInformation("Successfully created authentication token for client {ClientId}", clientId);
+            
+            // 记录成功的审计日志
+            await _auditService.LogAuthenticationEventAsync(
+                AuthenticationAuditLog.Success(clientId, AuthenticationOperation.TokenCreation, stopwatch.ElapsedMilliseconds));
+            
             return token;
         }
         catch (Exception ex) when (!(ex is ArgumentException || ex is ArgumentNullException || ex is InvalidOperationException))
         {
             const string errorMsg = "Unexpected error occurred while creating authentication token from backup configuration";
             _logger.LogError(ex, errorMsg);
+            
+            // 记录审计日志
+            await _auditService.LogAuthenticationEventAsync(
+                AuthenticationAuditLog.Failure(clientId, AuthenticationOperation.TokenCreation, 
+                    "AUTH_008", $"{errorMsg}: {ex.Message}", stopwatch.ElapsedMilliseconds));
+            
             throw new InvalidOperationException(errorMsg, ex);
         }
     }
