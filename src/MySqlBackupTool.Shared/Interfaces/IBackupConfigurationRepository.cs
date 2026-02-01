@@ -55,4 +55,10 @@ public interface IBackupConfigurationRepository : IRepository<BackupConfiguratio
     /// Validates and saves a configuration with optional connection parameter validation
     /// </summary>
     Task<(bool Success, List<string> Errors, BackupConfiguration? Configuration)> ValidateAndSaveAsync(BackupConfiguration configuration, bool validateConnections);
+
+    /// <summary>
+    /// 更新配置的身份验证凭据
+    /// Updates the authentication credentials for a configuration
+    /// </summary>
+    Task<(bool Success, List<string> Errors)> UpdateCredentialsAsync(int configurationId, string clientId, string clientSecret);
 }

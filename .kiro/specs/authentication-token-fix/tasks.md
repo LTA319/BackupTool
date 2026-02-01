@@ -142,13 +142,13 @@ This implementation plan addresses the authentication token failure issue by enh
     - **Property 8: Audit logging completeness**
     - **Validates: Requirements 4.5, 5.5**
 
-- [ ] 11. Update configuration persistence
-  - [ ] 11.1 Ensure credential persistence in backup configurations
+- [x] 11. Update configuration persistence
+  - [x] 11.1 Ensure credential persistence in backup configurations
     - Update configuration save/load operations
     - Add validation for credential fields
     - _Requirements: 1.5, 6.2, 6.5_
   
-  - [ ] 11.2 Write property test for configuration persistence
+  - [x] 11.2 Write property test for configuration persistence
     - **Property 5: Configuration persistence consistency**
     - **Validates: Requirements 1.5, 6.5**
 

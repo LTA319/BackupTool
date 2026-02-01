@@ -161,6 +161,8 @@ public class ConfigurationRoundTripPropertyTests : IDisposable
                config1.ServiceName == config2.ServiceName &&
                config1.TargetDirectory == config2.TargetDirectory &&
                config1.IsActive == config2.IsActive &&
+               config1.ClientId == config2.ClientId &&
+               config1.ClientSecret == config2.ClientSecret &&
                AreMySQLConnectionsEquivalent(config1.MySQLConnection, config2.MySQLConnection) &&
                AreServerEndpointsEquivalent(config1.TargetServer, config2.TargetServer) &&
                AreFileNamingStrategiesEquivalent(config1.NamingStrategy, config2.NamingStrategy);

@@ -262,6 +262,96 @@ public class BackupConfigurationRepositoryTests : IDisposable
         Assert.Contains(result.Errors, e => e.Contains("already in use"));
     }
 
+    [Fact]
+    public async Task ValidateAndSaveAsync_InvalidCredentials_ShouldReturnErrors()
+    {
+        // Arrange
+        var configuration = CreateValidConfiguration("Test Config");
+        configuration.ClientId = ""; // Invalid: empty client ID
+        configuration.ClientSecret = ""; // Invalid: empty client secret
+
+        // Act
+        var result = await _repository.ValidateAndSaveAsync(configuration, validateConnections: false);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Contains(result.Errors, e => e.Contains("Client ID cannot be empty"));
+        Assert.Contains(result.Errors, e => e.Contains("Client Secret cannot be empty"));
+    }
+
+    [Fact]
+    public async Task ValidateAndSaveAsync_CredentialsWithColon_ShouldReturnErrors()
+    {
+        // Arrange
+        var configuration = CreateValidConfiguration("Test Config");
+        configuration.ClientId = "client:with:colon"; // Invalid: contains colon
+        configuration.ClientSecret = "secret:with:colon"; // Invalid: contains colon
+
+        // Act
+        var result = await _repository.ValidateAndSaveAsync(configuration, validateConnections: false);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Contains(result.Errors, e => e.Contains("Client ID cannot contain colon"));
+        Assert.Contains(result.Errors, e => e.Contains("Client Secret cannot contain colon"));
+    }
+
+    [Fact]
+    public async Task UpdateCredentialsAsync_ValidCredentials_ShouldUpdateSuccessfully()
+    {
+        // Arrange
+        var configuration = CreateValidConfiguration("Test Config");
+        var added = await _repository.AddAsync(configuration);
+        await _repository.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.UpdateCredentialsAsync(added.Id, "new-client-id", "new-client-secret");
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Empty(result.Errors);
+
+        // Verify the credentials were updated
+        var updated = await _repository.GetByIdAsync(added.Id);
+        Assert.NotNull(updated);
+        Assert.Equal("new-client-id", updated.ClientId);
+        Assert.Equal("new-client-secret", updated.ClientSecret);
+    }
+
+    [Fact]
+    public async Task UpdateCredentialsAsync_InvalidCredentials_ShouldReturnErrors()
+    {
+        // Arrange
+        var configuration = CreateValidConfiguration("Test Config");
+        var added = await _repository.AddAsync(configuration);
+        await _repository.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.UpdateCredentialsAsync(added.Id, "client:with:colon", "");
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Contains(result.Errors, e => e.Contains("Client ID cannot contain colon"));
+        Assert.Contains(result.Errors, e => e.Contains("Client Secret cannot be empty"));
+
+        // Verify the credentials were not updated
+        var unchanged = await _repository.GetByIdAsync(added.Id);
+        Assert.NotNull(unchanged);
+        Assert.Equal("default-client", unchanged.ClientId);
+        Assert.Equal("default-secret-2024", unchanged.ClientSecret);
+    }
+
+    [Fact]
+    public async Task UpdateCredentialsAsync_NonExistentConfiguration_ShouldReturnError()
+    {
+        // Act
+        var result = await _repository.UpdateCredentialsAsync(999, "new-client-id", "new-client-secret");
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Contains(result.Errors, e => e.Contains("Configuration with ID 999 not found"));
+    }
+
     private static BackupConfiguration CreateValidConfiguration(string name)
     {
         // Create a temporary directory for testing

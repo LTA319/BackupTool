@@ -145,6 +145,12 @@ public class BackupConfigurationRepository : Repository<BackupConfiguration>, IB
                 errors.AddRange(validationResults.Select(vr => vr.ErrorMessage ?? "Validation error"));
             }
 
+            // 验证身份验证凭据
+            if (!ValidateCredentialFields(configuration, errors))
+            {
+                // 错误已添加到errors列表中
+            }
+
             // 检查名称唯一性
             if (!await IsNameUniqueAsync(configuration.Name, configuration.Id))
             {
@@ -188,6 +194,105 @@ public class BackupConfigurationRepository : Repository<BackupConfiguration>, IB
         {
             errors.Add($"Error saving configuration: {ex.Message}");
             return (false, errors, null);
+        }
+    }
+
+    /// <summary>
+    /// 验证凭据格式（确保不包含冒号，因为会影响token格式）
+    /// </summary>
+    /// <param name="configuration">要验证的配置</param>
+    /// <param name="errors">错误列表，验证失败时会添加错误信息</param>
+    /// <returns>如果凭据有效返回true，否则返回false</returns>
+    private bool ValidateCredentialFields(BackupConfiguration configuration, List<string> errors)
+    {
+        var isValid = true;
+
+        // 验证ClientId
+        if (string.IsNullOrWhiteSpace(configuration.ClientId))
+        {
+            errors.Add("Client ID cannot be empty or whitespace");
+            isValid = false;
+        }
+        else if (configuration.ClientId.Length > 100)
+        {
+            errors.Add("Client ID cannot exceed 100 characters");
+            isValid = false;
+        }
+
+        // 验证ClientSecret
+        if (string.IsNullOrWhiteSpace(configuration.ClientSecret))
+        {
+            errors.Add("Client Secret cannot be empty or whitespace");
+            isValid = false;
+        }
+        else if (configuration.ClientSecret.Length > 200)
+        {
+            errors.Add("Client Secret cannot exceed 200 characters");
+            isValid = false;
+        }
+
+        // 验证凭据格式（确保不包含冒号，因为会影响token格式）
+        if (!string.IsNullOrWhiteSpace(configuration.ClientId) && configuration.ClientId.Contains(':'))
+        {
+            errors.Add("Client ID cannot contain colon (:) character");
+            isValid = false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(configuration.ClientSecret) && configuration.ClientSecret.Contains(':'))
+        {
+            errors.Add("Client Secret cannot contain colon (:) character");
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    /// <summary>
+    /// 更新配置的身份验证凭据
+    /// </summary>
+    /// <param name="configurationId">配置ID</param>
+    /// <param name="clientId">新的客户端ID</param>
+    /// <param name="clientSecret">新的客户端密钥</param>
+    /// <returns>包含成功状态和错误列表的元组</returns>
+    public async Task<(bool Success, List<string> Errors)> UpdateCredentialsAsync(int configurationId, string clientId, string clientSecret)
+    {
+        var errors = new List<string>();
+
+        try
+        {
+            var configuration = await GetByIdAsync(configurationId);
+            if (configuration == null)
+            {
+                errors.Add($"Configuration with ID {configurationId} not found");
+                return (false, errors);
+            }
+
+            // 临时设置新凭据进行验证
+            var originalClientId = configuration.ClientId;
+            var originalClientSecret = configuration.ClientSecret;
+            
+            configuration.ClientId = clientId;
+            configuration.ClientSecret = clientSecret;
+
+            // 验证新凭据
+            if (!ValidateCredentialFields(configuration, errors))
+            {
+                // 恢复原始凭据
+                configuration.ClientId = originalClientId;
+                configuration.ClientSecret = originalClientSecret;
+                return (false, errors);
+            }
+
+            // 保存更新的配置
+            await UpdateAsync(configuration);
+            await SaveChangesAsync();
+
+            return (true, errors);
+        }
+        catch (Exception ex)
+        {
+            errors.Add($"Error updating credentials: {ex.Message}");
+            return (false, errors);
         }
     }
 
