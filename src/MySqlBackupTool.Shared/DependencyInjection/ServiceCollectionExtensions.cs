@@ -335,6 +335,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ITokenManager, TokenManager>();
         services.AddScoped<IAuthenticationService, AuthenticationService>();
         services.AddScoped<IAuthorizationService, AuthorizationService>();
+        services.AddScoped<IAuthenticationAuditService, AuthenticationAuditService>();
 
         // Add error handling services
         services.AddErrorHandlingServices();
