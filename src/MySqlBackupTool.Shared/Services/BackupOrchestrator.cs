@@ -307,6 +307,23 @@ public class BackupOrchestrator : IBackupOrchestrator
                 TimeoutSeconds = 300
             };
 
+            // Ensure the target server has the authentication credentials from the backup configuration
+            if (transferConfig.TargetServer.ClientCredentials == null)
+            {
+                transferConfig.TargetServer.ClientCredentials = new ClientCredentials
+                {
+                    ClientId = configuration.ClientId,
+                    ClientSecret = configuration.ClientSecret
+                };
+            }
+            else if (string.IsNullOrWhiteSpace(transferConfig.TargetServer.ClientCredentials.ClientId) ||
+                     string.IsNullOrWhiteSpace(transferConfig.TargetServer.ClientCredentials.ClientSecret))
+            {
+                // Update existing credentials if they are empty
+                transferConfig.TargetServer.ClientCredentials.ClientId = configuration.ClientId;
+                transferConfig.TargetServer.ClientCredentials.ClientSecret = configuration.ClientSecret;
+            }
+
             _logger.LogInformation("Transferring backup file for operation {OperationId}, size: {FileSize} bytes", 
                 operationId, fileInfo.Length);
 

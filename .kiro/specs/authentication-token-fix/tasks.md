@@ -116,18 +116,18 @@ This implementation plan addresses the authentication token failure issue by enh
 - [ ] 8. Checkpoint - Ensure authentication flow tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 9. Integrate authentication components
-  - [ ] 9.1 Update dependency injection configuration
+- [x] 9. Integrate authentication components
+  - [x] 9.1 Update dependency injection configuration
     - Register new services and interfaces
     - Update DI configuration in both client and server
     - _Requirements: 3.3_
   
-  - [ ] 9.2 Wire authentication flow in backup operations
+  - [x] 9.2 Wire authentication flow in backup operations
     - Connect AuthenticatedFileTransferClient with FileReceiver
     - Ensure proper credential flow from configuration to authentication
     - _Requirements: 5.1, 5.4_
   
-  - [ ] 9.3 Write property test for end-to-end authentication flow
+  - [x] 9.3 Write property test for end-to-end authentication flow
     - **Property 4: Authentication flow completeness**
     - **Validates: Requirements 5.1, 5.4**
 

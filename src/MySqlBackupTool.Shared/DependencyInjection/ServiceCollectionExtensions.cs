@@ -331,6 +331,7 @@ public static class ServiceCollectionExtensions
             return config;
         });
         services.AddScoped<ICredentialStorage, SecureCredentialStorage>();
+        services.AddScoped<ISecureCredentialStorage, SecureCredentialStorage>();
         services.AddScoped<ITokenManager, TokenManager>();
         services.AddScoped<IAuthenticationService, AuthenticationService>();
         services.AddScoped<IAuthorizationService, AuthorizationService>();
