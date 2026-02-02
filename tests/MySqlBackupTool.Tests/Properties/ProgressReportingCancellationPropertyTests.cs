@@ -94,7 +94,7 @@ public class ProgressReportingCancellationPropertyTests : IDisposable
                             {
                                 Success = true,
                                 OperationId = Guid.NewGuid(),
-                                CompletedAt = DateTime.UtcNow,
+                                CompletedAt = DateTime.Now,
                                 Duration = TimeSpan.FromSeconds(100)
                             };
                         });
@@ -202,7 +202,7 @@ public class ProgressReportingCancellationPropertyTests : IDisposable
                             {
                                 Success = !ct.IsCancellationRequested,
                                 OperationId = Guid.NewGuid(),
-                                CompletedAt = DateTime.UtcNow,
+                                CompletedAt = DateTime.Now,
                                 Duration = TimeSpan.FromMilliseconds(maxProgressUpdates * taskData.UpdateIntervalMs)
                             };
                         });
@@ -307,7 +307,7 @@ public class ProgressReportingCancellationPropertyTests : IDisposable
                                 {
                                     Success = true,
                                     OperationId = operationId,
-                                    CompletedAt = DateTime.UtcNow,
+                                    CompletedAt = DateTime.Now,
                                     Duration = TimeSpan.FromMilliseconds(testData.WorkPhases * testData.PhaseDelayMs)
                                 };
                             }
@@ -345,7 +345,7 @@ public class ProgressReportingCancellationPropertyTests : IDisposable
                             Success = false,
                             OperationId = operationId,
                             ErrorMessage = "Operation was cancelled",
-                            CompletedAt = DateTime.UtcNow
+                            CompletedAt = DateTime.Now
                         };
                     }
                 });

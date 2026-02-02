@@ -44,7 +44,7 @@ public class EnhancedFileTransferClient : IFileTransferClient
     public async Task<TransferResult> TransferFileAsync(string filePath, TransferConfig config, CancellationToken cancellationToken = default)
     {
         var operationId = Guid.NewGuid().ToString();
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
 
         try
         {
@@ -79,7 +79,7 @@ public class EnhancedFileTransferClient : IFileTransferClient
                     {
                         Success = false,
                         ErrorMessage = $"Network connectivity could not be established: {connectivityResult.ErrorMessage}",
-                        Duration = DateTime.UtcNow - startTime
+                        Duration = DateTime.Now - startTime
                     };
                 }
             }
@@ -91,7 +91,7 @@ public class EnhancedFileTransferClient : IFileTransferClient
                 operationId,
                 cancellationToken);
 
-            var duration = DateTime.UtcNow - startTime;
+            var duration = DateTime.Now - startTime;
             _logger.LogInformation("Enhanced file transfer completed for {FilePath}: Success={Success}, Duration={Duration}ms (Operation ID: {OperationId})",
                 filePath, result.Success, duration.TotalMilliseconds, operationId);
 
@@ -106,7 +106,7 @@ public class EnhancedFileTransferClient : IFileTransferClient
         }
         catch (NetworkRetryException ex)
         {
-            var duration = DateTime.UtcNow - startTime;
+            var duration = DateTime.Now - startTime;
             _logger.LogError(ex, "Enhanced file transfer failed after retry attempts for {FilePath} (Operation ID: {OperationId})",
                 filePath, operationId);
 
@@ -123,7 +123,7 @@ public class EnhancedFileTransferClient : IFileTransferClient
         }
         catch (Exception ex)
         {
-            var duration = DateTime.UtcNow - startTime;
+            var duration = DateTime.Now - startTime;
             _logger.LogError(ex, "Unexpected error during enhanced file transfer for {FilePath} (Operation ID: {OperationId})",
                 filePath, operationId);
 
@@ -149,7 +149,7 @@ public class EnhancedFileTransferClient : IFileTransferClient
     public async Task<TransferResult> ResumeTransferAsync(string resumeToken, CancellationToken cancellationToken = default)
     {
         var operationId = Guid.NewGuid().ToString();
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
 
         try
         {
@@ -163,7 +163,7 @@ public class EnhancedFileTransferClient : IFileTransferClient
                 operationId,
                 cancellationToken);
 
-            var duration = DateTime.UtcNow - startTime;
+            var duration = DateTime.Now - startTime;
             _logger.LogInformation("Enhanced resume transfer completed: Success={Success}, Duration={Duration}ms (Operation ID: {OperationId})",
                 result.Success, duration.TotalMilliseconds, operationId);
 
@@ -178,7 +178,7 @@ public class EnhancedFileTransferClient : IFileTransferClient
         }
         catch (NetworkRetryException ex)
         {
-            var duration = DateTime.UtcNow - startTime;
+            var duration = DateTime.Now - startTime;
             _logger.LogError(ex, "Enhanced resume transfer failed after retry attempts for token {ResumeToken} (Operation ID: {OperationId})",
                 resumeToken, operationId);
 
@@ -195,7 +195,7 @@ public class EnhancedFileTransferClient : IFileTransferClient
         }
         catch (Exception ex)
         {
-            var duration = DateTime.UtcNow - startTime;
+            var duration = DateTime.Now - startTime;
             _logger.LogError(ex, "Unexpected error during enhanced resume transfer for token {ResumeToken} (Operation ID: {OperationId})",
                 resumeToken, operationId);
 
@@ -223,7 +223,7 @@ public class EnhancedFileTransferClient : IFileTransferClient
     public async Task<TransferResult> ResumeTransferAsync(string resumeToken, string filePath, TransferConfig config, CancellationToken cancellationToken = default)
     {
         var operationId = Guid.NewGuid().ToString();
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
 
         try
         {
@@ -258,7 +258,7 @@ public class EnhancedFileTransferClient : IFileTransferClient
                     {
                         Success = false,
                         ErrorMessage = $"Network connectivity could not be established for resume: {connectivityResult.ErrorMessage}",
-                        Duration = DateTime.UtcNow - startTime
+                        Duration = DateTime.Now - startTime
                     };
                 }
             }
@@ -270,7 +270,7 @@ public class EnhancedFileTransferClient : IFileTransferClient
                 operationId,
                 cancellationToken);
 
-            var duration = DateTime.UtcNow - startTime;
+            var duration = DateTime.Now - startTime;
             _logger.LogInformation("Enhanced resume transfer with context completed for {FilePath}: Success={Success}, Duration={Duration}ms (Operation ID: {OperationId})",
                 filePath, result.Success, duration.TotalMilliseconds, operationId);
 
@@ -285,7 +285,7 @@ public class EnhancedFileTransferClient : IFileTransferClient
         }
         catch (NetworkRetryException ex)
         {
-            var duration = DateTime.UtcNow - startTime;
+            var duration = DateTime.Now - startTime;
             _logger.LogError(ex, "Enhanced resume transfer with context failed after retry attempts for {FilePath} (Operation ID: {OperationId})",
                 filePath, operationId);
 
@@ -302,7 +302,7 @@ public class EnhancedFileTransferClient : IFileTransferClient
         }
         catch (Exception ex)
         {
-            var duration = DateTime.UtcNow - startTime;
+            var duration = DateTime.Now - startTime;
             _logger.LogError(ex, "Unexpected error during enhanced resume transfer with context for {FilePath} (Operation ID: {OperationId})",
                 filePath, operationId);
 

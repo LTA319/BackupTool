@@ -190,7 +190,7 @@ public class AuthorizationService : IAuthorizationService
             {
                 BackupConfigId = 0, // 不适用于授权日志 / Not applicable for authorization logs
                 StartTime = context.RequestTime,
-                EndTime = DateTime.UtcNow,
+                EndTime = DateTime.Now,
                 Status = success ? BackupStatus.Completed : BackupStatus.Failed,
                 ErrorMessage = success ? null : reason,
                 FilePath = null // 不适用 / Not applicable

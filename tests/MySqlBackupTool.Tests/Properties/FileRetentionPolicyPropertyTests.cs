@@ -48,14 +48,14 @@ public class FileRetentionPolicyPropertyTests
             .Select(p => 
             {
                 p.IsEnabled = true;
-                p.CreatedAt = DateTime.UtcNow;
+                p.CreatedAt = DateTime.Now;
                 return p;
             });
 
         var backupLogsGen = Arb.Generate<List<BackupLog>>().Where(logs => logs.Count <= 50)
             .Select(logs => logs.Select(log =>
             {
-                log.StartTime = DateTime.UtcNow.AddDays(-System.Random.Shared.Next(0, 365));
+                log.StartTime = DateTime.Now.AddDays(-System.Random.Shared.Next(0, 365));
                 log.FileSize = System.Random.Shared.Next(1000, 1000000);
                 log.FilePath = $"/backups/backup_{log.Id}.zip";
                 log.Status = BackupStatus.Completed;
@@ -89,7 +89,7 @@ public class FileRetentionPolicyPropertyTests
             // Check age-based retention
             if (policy.MaxAgeDays.HasValue)
             {
-                var cutoffDate = DateTime.UtcNow.AddDays(-policy.MaxAgeDays.Value);
+                var cutoffDate = DateTime.Now.AddDays(-policy.MaxAgeDays.Value);
                 shouldDeleteAny = backupLogs.Any(bl => bl.StartTime < cutoffDate);
             }
 
@@ -166,14 +166,14 @@ public class FileRetentionPolicyPropertyTests
             .Select(p => 
             {
                 p.IsEnabled = true;
-                p.CreatedAt = DateTime.UtcNow;
+                p.CreatedAt = DateTime.Now;
                 return p;
             });
 
         var backupLogsGen = Arb.Generate<List<BackupLog>>().Where(logs => logs.Count() <= 50)
             .Select(logs => logs.Select(log =>
             {
-                log.StartTime = DateTime.UtcNow.AddDays(-System.Random.Shared.Next(0, 365));
+                log.StartTime = DateTime.Now.AddDays(-System.Random.Shared.Next(0, 365));
                 log.FileSize = System.Random.Shared.Next(1000, 1000000);
                 log.FilePath = $"/backups/backup_{log.Id}.zip";
                 log.Status = BackupStatus.Completed;

@@ -148,7 +148,7 @@ public class AuthenticationCredentialStoragePropertyTests : IDisposable
                     ClientSecret = "test-secret-123",
                     ClientName = "Test Client",
                     IsActive = true,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.Now
                 };
 
                 var storeResult = storage.StoreCredentialsAsync(testCredentials).Result;
@@ -271,7 +271,7 @@ public class AuthenticationCredentialStoragePropertyTests : IDisposable
                     ClientSecret = "persist-secret-123",
                     ClientName = "Persistence Test Client",
                     IsActive = true,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.Now
                 };
 
                 var storeResult = storage1.StoreCredentialsAsync(testCredentials).Result;

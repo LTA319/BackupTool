@@ -73,7 +73,7 @@ public class BackupSummaryReport
     /// 报告生成时间，默认为当前UTC时间
     /// Report generation time, defaults to current UTC time
     /// </summary>
-    public DateTime GeneratedAt { get; set; } = DateTime.UtcNow;
+    public DateTime GeneratedAt { get; set; } = DateTime.Now;
     
     /// <summary>
     /// 报告开始日期
@@ -343,8 +343,8 @@ public class PerformanceMetrics
 /// </summary>
 public class ReportCriteria
 {
-    public DateTime StartDate { get; set; } = DateTime.UtcNow.AddDays(-30);
-    public DateTime EndDate { get; set; } = DateTime.UtcNow;
+    public DateTime StartDate { get; set; } = DateTime.Now.AddDays(-30);
+    public DateTime EndDate { get; set; } = DateTime.Now;
     public int? ConfigurationId { get; set; }
     public bool IncludeDailyBreakdown { get; set; } = true;
     public bool IncludeConfigurationBreakdown { get; set; } = true;
@@ -359,7 +359,7 @@ public class ReportCriteria
 /// </summary>
 public class RetentionExecutionResult
 {
-    public DateTime ExecutedAt { get; set; } = DateTime.UtcNow;
+    public DateTime ExecutedAt { get; set; } = DateTime.Now;
     public TimeSpan Duration { get; set; }
     public int LogsDeleted { get; set; }
     public int FilesDeleted { get; set; }

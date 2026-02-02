@@ -49,7 +49,7 @@ namespace MySqlBackupTool.Shared.Services
             
             _loggingService.LogInformation($"Starting encryption of file: {inputPath}");
             
-            var startTime = DateTime.UtcNow;
+            var startTime = DateTime.Now;
             var fileInfo = new FileInfo(inputPath);
             var originalSize = fileInfo.Length;
             
@@ -124,7 +124,7 @@ namespace MySqlBackupTool.Shared.Services
                     
                     await cryptoStream.FlushFinalBlockAsync();
                     
-                    var duration = DateTime.UtcNow - startTime;
+                    var duration = DateTime.Now - startTime;
                     _loggingService.LogInformation($"File encrypted successfully in {duration.TotalSeconds:F2} seconds. Output: {outputPath}");
                     
                     return metadata;
@@ -180,7 +180,7 @@ namespace MySqlBackupTool.Shared.Services
             
             _loggingService.LogInformation($"Starting decryption of file: {inputPath}");
             
-            var startTime = DateTime.UtcNow;
+            var startTime = DateTime.Now;
             
             try
             {
@@ -247,7 +247,7 @@ namespace MySqlBackupTool.Shared.Services
                         _loggingService.LogDebug("File integrity verification passed");
                     }
                     
-                    var duration = DateTime.UtcNow - startTime;
+                    var duration = DateTime.Now - startTime;
                     _loggingService.LogInformation($"File decrypted successfully in {duration.TotalSeconds:F2} seconds. Output: {outputPath}");
                 }
                 finally

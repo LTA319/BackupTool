@@ -150,7 +150,7 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
     /// <returns>接收结果 / Receive result</returns>
     public async Task<ReceiveResult> ReceiveFileAsync(ReceiveRequest request)
     {
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
         
         try
         {
@@ -180,7 +180,7 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
                 Success = true,
                 FilePath = request.TargetPath,
                 BytesReceived = request.Metadata.FileSize,
-                Duration = DateTime.UtcNow - startTime
+                Duration = DateTime.Now - startTime
             };
         }
         catch (Exception ex)
@@ -190,7 +190,7 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
             {
                 Success = false,
                 ErrorMessage = ex.Message,
-                Duration = DateTime.UtcNow - startTime
+                Duration = DateTime.Now - startTime
             };
         }
     }
@@ -464,7 +464,7 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
     /// <returns>接收结果 / Receive result</returns>
     private async Task<ReceiveResult> ProcessFileTransferAsync(Stream stream, TransferRequest request, CancellationToken cancellationToken)
     {
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
         
         try
         {
@@ -573,7 +573,7 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
                 Success = true,
                 FilePath = finalPath,
                 BytesReceived = totalBytesReceived,
-                Duration = DateTime.UtcNow - startTime
+                Duration = DateTime.Now - startTime
             };
         }
         catch (Exception ex)
@@ -594,7 +594,7 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
             {
                 Success = false,
                 ErrorMessage = ex.Message,
-                Duration = DateTime.UtcNow - startTime
+                Duration = DateTime.Now - startTime
             };
         }
     }

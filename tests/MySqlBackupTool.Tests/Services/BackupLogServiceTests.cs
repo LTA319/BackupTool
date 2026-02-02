@@ -32,7 +32,7 @@ public class BackupLogServiceTests
             BackupConfigId = configId,
             Status = BackupStatus.Queued,
             ResumeToken = resumeToken,
-            StartTime = DateTime.UtcNow
+            StartTime = DateTime.Now
         };
 
         _mockRepository.Setup(r => r.AddAsync(It.IsAny<BackupLog>()))
@@ -152,8 +152,8 @@ public class BackupLogServiceTests
         // Arrange
         var logs = new List<BackupLog>
         {
-            new() { Id = 1, BackupConfigId = 1, StartTime = DateTime.UtcNow.AddHours(-2) },
-            new() { Id = 2, BackupConfigId = 1, StartTime = DateTime.UtcNow.AddHours(-1) }
+            new() { Id = 1, BackupConfigId = 1, StartTime = DateTime.Now.AddHours(-2) },
+            new() { Id = 2, BackupConfigId = 1, StartTime = DateTime.Now.AddHours(-1) }
         };
 
         _mockRepository.Setup(r => r.GetAllAsync())
@@ -206,9 +206,9 @@ public class BackupLogServiceTests
 
         var allLogs = new List<BackupLog>
         {
-            new() { Id = 1, BackupConfigId = 1, Status = BackupStatus.Completed, StartTime = DateTime.UtcNow.AddHours(-1) },
-            new() { Id = 2, BackupConfigId = 1, Status = BackupStatus.Completed, StartTime = DateTime.UtcNow.AddHours(-2) },
-            new() { Id = 3, BackupConfigId = 2, Status = BackupStatus.Failed, StartTime = DateTime.UtcNow.AddHours(-3) }
+            new() { Id = 1, BackupConfigId = 1, Status = BackupStatus.Completed, StartTime = DateTime.Now.AddHours(-1) },
+            new() { Id = 2, BackupConfigId = 1, Status = BackupStatus.Completed, StartTime = DateTime.Now.AddHours(-2) },
+            new() { Id = 3, BackupConfigId = 2, Status = BackupStatus.Failed, StartTime = DateTime.Now.AddHours(-3) }
         };
 
         _mockRepository.Setup(r => r.GetAllAsync())
@@ -274,8 +274,8 @@ public class BackupLogServiceTests
     public async Task GetBackupStatisticsAsync_WithDateRange_ShouldReturnStatistics()
     {
         // Arrange
-        var startDate = DateTime.UtcNow.AddDays(-7);
-        var endDate = DateTime.UtcNow;
+        var startDate = DateTime.Now.AddDays(-7);
+        var endDate = DateTime.Now;
         var expectedStats = new BackupStatistics
         {
             TotalBackups = 10,

@@ -83,7 +83,7 @@ public class FileChunkingPropertyTests : IDisposable
                 FileName = $"reassembled_{Path.GetFileName(originalFile)}",
                 FileSize = fileSize,
                 ChecksumMD5 = originalChecksum,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             };
 
             var chunkingStrategy = new ChunkingStrategy
@@ -194,7 +194,7 @@ public class FileChunkingPropertyTests : IDisposable
                 FileName = $"reassembled_{Path.GetFileName(originalFile)}",
                 FileSize = fileSize,
                 ChecksumMD5 = originalChecksum,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             };
 
             var chunkingStrategy = new ChunkingStrategy

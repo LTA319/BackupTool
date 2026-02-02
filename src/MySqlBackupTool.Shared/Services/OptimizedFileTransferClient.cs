@@ -42,7 +42,7 @@ public class OptimizedFileTransferClient : IFileTransferClient
     public async Task<TransferResult> TransferFileAsync(string filePath, TransferConfig config, CancellationToken cancellationToken = default)
     {
         var operationId = Guid.NewGuid().ToString();
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
         
         _memoryProfiler?.StartProfiling(operationId, "OptimizedFileTransfer");
         _memoryProfiler?.RecordSnapshot(operationId, "Start", $"Starting optimized transfer: {filePath}");
@@ -57,7 +57,7 @@ public class OptimizedFileTransferClient : IFileTransferClient
                 {
                     Success = false,
                     ErrorMessage = $"File not found: {filePath}",
-                    Duration = DateTime.UtcNow - startTime
+                    Duration = DateTime.Now - startTime
                 };
             }
 
@@ -73,7 +73,7 @@ public class OptimizedFileTransferClient : IFileTransferClient
             var result = await _baseClient.TransferFileAsync(filePath, optimizedConfig, cancellationToken);
             
             // 计算和记录性能指标 / Calculate and log performance metrics
-            var duration = DateTime.UtcNow - startTime;
+            var duration = DateTime.Now - startTime;
             var throughputMBps = result.BytesTransferred > 0 && duration.TotalSeconds > 0 
                 ? (result.BytesTransferred / (1024.0 * 1024.0)) / duration.TotalSeconds 
                 : 0;
@@ -104,7 +104,7 @@ public class OptimizedFileTransferClient : IFileTransferClient
         }
         catch (Exception ex)
         {
-            var duration = DateTime.UtcNow - startTime;
+            var duration = DateTime.Now - startTime;
             _logger.LogError(ex, "Optimized file transfer failed for {FilePath} after {Duration}ms", filePath, duration.TotalMilliseconds);
             
             _memoryProfiler?.RecordSnapshot(operationId, "Error", $"Transfer failed: {ex.Message}");

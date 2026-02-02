@@ -90,7 +90,7 @@ public class AlertingServiceTests
     {
         // Arrange
         var tempDir = Path.GetTempPath();
-        var logFileName = $"test_alerts_{DateTime.UtcNow:yyyy-MM-dd}.log";
+        var logFileName = $"test_alerts_{DateTime.Now:yyyy-MM-dd}.log";
         var logFilePath = Path.Combine(tempDir, logFileName);
         
         // Clean up any existing test file
@@ -150,7 +150,7 @@ public class AlertingServiceTests
     {
         // Arrange
         var tempDir = Path.GetTempPath();
-        var logFileName = $"test_alerts_{DateTime.UtcNow:yyyy-MM-dd}.log";
+        var logFileName = $"test_alerts_{DateTime.Now:yyyy-MM-dd}.log";
         var logFilePath = Path.Combine(tempDir, logFileName);
         
         // Clean up any existing test file

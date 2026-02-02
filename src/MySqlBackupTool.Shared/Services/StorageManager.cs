@@ -134,7 +134,7 @@ public class StorageManager : IStorageManager
             // Apply age-based retention
             if (retentionPolicy.MaxAgeDays.HasValue)
             {
-                var cutoffDate = DateTime.UtcNow.AddDays(-retentionPolicy.MaxAgeDays.Value);
+                var cutoffDate = DateTime.Now.AddDays(-retentionPolicy.MaxAgeDays.Value);
                 var oldFiles = backupFiles.Where(f => f.CreationTimeUtc < cutoffDate).ToList();
                 filesToDelete.AddRange(oldFiles);
                 

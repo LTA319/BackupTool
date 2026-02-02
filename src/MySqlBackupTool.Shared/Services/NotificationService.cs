@@ -110,7 +110,7 @@ public class NotificationService : INotificationService
 
             // 更新状态为已发送 / Update status to sent
             status.Status = NotificationDeliveryStatus.Sent;
-            status.SentAt = DateTime.UtcNow;
+            status.SentAt = DateTime.Now;
             _notificationStatuses.AddOrUpdate(message.Id, status, (key, existing) => status);
 
             _logger.LogInformation("Successfully sent email to {Recipient}", message.To);
@@ -339,8 +339,8 @@ public class NotificationService : INotificationService
         DateTime? toDate = null, 
         CancellationToken cancellationToken = default)
     {
-        var from = fromDate ?? DateTime.UtcNow.AddDays(-30);
-        var to = toDate ?? DateTime.UtcNow;
+        var from = fromDate ?? DateTime.Now.AddDays(-30);
+        var to = toDate ?? DateTime.Now;
 
         var relevantStatuses = _notificationStatuses.Values
             .Where(s => s.CreatedAt >= from && s.CreatedAt <= to)
@@ -354,7 +354,7 @@ public class NotificationService : INotificationService
             SuccessfulDeliveries = relevantStatuses.Count(s => s.Status == NotificationDeliveryStatus.Sent),
             FailedDeliveries = relevantStatuses.Count(s => s.Status == NotificationDeliveryStatus.Failed),
             PendingDeliveries = relevantStatuses.Count(s => s.Status == NotificationDeliveryStatus.Pending),
-            GeneratedAt = DateTime.UtcNow
+            GeneratedAt = DateTime.Now
         };
 
         // 计算成功投递的平均投递时间 / Calculate average delivery time for successful deliveries

@@ -142,7 +142,7 @@ public class FileMetadata
     /// 创建时间，默认为当前UTC时间
     /// Creation time, defaults to current UTC time
     /// </summary>
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
 
     /// <summary>
     /// 源备份配置
@@ -361,5 +361,5 @@ public class ResumeInfo
 
     public List<int> CompletedChunks { get; set; } = new();
 
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
 }

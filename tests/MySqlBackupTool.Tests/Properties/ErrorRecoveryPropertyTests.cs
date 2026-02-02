@@ -182,7 +182,7 @@ public class ErrorRecoveryPropertyTests : IDisposable
                 });
 
                 // Act & Assert
-                var startTime = DateTime.UtcNow;
+                var startTime = DateTime.Now;
                 Exception? caughtException = null;
                 bool operationResult = false;
 
@@ -205,7 +205,7 @@ public class ErrorRecoveryPropertyTests : IDisposable
                 }
 
                 // Verify basic timeout behavior - simplified
-                var executionTime = DateTime.UtcNow - startTime;
+                var executionTime = DateTime.Now - startTime;
                 var operationWasStarted = operationStarted;
                 
                 // Basic checks: operation started and behaved reasonably

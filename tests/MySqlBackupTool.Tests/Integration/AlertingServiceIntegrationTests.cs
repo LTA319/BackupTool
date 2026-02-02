@@ -169,7 +169,7 @@ public class AlertingServiceIntegrationTests : IDisposable
             OperationId = "integration-test-op",
             ErrorType = "IntegrationTestError",
             ErrorMessage = "This is an integration test error message",
-            OccurredAt = DateTime.UtcNow,
+            OccurredAt = DateTime.Now,
             Context = new Dictionary<string, object>
             {
                 ["TestType"] = "Integration",
@@ -186,7 +186,7 @@ public class AlertingServiceIntegrationTests : IDisposable
         Assert.NotNull(alert.AlertSentAt);
 
         // Verify log file was created and contains the alert
-        var expectedLogFile = Path.Combine(_testLogDirectory, $"integration_test_{DateTime.UtcNow:yyyy-MM-dd}.log");
+        var expectedLogFile = Path.Combine(_testLogDirectory, $"integration_test_{DateTime.Now:yyyy-MM-dd}.log");
         
         // Wait a moment for file to be written and check for any log files in the directory
         await Task.Delay(100);
@@ -255,7 +255,7 @@ public class AlertingServiceIntegrationTests : IDisposable
             Metadata = new Dictionary<string, object>
             {
                 ["TestType"] = "WebhookIntegration",
-                ["Timestamp"] = DateTime.UtcNow
+                ["Timestamp"] = DateTime.Now
             }
         };
 
@@ -516,7 +516,7 @@ public class AlertingServiceIntegrationTests : IDisposable
             OperationId = "enhanced-test-op",
             ErrorType = "EnhancedTestError",
             ErrorMessage = "This is an enhanced critical error alert",
-            OccurredAt = DateTime.UtcNow
+            OccurredAt = DateTime.Now
         };
 
         // Act - Send enhanced critical error alert

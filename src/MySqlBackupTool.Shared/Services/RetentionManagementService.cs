@@ -44,10 +44,10 @@ public class RetentionManagementService : IRetentionPolicyService
 
         var result = new RetentionExecutionResult
         {
-            ExecutedAt = DateTime.UtcNow
+            ExecutedAt = DateTime.Now
         };
 
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
 
         try
         {
@@ -58,7 +58,7 @@ public class RetentionManagementService : IRetentionPolicyService
             if (!policiesList.Any())
             {
                 _logger.LogInformation("No enabled retention policies found");
-                result.Duration = DateTime.UtcNow - startTime;
+                result.Duration = DateTime.Now - startTime;
                 return result;
             }
 
@@ -95,7 +95,7 @@ public class RetentionManagementService : IRetentionPolicyService
                 }
             }
 
-            result.Duration = DateTime.UtcNow - startTime;
+            result.Duration = DateTime.Now - startTime;
 
             if (result.Success)
             {
@@ -111,7 +111,7 @@ public class RetentionManagementService : IRetentionPolicyService
         }
         catch (Exception ex)
         {
-            result.Duration = DateTime.UtcNow - startTime;
+            result.Duration = DateTime.Now - startTime;
             result.Errors.Add($"Critical error during retention execution: {ex.Message}");
             _logger.LogError(ex, "Critical error during retention policy execution");
             return result;
@@ -141,11 +141,11 @@ public class RetentionManagementService : IRetentionPolicyService
 
         var result = new RetentionExecutionResult
         {
-            ExecutedAt = DateTime.UtcNow,
+            ExecutedAt = DateTime.Now,
             AppliedPolicies = new List<RetentionPolicy> { policy }
         };
 
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
 
         try
         {
@@ -171,7 +171,7 @@ public class RetentionManagementService : IRetentionPolicyService
             result.DeletedFiles = fileCleanupResult.DeletedFiles;
             result.Errors.AddRange(fileCleanupResult.Errors);
 
-            result.Duration = DateTime.UtcNow - startTime;
+            result.Duration = DateTime.Now - startTime;
 
             _logger.LogDebug("Retention policy '{PolicyName}' applied: {LogsDeleted} logs, {FilesDeleted} files deleted",
                 policy.Name, result.LogsDeleted, result.FilesDeleted);
@@ -180,7 +180,7 @@ public class RetentionManagementService : IRetentionPolicyService
         }
         catch (Exception ex)
         {
-            result.Duration = DateTime.UtcNow - startTime;
+            result.Duration = DateTime.Now - startTime;
             result.Errors.Add($"Error applying retention policy: {ex.Message}");
             _logger.LogError(ex, "Error applying retention policy {PolicyName}", policy.Name);
             return result;
@@ -297,7 +297,7 @@ public class RetentionManagementService : IRetentionPolicyService
         }
 
         // 设置创建时间 / Set creation time
-        policy.CreatedAt = DateTime.UtcNow;
+        policy.CreatedAt = DateTime.Now;
 
         var result = await _retentionPolicyRepository.AddAsync(policy);
         await _retentionPolicyRepository.SaveChangesAsync();
@@ -564,7 +564,7 @@ public class RetentionManagementService : IRetentionPolicyService
         {
             // 分析当前备份模式 / Analyze current backup patterns
             var recentLogs = await _backupLogRepository.GetByDateRangeAsync(
-                DateTime.UtcNow.AddDays(-90), DateTime.UtcNow);
+                DateTime.Now.AddDays(-90), DateTime.Now);
 
             var backupLogsList = recentLogs.ToList();
             

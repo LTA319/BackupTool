@@ -457,9 +457,9 @@ namespace MySqlBackupTool.Tests.Services
             await File.WriteAllTextAsync(filePath, largeContent);
             
             // Act
-            var startTime = DateTime.UtcNow;
+            var startTime = DateTime.Now;
             var checksum = await _validationService.CalculateChecksumAsync(filePath, ChecksumAlgorithm.SHA256);
-            var duration = DateTime.UtcNow - startTime;
+            var duration = DateTime.Now - startTime;
             
             // Assert
             Assert.NotNull(checksum);

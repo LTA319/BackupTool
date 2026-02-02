@@ -448,7 +448,7 @@ public partial class LogBrowserForm : Form
                     }
                     else if (log.IsRunning)
                     {
-                        var elapsed = DateTime.UtcNow - log.StartTime;
+                        var elapsed = DateTime.Now - log.StartTime;
                         e.Value = $"{elapsed.Hours:D2}:{elapsed.Minutes:D2}:{elapsed.Seconds:D2}";
                     }
                     else

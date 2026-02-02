@@ -21,7 +21,7 @@ public class BackupProgressEventArgs : EventArgs
     /// <summary>
     /// 事件发生的时间戳
     /// </summary>
-    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public DateTime Timestamp { get; set; } = DateTime.Now;
 }
 
 /// <summary>
@@ -43,7 +43,7 @@ public class BackupCompletedEventArgs : EventArgs
     /// <summary>
     /// 备份完成的时间
     /// </summary>
-    public DateTime CompletedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CompletedAt { get; set; } = DateTime.Now;
 }
 
 /// <summary>
@@ -80,7 +80,7 @@ public class BackupTask
     /// <summary>
     /// 任务开始时间
     /// </summary>
-    public DateTime StartedAt { get; set; } = DateTime.UtcNow;
+    public DateTime StartedAt { get; set; } = DateTime.Now;
     
     /// <summary>
     /// 任务是否已完成

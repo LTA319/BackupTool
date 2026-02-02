@@ -76,13 +76,13 @@ public class ResumeToken
     /// 创建时间，默认为当前UTC时间
     /// Creation time, defaults to current UTC time
     /// </summary>
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
 
     /// <summary>
     /// 最后活动时间，默认为当前UTC时间
     /// Last activity time, defaults to current UTC time
     /// </summary>
-    public DateTime LastActivity { get; set; } = DateTime.UtcNow;
+    public DateTime LastActivity { get; set; } = DateTime.Now;
 
     /// <summary>
     /// 是否已完成，默认为false
@@ -121,7 +121,7 @@ public class ResumeChunk
     [StringLength(32)]
     public string? ChunkChecksum { get; set; }
 
-    public DateTime CompletedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CompletedAt { get; set; } = DateTime.Now;
 
     // Navigation property
     public ResumeToken? ResumeToken { get; set; }
@@ -140,9 +140,9 @@ public class TransferState
 
     public List<int> CompletedChunks { get; set; } = new();
 
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
 
-    public DateTime LastActivity { get; set; } = DateTime.UtcNow;
+    public DateTime LastActivity { get; set; } = DateTime.Now;
 
     [StringLength(500)]
     public string? TempDirectory { get; set; }

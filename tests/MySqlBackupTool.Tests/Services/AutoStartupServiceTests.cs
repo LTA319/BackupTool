@@ -287,7 +287,7 @@ public class AutoStartupServiceTests : IDisposable
             ScheduleType = ScheduleType.Daily,
             ScheduleTime = "02:00",
             IsEnabled = true,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.Now
         };
 
         if (isDue)

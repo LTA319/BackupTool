@@ -43,7 +43,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
     /// <returns>传输结果 / Transfer result</returns>
     public async Task<TransferResult> TransferFileAsync(string filePath, TransferConfig config, CancellationToken cancellationToken = default)
     {
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
         var transferId = Guid.NewGuid().ToString();
         
         try
@@ -61,7 +61,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
                 {
                     Success = false,
                     ErrorMessage = $"File not found: {filePath}",
-                    Duration = DateTime.UtcNow - startTime
+                    Duration = DateTime.Now - startTime
                 };
             }
 
@@ -72,7 +72,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
                 {
                     Success = false,
                     ErrorMessage = $"Invalid server endpoint: {string.Join(", ", errors)}",
-                    Duration = DateTime.UtcNow - startTime
+                    Duration = DateTime.Now - startTime
                 };
             }
 
@@ -91,7 +91,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
 
             // Perform transfer with retry logic
             var result = await TransferWithRetryAsync(filePath, transferRequest, config, cancellationToken);
-            result.Duration = DateTime.UtcNow - startTime;
+            result.Duration = DateTime.Now - startTime;
 
             _logger.LogInformation("Secure file transfer completed. Success: {Success}, Bytes: {Bytes}, Duration: {Duration}",
                 result.Success, result.BytesTransferred, result.Duration);
@@ -105,7 +105,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
             {
                 Success = false,
                 ErrorMessage = "Transfer was cancelled",
-                Duration = DateTime.UtcNow - startTime
+                Duration = DateTime.Now - startTime
             };
         }
         catch (Exception ex)
@@ -115,7 +115,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
             {
                 Success = false,
                 ErrorMessage = $"Unexpected error: {ex.Message}",
-                Duration = DateTime.UtcNow - startTime
+                Duration = DateTime.Now - startTime
             };
         }
     }
@@ -129,7 +129,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
     /// <returns>传输结果 / Transfer result</returns>
     public async Task<TransferResult> ResumeTransferAsync(string resumeToken, CancellationToken cancellationToken = default)
     {
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
         
         try
         {
@@ -139,7 +139,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
             {
                 Success = false,
                 ErrorMessage = "Resume functionality requires server-side coordination. Use ResumeTransferAsync(resumeToken, filePath, config) instead.",
-                Duration = DateTime.UtcNow - startTime
+                Duration = DateTime.Now - startTime
             };
         }
         catch (Exception ex)
@@ -149,7 +149,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
             {
                 Success = false,
                 ErrorMessage = $"Resume error: {ex.Message}",
-                Duration = DateTime.UtcNow - startTime
+                Duration = DateTime.Now - startTime
             };
         }
     }
@@ -165,7 +165,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
     /// <returns>传输结果 / Transfer result</returns>
     public async Task<TransferResult> ResumeTransferAsync(string resumeToken, string filePath, TransferConfig config, CancellationToken cancellationToken = default)
     {
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
         
         try
         {
@@ -178,7 +178,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
                 {
                     Success = false,
                     ErrorMessage = $"File not found: {filePath}",
-                    Duration = DateTime.UtcNow - startTime
+                    Duration = DateTime.Now - startTime
                 };
             }
 
@@ -189,7 +189,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
                 {
                     Success = false,
                     ErrorMessage = $"Invalid server endpoint: {string.Join(", ", errors)}",
-                    Duration = DateTime.UtcNow - startTime
+                    Duration = DateTime.Now - startTime
                 };
             }
 
@@ -208,7 +208,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
 
             // Perform transfer with retry logic
             var result = await TransferWithRetryAsync(filePath, transferRequest, config, cancellationToken);
-            result.Duration = DateTime.UtcNow - startTime;
+            result.Duration = DateTime.Now - startTime;
 
             _logger.LogInformation("Resume secure transfer completed. Success: {Success}, Bytes: {Bytes}, Duration: {Duration}",
                 result.Success, result.BytesTransferred, result.Duration);
@@ -222,7 +222,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
             {
                 Success = false,
                 ErrorMessage = "Resume transfer was cancelled",
-                Duration = DateTime.UtcNow - startTime
+                Duration = DateTime.Now - startTime
             };
         }
         catch (Exception ex)
@@ -232,7 +232,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
             {
                 Success = false,
                 ErrorMessage = $"Unexpected error: {ex.Message}",
-                Duration = DateTime.UtcNow - startTime
+                Duration = DateTime.Now - startTime
             };
         }
     }
@@ -735,7 +735,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
             FileSize = fileSize,
             ChecksumMD5 = md5,
             ChecksumSHA256 = sha256,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.Now
         };
     }
 }

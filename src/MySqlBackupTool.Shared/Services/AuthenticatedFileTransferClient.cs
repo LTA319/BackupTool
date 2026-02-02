@@ -58,7 +58,7 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
         if (config == null)
             throw new ArgumentNullException(nameof(config));
 
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
 
         try
         {
@@ -72,7 +72,7 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
                 {
                     Success = false,
                     ErrorMessage = $"File not found: {filePath}",
-                    Duration = DateTime.UtcNow - startTime
+                    Duration = DateTime.Now - startTime
                 };
             }
 
@@ -87,7 +87,7 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
                     {
                         Success = false,
                         ErrorMessage = "Failed to obtain authentication token - please check your credentials configuration",
-                        Duration = DateTime.UtcNow - startTime
+                        Duration = DateTime.Now - startTime
                     };
                 }
             }
@@ -97,7 +97,7 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
                 {
                     Success = false,
                     ErrorMessage = $"Authentication configuration error: {ex.Message}",
-                    Duration = DateTime.UtcNow - startTime
+                    Duration = DateTime.Now - startTime
                 };
             }
             catch (InvalidOperationException ex)
@@ -106,7 +106,7 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
                 {
                     Success = false,
                     ErrorMessage = $"Authentication system error: {ex.Message}",
-                    Duration = DateTime.UtcNow - startTime
+                    Duration = DateTime.Now - startTime
                 };
             }
 
@@ -130,7 +130,7 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
                     FileSize = fileInfo.Length,
                     ChecksumMD5 = md5Hash,
                     ChecksumSHA256 = sha256Hash,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.Now
                 },
                 ChunkingStrategy = config.ChunkingStrategy,
                 ResumeTransfer = false
@@ -138,7 +138,7 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
 
             // 执行传输 / Perform the transfer
             var result = await PerformTransferAsync(filePath, transferRequest, config, cancellationToken);
-            result.Duration = DateTime.UtcNow - startTime;
+            result.Duration = DateTime.Now - startTime;
 
             _logger.LogInformation("File transfer completed for {FilePath}. Success: {Success}, Duration: {Duration}", 
                 filePath, result.Success, result.Duration);
@@ -152,7 +152,7 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
             {
                 Success = false,
                 ErrorMessage = "Transfer was cancelled",
-                Duration = DateTime.UtcNow - startTime
+                Duration = DateTime.Now - startTime
             };
         }
         catch (Exception ex)
@@ -162,7 +162,7 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
             {
                 Success = false,
                 ErrorMessage = ex.Message,
-                Duration = DateTime.UtcNow - startTime
+                Duration = DateTime.Now - startTime
             };
         }
     }
@@ -194,7 +194,7 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
         if (string.IsNullOrWhiteSpace(resumeToken))
             throw new ArgumentException("Resume token cannot be null or empty", nameof(resumeToken));
 
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
 
         try
         {
@@ -212,7 +212,7 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
                     {
                         Success = false,
                         ErrorMessage = "Failed to obtain authentication token for resume - please check your credentials configuration",
-                        Duration = DateTime.UtcNow - startTime
+                        Duration = DateTime.Now - startTime
                     };
                 }
             }
@@ -222,7 +222,7 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
                 {
                     Success = false,
                     ErrorMessage = $"Authentication configuration error during resume: {ex.Message}",
-                    Duration = DateTime.UtcNow - startTime
+                    Duration = DateTime.Now - startTime
                 };
             }
             catch (InvalidOperationException ex)
@@ -231,7 +231,7 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
                 {
                     Success = false,
                     ErrorMessage = $"Authentication system error during resume: {ex.Message}",
-                    Duration = DateTime.UtcNow - startTime
+                    Duration = DateTime.Now - startTime
                 };
             }
 
@@ -255,7 +255,7 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
                     FileSize = fileInfo.Length,
                     ChecksumMD5 = md5Hash,
                     ChecksumSHA256 = sha256Hash,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.Now
                 },
                 ChunkingStrategy = config.ChunkingStrategy,
                 ResumeTransfer = true,
@@ -264,7 +264,7 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
 
             // 执行传输 / Perform the transfer
             var result = await PerformTransferAsync(filePath, transferRequest, config, cancellationToken);
-            result.Duration = DateTime.UtcNow - startTime;
+            result.Duration = DateTime.Now - startTime;
 
             return result;
         }
@@ -275,7 +275,7 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
             {
                 Success = false,
                 ErrorMessage = ex.Message,
-                Duration = DateTime.UtcNow - startTime
+                Duration = DateTime.Now - startTime
             };
         }
     }
@@ -559,7 +559,7 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
     private async Task<string?> EnsureValidAuthTokenAsync(ServerEndpoint serverEndpoint)
     {
         // 检查我们是否有有效的令牌 / Check if we have a valid token
-        if (!string.IsNullOrEmpty(_currentAuthToken) && DateTime.UtcNow < _tokenExpiresAt.AddMinutes(-5))
+        if (!string.IsNullOrEmpty(_currentAuthToken) && DateTime.Now < _tokenExpiresAt.AddMinutes(-5))
         {
             // 令牌仍然有效（有5分钟缓冲） / Token is still valid (with 5-minute buffer)
             return _currentAuthToken;
@@ -623,7 +623,7 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
             var token = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
             
             _currentAuthToken = token;
-            _tokenExpiresAt = DateTime.UtcNow.AddHours(1);
+            _tokenExpiresAt = DateTime.Now.AddHours(1);
             
             _logger.LogInformation("Successfully prepared authentication token for client {ClientId}", clientId);
             return _currentAuthToken;

@@ -821,9 +821,9 @@ public class MySQLManager : IMySQLManager, IBackupService
     /// <exception cref="System.ServiceProcess.TimeoutException">当服务未在超时时间内达到期望状态时抛出 / Thrown when service doesn't reach desired status within timeout</exception>
     private async Task WaitForServiceStatusAsync(ServiceController service, ServiceControllerStatus desiredStatus, TimeSpan timeout)
     {
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
 
-        while (DateTime.UtcNow - startTime < timeout)
+        while (DateTime.Now - startTime < timeout)
         {
             try
             {
@@ -831,7 +831,7 @@ public class MySQLManager : IMySQLManager, IBackupService
                 if (service.Status == desiredStatus)
                 {
                     _logger.LogDebug("Service reached desired status: {Status} after {Elapsed}s",
-                        desiredStatus, (DateTime.UtcNow - startTime).TotalSeconds);
+                        desiredStatus, (DateTime.Now - startTime).TotalSeconds);
                     return;
                 }
 

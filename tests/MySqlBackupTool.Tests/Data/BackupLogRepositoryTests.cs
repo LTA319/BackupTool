@@ -43,10 +43,10 @@ public class BackupLogRepositoryTests : IDisposable
         // Arrange
         var configId = 1;
         var log1 = CreateValidBackupLog(configId);
-        log1.StartTime = DateTime.UtcNow.AddHours(-2);
+        log1.StartTime = DateTime.Now.AddHours(-2);
         
         var log2 = CreateValidBackupLog(configId);
-        log2.StartTime = DateTime.UtcNow.AddHours(-1);
+        log2.StartTime = DateTime.Now.AddHours(-1);
         
         var log3 = CreateValidBackupLog(2); // Different config
 
@@ -68,7 +68,7 @@ public class BackupLogRepositoryTests : IDisposable
     public async Task GetByDateRangeAsync_LogsInRange_ShouldReturnMatchingLogs()
     {
         // Arrange
-        var baseTime = DateTime.UtcNow;
+        var baseTime = DateTime.Now;
         var log1 = CreateValidBackupLog(1);
         log1.StartTime = baseTime.AddDays(-5);
         
@@ -177,7 +177,7 @@ public class BackupLogRepositoryTests : IDisposable
     public async Task GetStatisticsAsync_VariousLogs_ShouldCalculateCorrectly()
     {
         // Arrange
-        var baseTime = DateTime.UtcNow;
+        var baseTime = DateTime.Now;
         var startDate = baseTime.AddDays(-7);
         var endDate = baseTime;
 
@@ -273,7 +273,7 @@ public class BackupLogRepositoryTests : IDisposable
     {
         // Arrange
         var configId = 1;
-        var baseTime = DateTime.UtcNow;
+        var baseTime = DateTime.Now;
         
         var oldLog = CreateValidBackupLog(configId);
         oldLog.StartTime = baseTime.AddDays(-5);
@@ -302,7 +302,7 @@ public class BackupLogRepositoryTests : IDisposable
     public async Task CleanupOldLogsAsync_OldLogs_ShouldDeleteOldOnes()
     {
         // Arrange
-        var baseTime = DateTime.UtcNow;
+        var baseTime = DateTime.Now;
         var maxAgeDays = 30;
         
         var oldLog1 = CreateValidBackupLog(1);
@@ -334,7 +334,7 @@ public class BackupLogRepositoryTests : IDisposable
         return new BackupLog
         {
             BackupConfigId = configId,
-            StartTime = DateTime.UtcNow,
+            StartTime = DateTime.Now,
             Status = BackupStatus.Queued
         };
     }

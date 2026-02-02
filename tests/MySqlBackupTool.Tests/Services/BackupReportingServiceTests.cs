@@ -29,8 +29,8 @@ public class BackupReportingServiceTests
     public async Task GenerateReportAsync_WithBasicCriteria_ShouldGenerateReport()
     {
         // Arrange
-        var startDate = DateTime.UtcNow.AddDays(-7);
-        var endDate = DateTime.UtcNow;
+        var startDate = DateTime.Now.AddDays(-7);
+        var endDate = DateTime.Now;
         var criteria = new ReportCriteria
         {
             StartDate = startDate,
@@ -90,8 +90,8 @@ public class BackupReportingServiceTests
     public async Task GenerateReportAsync_WithConfigurationFilter_ShouldFilterByConfiguration()
     {
         // Arrange
-        var startDate = DateTime.UtcNow.AddDays(-7);
-        var endDate = DateTime.UtcNow;
+        var startDate = DateTime.Now.AddDays(-7);
+        var endDate = DateTime.Now;
         var criteria = new ReportCriteria
         {
             StartDate = startDate,
@@ -119,8 +119,8 @@ public class BackupReportingServiceTests
     public async Task GenerateReportAsync_WithRecentFailures_ShouldIncludeFailures()
     {
         // Arrange
-        var startDate = DateTime.UtcNow.AddDays(-7);
-        var endDate = DateTime.UtcNow;
+        var startDate = DateTime.Now.AddDays(-7);
+        var endDate = DateTime.Now;
         var criteria = new ReportCriteria
         {
             StartDate = startDate,
@@ -173,8 +173,8 @@ public class BackupReportingServiceTests
     public async Task GenerateReportAsync_WithStorageStatistics_ShouldCalculateStorage()
     {
         // Arrange
-        var startDate = DateTime.UtcNow.AddDays(-7);
-        var endDate = DateTime.UtcNow;
+        var startDate = DateTime.Now.AddDays(-7);
+        var endDate = DateTime.Now;
         var criteria = new ReportCriteria
         {
             StartDate = startDate,
@@ -241,8 +241,8 @@ public class BackupReportingServiceTests
     public async Task GenerateReportAsync_WithPerformanceMetrics_ShouldCalculateMetrics()
     {
         // Arrange
-        var startDate = DateTime.UtcNow.AddDays(-7);
-        var endDate = DateTime.UtcNow;
+        var startDate = DateTime.Now.AddDays(-7);
+        var endDate = DateTime.Now;
         var criteria = new ReportCriteria
         {
             StartDate = startDate,
@@ -291,9 +291,9 @@ public class BackupReportingServiceTests
         // Arrange
         var report = new BackupSummaryReport
         {
-            GeneratedAt = DateTime.UtcNow,
-            ReportStartDate = DateTime.UtcNow.AddDays(-7),
-            ReportEndDate = DateTime.UtcNow,
+            GeneratedAt = DateTime.Now,
+            ReportStartDate = DateTime.Now.AddDays(-7),
+            ReportEndDate = DateTime.Now,
             OverallStatistics = new BackupStatistics
             {
                 TotalBackups = 10,
@@ -318,9 +318,9 @@ public class BackupReportingServiceTests
         // Arrange
         var report = new BackupSummaryReport
         {
-            GeneratedAt = DateTime.UtcNow,
-            ReportStartDate = DateTime.UtcNow.AddDays(-7),
-            ReportEndDate = DateTime.UtcNow,
+            GeneratedAt = DateTime.Now,
+            ReportStartDate = DateTime.Now.AddDays(-7),
+            ReportEndDate = DateTime.Now,
             OverallStatistics = new BackupStatistics
             {
                 TotalBackups = 10,
@@ -346,9 +346,9 @@ public class BackupReportingServiceTests
         // Arrange
         var report = new BackupSummaryReport
         {
-            GeneratedAt = DateTime.UtcNow,
-            ReportStartDate = DateTime.UtcNow.AddDays(-7),
-            ReportEndDate = DateTime.UtcNow,
+            GeneratedAt = DateTime.Now,
+            ReportStartDate = DateTime.Now.AddDays(-7),
+            ReportEndDate = DateTime.Now,
             OverallStatistics = new BackupStatistics
             {
                 TotalBackups = 10,

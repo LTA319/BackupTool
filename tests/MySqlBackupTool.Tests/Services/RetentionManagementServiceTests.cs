@@ -186,7 +186,7 @@ public class RetentionManagementServiceTests
             Description = policy.Description,
             MaxAgeDays = policy.MaxAgeDays,
             IsEnabled = policy.IsEnabled,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.Now
         };
 
         _mockRetentionRepository.Setup(r => r.IsNameUniqueAsync(policy.Name, 0))
@@ -352,7 +352,7 @@ public class RetentionManagementServiceTests
                 Id = i + 1,
                 BackupConfigId = 1,
                 Status = BackupStatus.Completed,
-                StartTime = DateTime.UtcNow.AddDays(-i),
+                StartTime = DateTime.Now.AddDays(-i),
                 FileSize = 1000000 // 1MB
             });
         }
@@ -385,8 +385,8 @@ public class RetentionManagementServiceTests
             IsEnabled = true
         };
 
-        var recentBackupDate = DateTime.UtcNow.AddDays(-10);
-        var oldBackupDate = DateTime.UtcNow.AddDays(-40);
+        var recentBackupDate = DateTime.Now.AddDays(-10);
+        var oldBackupDate = DateTime.Now.AddDays(-40);
 
         // Act & Assert
         // Recent backup should be retained

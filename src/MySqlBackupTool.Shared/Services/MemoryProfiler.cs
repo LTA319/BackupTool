@@ -58,7 +58,7 @@ public class MemoryProfiler : IMemoryProfiler, IDisposable
         {
             OperationId = operationId,
             OperationType = operationType,
-            StartTime = DateTime.UtcNow
+            StartTime = DateTime.Now
         };
 
         _activeProfiles.TryAdd(operationId, profile);
@@ -147,7 +147,7 @@ public class MemoryProfiler : IMemoryProfiler, IDisposable
 
         // 拍摄最终快照 / Take final snapshot
         RecordSnapshot(operationId, "End", "Final memory state");
-        profile.EndTime = DateTime.UtcNow;
+        profile.EndTime = DateTime.Now;
 
         // 计算统计信息 / Calculate statistics
         profile.Statistics = CalculateStatistics(profile);
@@ -203,7 +203,7 @@ public class MemoryProfiler : IMemoryProfiler, IDisposable
             operationId, generation?.ToString() ?? "all");
 
         var beforeSnapshot = CreateMemorySnapshot("GC-Before", $"Before forced GC (gen {generation?.ToString() ?? "all"})");
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
 
         try
         {
@@ -218,7 +218,7 @@ public class MemoryProfiler : IMemoryProfiler, IDisposable
                 GC.Collect();
             }
 
-            var endTime = DateTime.UtcNow;
+            var endTime = DateTime.Now;
             var afterSnapshot = CreateMemorySnapshot("GC-After", $"After forced GC (gen {generation?.ToString() ?? "all"})");
 
             var gcEvent = new GarbageCollectionEvent
@@ -354,7 +354,7 @@ public class MemoryProfiler : IMemoryProfiler, IDisposable
 
             var snapshot = new MemorySnapshot
             {
-                Timestamp = DateTime.UtcNow,
+                Timestamp = DateTime.Now,
                 Phase = phase,
                 AdditionalInfo = additionalInfo,
                 
@@ -416,7 +416,7 @@ public class MemoryProfiler : IMemoryProfiler, IDisposable
             // Return minimal snapshot on error
             return new MemorySnapshot
             {
-                Timestamp = DateTime.UtcNow,
+                Timestamp = DateTime.Now,
                 Phase = phase,
                 AdditionalInfo = $"Error: {ex.Message}",
                 WorkingSet = 0,

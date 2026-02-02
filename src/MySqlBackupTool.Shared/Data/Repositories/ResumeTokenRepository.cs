@@ -83,7 +83,7 @@ public class ResumeTokenRepository : Repository<ResumeToken>, IResumeTokenReposi
     {
         try
         {
-            var cutoffDate = DateTime.UtcNow - maxAge;
+            var cutoffDate = DateTime.Now - maxAge;
             return await _context.Set<ResumeToken>()
                 .Include(rt => rt.CompletedChunks)
                 .Where(rt => rt.LastActivity < cutoffDate)
@@ -109,7 +109,7 @@ public class ResumeTokenRepository : Repository<ResumeToken>, IResumeTokenReposi
             if (resumeToken != null)
             {
                 resumeToken.IsCompleted = true;
-                resumeToken.LastActivity = DateTime.UtcNow;
+                resumeToken.LastActivity = DateTime.Now;
                 await _context.SaveChangesAsync();
 
                 _logger.LogInformation("Marked resume token {Token} as completed", token);
@@ -134,7 +134,7 @@ public class ResumeTokenRepository : Repository<ResumeToken>, IResumeTokenReposi
 
             if (resumeToken != null)
             {
-                resumeToken.LastActivity = DateTime.UtcNow;
+                resumeToken.LastActivity = DateTime.Now;
                 await _context.SaveChangesAsync();
             }
         }
@@ -170,11 +170,11 @@ public class ResumeTokenRepository : Repository<ResumeToken>, IResumeTokenReposi
                         ChunkIndex = chunkIndex,
                         ChunkSize = chunkSize,
                         ChunkChecksum = chunkChecksum,
-                        CompletedAt = DateTime.UtcNow
+                        CompletedAt = DateTime.Now
                     };
 
                     resumeToken.CompletedChunks.Add(chunk);
-                    resumeToken.LastActivity = DateTime.UtcNow;
+                    resumeToken.LastActivity = DateTime.Now;
                     await _context.SaveChangesAsync();
 
                     _logger.LogDebug("Added completed chunk {ChunkIndex} to resume token {Token}", 
@@ -220,7 +220,7 @@ public class ResumeTokenRepository : Repository<ResumeToken>, IResumeTokenReposi
     {
         try
         {
-            var cutoffDate = DateTime.UtcNow - maxAge;
+            var cutoffDate = DateTime.Now - maxAge;
             var tokensToDelete = await _context.Set<ResumeToken>()
                 .Include(rt => rt.CompletedChunks)
                 .Where(rt => rt.IsCompleted && rt.LastActivity < cutoffDate)

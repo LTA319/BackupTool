@@ -46,7 +46,7 @@ public class NetworkRetryService : INetworkRetryService
         string operationId,
         CancellationToken cancellationToken = default)
     {
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
         Exception? lastException = null;
 
         _logger.LogInformation("Starting network operation {OperationName} (ID: {OperationId}) with retry policy: {MaxRetries} attempts, base delay {BaseDelay}ms",
@@ -63,7 +63,7 @@ public class NetworkRetryService : INetworkRetryService
 
                 var result = await operation(cancellationToken);
 
-                var duration = DateTime.UtcNow - startTime;
+                var duration = DateTime.Now - startTime;
                 _logger.LogInformation("Network operation {OperationName} succeeded on attempt {Attempt} after {Duration}ms (ID: {OperationId})",
                     operationName, attempt, duration.TotalMilliseconds, operationId);
 
@@ -72,7 +72,7 @@ public class NetworkRetryService : INetworkRetryService
             catch (Exception ex) when (IsRetriableException(ex))
             {
                 lastException = ex;
-                var duration = DateTime.UtcNow - startTime;
+                var duration = DateTime.Now - startTime;
 
                 _logger.LogWarning(ex, "Network operation {OperationName} attempt {Attempt}/{MaxAttempts} failed after {Duration}ms (ID: {OperationId}): {ErrorMessage}",
                     operationName, attempt, _config.MaxRetryAttempts, duration.TotalMilliseconds, operationId, ex.Message);
@@ -90,14 +90,14 @@ public class NetworkRetryService : INetworkRetryService
             catch (Exception ex)
             {
                 // 不可重试的异常，立即失败 / Non-retriable exception, fail immediately
-                var duration = DateTime.UtcNow - startTime;
+                var duration = DateTime.Now - startTime;
                 _logger.LogError(ex, "Network operation {OperationName} failed with non-retriable error after {Duration}ms (ID: {OperationId}): {ErrorMessage}",
                     operationName, duration.TotalMilliseconds, operationId, ex.Message);
                 throw;
             }
         }
 
-        var totalDuration = DateTime.UtcNow - startTime;
+        var totalDuration = DateTime.Now - startTime;
         _logger.LogError(lastException, "Network operation {OperationName} failed after {MaxAttempts} attempts and {Duration}ms (ID: {OperationId})",
             operationName, _config.MaxRetryAttempts, totalDuration.TotalMilliseconds, operationId);
 
@@ -143,7 +143,7 @@ public class NetworkRetryService : INetworkRetryService
         CancellationToken cancellationToken = default)
     {
         var operationId = Guid.NewGuid().ToString();
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
 
         try
         {
@@ -156,7 +156,7 @@ public class NetworkRetryService : INetworkRetryService
             // 然后尝试建立TCP连接 / Then, try to establish a TCP connection
             var tcpResult = await TestTcpConnectionAsync(host, port, timeout, cancellationToken);
 
-            var duration = DateTime.UtcNow - startTime;
+            var duration = DateTime.Now - startTime;
             var result = new NetworkConnectivityResult
             {
                 Host = host,
@@ -175,7 +175,7 @@ public class NetworkRetryService : INetworkRetryService
         }
         catch (Exception ex)
         {
-            var duration = DateTime.UtcNow - startTime;
+            var duration = DateTime.Now - startTime;
             _logger.LogError(ex, "Network connectivity test to {Host}:{Port} failed after {Duration}ms (ID: {OperationId}): {ErrorMessage}",
                 host, port, duration.TotalMilliseconds, operationId, ex.Message);
 
@@ -208,13 +208,13 @@ public class NetworkRetryService : INetworkRetryService
         CancellationToken cancellationToken = default)
     {
         var operationId = Guid.NewGuid().ToString();
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
         var checkInterval = TimeSpan.FromSeconds(5);
 
         _logger.LogInformation("Waiting for network connectivity to {Host}:{Port} for up to {MaxWaitTime} (ID: {OperationId})",
             host, port, maxWaitTime, operationId);
 
-        while (DateTime.UtcNow - startTime < maxWaitTime)
+        while (DateTime.Now - startTime < maxWaitTime)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -222,7 +222,7 @@ public class NetworkRetryService : INetworkRetryService
             
             if (connectivityResult.IsReachable)
             {
-                var duration = DateTime.UtcNow - startTime;
+                var duration = DateTime.Now - startTime;
                 _logger.LogInformation("Network connectivity to {Host}:{Port} restored after {Duration}ms (ID: {OperationId})",
                     host, port, duration.TotalMilliseconds, operationId);
                 return true;
@@ -234,7 +234,7 @@ public class NetworkRetryService : INetworkRetryService
             await Task.Delay(checkInterval, cancellationToken);
         }
 
-        var totalDuration = DateTime.UtcNow - startTime;
+        var totalDuration = DateTime.Now - startTime;
         _logger.LogWarning("Network connectivity to {Host}:{Port} was not restored within {MaxWaitTime} (waited {ActualDuration}ms) (ID: {OperationId})",
             host, port, maxWaitTime, totalDuration.TotalMilliseconds, operationId);
 

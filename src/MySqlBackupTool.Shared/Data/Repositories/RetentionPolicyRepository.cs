@@ -91,14 +91,14 @@ public class RetentionPolicyRepository : Repository<RetentionPolicy>, IRetention
     public async Task<RetentionResult> ApplyRetentionPoliciesAsync()
     {
         var result = new RetentionResult();
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
 
         try
         {
             var enabledPolicies = await GetEnabledPoliciesAsync();
             if (!enabledPolicies.Any())
             {
-                result.Duration = DateTime.UtcNow - startTime;
+                result.Duration = DateTime.Now - startTime;
                 return result;
             }
 
@@ -171,7 +171,7 @@ public class RetentionPolicyRepository : Repository<RetentionPolicy>, IRetention
             result.Errors.Add($"Error applying retention policies: {ex.Message}");
         }
 
-        result.Duration = DateTime.UtcNow - startTime;
+        result.Duration = DateTime.Now - startTime;
         return result;
     }
 
@@ -182,7 +182,7 @@ public class RetentionPolicyRepository : Repository<RetentionPolicy>, IRetention
 
         // Ensure CreatedAt is set
         if (entity.CreatedAt == default)
-            entity.CreatedAt = DateTime.UtcNow;
+            entity.CreatedAt = DateTime.Now;
 
         return await base.AddAsync(entity);
     }

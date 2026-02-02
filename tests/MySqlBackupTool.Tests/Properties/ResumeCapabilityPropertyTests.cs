@@ -94,7 +94,7 @@ public class ResumeCapabilityPropertyTests : IDisposable
                 FileName = Path.GetFileName(originalFile),
                 FileSize = fileSize,
                 ChecksumMD5 = originalChecksum,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             };
 
             // Act - Simulate interrupted transfer
@@ -207,7 +207,7 @@ public class ResumeCapabilityPropertyTests : IDisposable
                 FileName = Path.GetFileName(originalFile),
                 FileSize = fileSize,
                 ChecksumMD5 = originalChecksum,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             };
 
             // Act - Create transfer and resume token
@@ -280,7 +280,7 @@ public class ResumeCapabilityPropertyTests : IDisposable
                     FileName = Path.GetFileName(originalFile),
                     FileSize = fileSize,
                     ChecksumMD5 = "dummy_checksum",
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.Now
                 };
 
                 var transferId = _chunkManager.InitializeTransferAsync(metadata).Result;
@@ -338,7 +338,7 @@ public class ResumeCapabilityPropertyTests : IDisposable
                 FileName = Path.GetFileName(originalFile),
                 FileSize = fileSize,
                 ChecksumMD5 = "test_checksum",
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             };
 
             // Act - Create transfer and process some chunks

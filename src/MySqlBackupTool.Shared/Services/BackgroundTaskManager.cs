@@ -120,7 +120,7 @@ public class BackgroundTaskManager : IBackgroundTaskManager, IDisposable
             {
                 OperationId = operationId,
                 Configuration = configuration,
-                StartedAt = DateTime.UtcNow
+                StartedAt = DateTime.Now
             };
 
             // 创建组合取消令牌 / Create combined cancellation token
@@ -148,7 +148,7 @@ public class BackgroundTaskManager : IBackgroundTaskManager, IDisposable
                     {
                         OperationId = operationId,
                         Progress = progressUpdate,
-                        Timestamp = DateTime.UtcNow
+                        Timestamp = DateTime.Now
                     });
 
                     // 转发到原始进度报告器（如果提供）/ Forward to original progress reporter if provided
@@ -166,7 +166,7 @@ public class BackgroundTaskManager : IBackgroundTaskManager, IDisposable
                 try
                 {
                     UpdateStatistics(stats => stats.TotalTasksStarted++);
-                    UpdateStatistics(stats => stats.LastTaskStarted = DateTime.UtcNow);
+                    UpdateStatistics(stats => stats.LastTaskStarted = DateTime.Now);
 
                     var result = await _backupOrchestrator.ExecuteBackupAsync(
                         configuration, 
@@ -183,7 +183,7 @@ public class BackgroundTaskManager : IBackgroundTaskManager, IDisposable
                         UpdateStatistics(stats => stats.TasksFailed++);
                     }
 
-                    UpdateStatistics(stats => stats.LastTaskCompleted = DateTime.UtcNow);
+                    UpdateStatistics(stats => stats.LastTaskCompleted = DateTime.Now);
                     UpdateAverageExecutionTime(result.Duration);
 
                     // 触发完成事件 / Raise completion event
@@ -191,7 +191,7 @@ public class BackgroundTaskManager : IBackgroundTaskManager, IDisposable
                     {
                         OperationId = operationId,
                         Result = result,
-                        CompletedAt = DateTime.UtcNow
+                        CompletedAt = DateTime.Now
                     });
 
                     return result;
@@ -205,15 +205,15 @@ public class BackgroundTaskManager : IBackgroundTaskManager, IDisposable
                         OperationId = operationId,
                         Success = false,
                         ErrorMessage = "Operation was cancelled",
-                        CompletedAt = DateTime.UtcNow,
-                        Duration = DateTime.UtcNow - backupTask.StartedAt
+                        CompletedAt = DateTime.Now,
+                        Duration = DateTime.Now - backupTask.StartedAt
                     };
 
                     BackupCompleted?.Invoke(this, new BackupCompletedEventArgs
                     {
                         OperationId = operationId,
                         Result = cancelledResult,
-                        CompletedAt = DateTime.UtcNow
+                        CompletedAt = DateTime.Now
                     });
 
                     return cancelledResult;
@@ -229,15 +229,15 @@ public class BackgroundTaskManager : IBackgroundTaskManager, IDisposable
                         OperationId = operationId,
                         Success = false,
                         ErrorMessage = $"Unexpected error: {ex.Message}",
-                        CompletedAt = DateTime.UtcNow,
-                        Duration = DateTime.UtcNow - backupTask.StartedAt
+                        CompletedAt = DateTime.Now,
+                        Duration = DateTime.Now - backupTask.StartedAt
                     };
 
                     BackupCompleted?.Invoke(this, new BackupCompletedEventArgs
                     {
                         OperationId = operationId,
                         Result = errorResult,
-                        CompletedAt = DateTime.UtcNow
+                        CompletedAt = DateTime.Now
                     });
 
                     return errorResult;
@@ -270,7 +270,7 @@ public class BackgroundTaskManager : IBackgroundTaskManager, IDisposable
                 OperationId = operationId,
                 Success = false,
                 ErrorMessage = $"Failed to start backup: {ex.Message}",
-                CompletedAt = DateTime.UtcNow,
+                CompletedAt = DateTime.Now,
                 Duration = TimeSpan.Zero
             };
         }
@@ -431,7 +431,7 @@ public class BackgroundTaskManager : IBackgroundTaskManager, IDisposable
 
         try
         {
-            var cutoffTime = DateTime.UtcNow.AddMinutes(-_configuration.CompletedTaskRetentionMinutes);
+            var cutoffTime = DateTime.Now.AddMinutes(-_configuration.CompletedTaskRetentionMinutes);
             var tasksToRemove = new List<Guid>();
 
             foreach (var kvp in _runningTasks)

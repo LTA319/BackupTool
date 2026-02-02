@@ -154,7 +154,7 @@ public class DatabaseMigrationService
                     MaxAgeDays = 30,        // 保留30天
                     MaxCount = 10,          // 最多保留10个备份
                     IsEnabled = true,       // 默认启用
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.Now
                 };
 
                 _context.RetentionPolicies.Add(defaultPolicy);
@@ -241,7 +241,7 @@ public class DatabaseMigrationService
                     BackupPermissions.DeleteBackup
                 },
                 IsActive = true,
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.Now,
                 ExpiresAt = null // No expiration for default client
             };
 
@@ -314,7 +314,7 @@ public class DatabaseMigrationService
                     IncludeDatabaseName = true
                 },
                 IsActive = true,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             };
 
             _context.BackupConfigurations.Add(defaultConfig);

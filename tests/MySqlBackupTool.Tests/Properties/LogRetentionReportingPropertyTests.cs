@@ -49,14 +49,14 @@ public class LogRetentionReportingPropertyTests
             .Select(p => 
             {
                 p.IsEnabled = true;
-                p.CreatedAt = DateTime.UtcNow;
+                p.CreatedAt = DateTime.Now;
                 return p;
             });
 
         var backupLogsGen = Arb.Generate<List<BackupLog>>().Where(logs => logs.Count <= 100)
             .Select(logs => logs.Select(log =>
             {
-                log.StartTime = DateTime.UtcNow.AddDays(-System.Random.Shared.Next(0, 365));
+                log.StartTime = DateTime.Now.AddDays(-System.Random.Shared.Next(0, 365));
                 log.FileSize = System.Random.Shared.Next(1000, 1000000);
                 log.FilePath = $"/path/backup{log.Id}.zip";
                 return log;
@@ -93,7 +93,7 @@ public class LogRetentionReportingPropertyTests
 
             // Assert - Verify retention policy constraints are respected
             var ageConstraintSatisfied = !policy.MaxAgeDays.HasValue || 
-                retainedLogs.All(log => (DateTime.UtcNow - log.StartTime).TotalDays <= policy.MaxAgeDays.Value);
+                retainedLogs.All(log => (DateTime.Now - log.StartTime).TotalDays <= policy.MaxAgeDays.Value);
 
             var countConstraintSatisfied = !policy.MaxCount.HasValue || 
                 retainedLogs.Count <= policy.MaxCount.Value;
@@ -118,7 +118,7 @@ public class LogRetentionReportingPropertyTests
         var backupLogsGen = Arb.Generate<List<BackupLog>>().Where(logs => logs.Count <= 50)
             .Select(logs => logs.Select(log =>
             {
-                log.StartTime = DateTime.UtcNow.AddDays(-System.Random.Shared.Next(0, 30));
+                log.StartTime = DateTime.Now.AddDays(-System.Random.Shared.Next(0, 30));
                 log.FileSize = System.Random.Shared.Next(1000, 100000000);
                 log.BackupConfigId = System.Random.Shared.Next(1, 6);
                 return log;
@@ -147,8 +147,8 @@ public class LogRetentionReportingPropertyTests
 
             var criteria = new ReportCriteria
             {
-                StartDate = DateTime.UtcNow.AddDays(-30),
-                EndDate = DateTime.UtcNow,
+                StartDate = DateTime.Now.AddDays(-30),
+                EndDate = DateTime.Now,
                 IncludeConfigurationBreakdown = true,
                 IncludeDailyBreakdown = false, // Skip daily breakdown for performance
                 IncludeRecentFailures = false,
@@ -289,9 +289,9 @@ public class LogRetentionReportingPropertyTests
         var reportGen = Arb.Generate<BackupSummaryReport>()
             .Select(report =>
             {
-                report.GeneratedAt = DateTime.UtcNow;
-                report.ReportStartDate = DateTime.UtcNow.AddDays(-7);
-                report.ReportEndDate = DateTime.UtcNow;
+                report.GeneratedAt = DateTime.Now;
+                report.ReportStartDate = DateTime.Now.AddDays(-7);
+                report.ReportEndDate = DateTime.Now;
                 report.OverallStatistics = new BackupStatistics
                 {
                     TotalBackups = System.Random.Shared.Next(0, 1000),

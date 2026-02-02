@@ -192,7 +192,7 @@ public class AuthorizationServiceTests
         {
             ClientId = "test-client",
             Permissions = new List<string> { BackupPermissions.UploadBackup },
-            RequestTime = DateTime.UtcNow
+            RequestTime = DateTime.Now
         };
 
         _mockLogRepository.Setup(x => x.AddAsync(It.IsAny<BackupLog>()))

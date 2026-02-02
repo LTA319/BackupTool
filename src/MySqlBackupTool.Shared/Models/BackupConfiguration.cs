@@ -69,7 +69,7 @@ public class BackupConfiguration : IValidatableObject
     /// <summary>
     /// 配置创建时间
     /// </summary>
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
 
     /// <summary>
     /// 客户端标识符，用于身份验证

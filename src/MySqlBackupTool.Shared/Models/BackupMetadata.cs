@@ -28,7 +28,7 @@ public class BackupMetadata
     /// 备份时间，默认为当前UTC时间
     /// Backup time, defaults to current UTC time
     /// </summary>
-    public DateTime BackupTime { get; set; } = DateTime.UtcNow;
+    public DateTime BackupTime { get; set; } = DateTime.Now;
 
     /// <summary>
     /// 备份类型，默认为"Full"（完整备份），最大长度50字符
@@ -120,7 +120,7 @@ public class RetentionPolicy
     /// 策略创建时间，默认为当前UTC时间
     /// Policy creation time, defaults to current UTC time
     /// </summary>
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
 
     /// <summary>
     /// 根据此策略判断备份是否应该被保留
@@ -139,7 +139,7 @@ public class RetentionPolicy
         // Check age policy
         if (MaxAgeDays.HasValue)
         {
-            var age = DateTime.UtcNow - backupDate;
+            var age = DateTime.Now - backupDate;
             if (age.TotalDays > MaxAgeDays.Value)
                 return false;
         }

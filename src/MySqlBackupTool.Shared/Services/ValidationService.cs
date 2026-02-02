@@ -48,7 +48,7 @@ namespace MySqlBackupTool.Shared.Services
             
             _loggingService.LogInformation($"Starting backup validation for file: {filePath}");
             
-            var startTime = DateTime.UtcNow;
+            var startTime = DateTime.Now;
             var result = new FileValidationResult
             {
                 FilePath = filePath,
@@ -82,7 +82,7 @@ namespace MySqlBackupTool.Shared.Services
                 // 确定整体验证状态
                 result.IsValid = result.Issues.All(i => i.Severity != ValidationSeverity.Critical && i.Severity != ValidationSeverity.Error);
                 
-                result.ValidationDuration = DateTime.UtcNow - startTime;
+                result.ValidationDuration = DateTime.Now - startTime;
                 
                 var status = result.IsValid ? "passed" : "failed";
                 _loggingService.LogInformation($"Backup validation {status} for file: {filePath} (Duration: {result.ValidationDuration.TotalSeconds:F2}s)");
@@ -102,7 +102,7 @@ namespace MySqlBackupTool.Shared.Services
                     SuggestedAction = "Check file accessibility and system resources"
                 });
                 
-                result.ValidationDuration = DateTime.UtcNow - startTime;
+                result.ValidationDuration = DateTime.Now - startTime;
                 return result;
             }
         }
@@ -181,7 +181,7 @@ namespace MySqlBackupTool.Shared.Services
             
             var report = new ValidationReport
             {
-                GeneratedAt = DateTime.UtcNow
+                GeneratedAt = DateTime.Now
             };
             
             try

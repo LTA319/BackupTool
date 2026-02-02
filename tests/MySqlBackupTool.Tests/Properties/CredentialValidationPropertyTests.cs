@@ -70,7 +70,7 @@ public class CredentialValidationPropertyTests : IDisposable
                         ClientId = clientId,
                         ClientSecret = clientSecret,
                         IsActive = true,
-                        CreatedAt = DateTime.UtcNow
+                        CreatedAt = DateTime.Now
                     };
 
                     // Store credentials

@@ -159,7 +159,7 @@ public class BenchmarkResult
 public class BenchmarkSuite
 {
     public string SuiteName { get; set; } = string.Empty;
-    public DateTime ExecutionTime { get; set; } = DateTime.UtcNow;
+    public DateTime ExecutionTime { get; set; } = DateTime.Now;
     public List<BenchmarkResult> Results { get; set; } = new();
     public BenchmarkEnvironment Environment { get; set; } = new();
     public TimeSpan TotalExecutionTime { get; set; }

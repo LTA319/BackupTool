@@ -108,7 +108,7 @@ public class BackupLogRepository : Repository<BackupLog>, IBackupLogRepository
 
     public async Task<int> CleanupOldLogsAsync(int maxAgeDays, int? maxCount = null)
     {
-        var cutoffDate = DateTime.UtcNow.AddDays(-maxAgeDays);
+        var cutoffDate = DateTime.Now.AddDays(-maxAgeDays);
         var query = _dbSet.Where(bl => bl.StartTime < cutoffDate);
 
         // If maxCount is specified, keep the most recent logs up to that count
@@ -165,7 +165,7 @@ public class BackupLogRepository : Repository<BackupLog>, IBackupLogRepository
             return false;
 
         log.Status = finalStatus;
-        log.EndTime = DateTime.UtcNow;
+        log.EndTime = DateTime.Now;
         
         if (!string.IsNullOrWhiteSpace(filePath))
             log.FilePath = filePath;
@@ -188,7 +188,7 @@ public class BackupLogRepository : Repository<BackupLog>, IBackupLogRepository
 
         // Ensure StartTime is set
         if (entity.StartTime == default)
-            entity.StartTime = DateTime.UtcNow;
+            entity.StartTime = DateTime.Now;
 
         return await base.AddAsync(entity);
     }

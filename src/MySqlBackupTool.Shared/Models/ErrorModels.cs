@@ -35,7 +35,7 @@ public abstract class BackupException : Exception
     protected BackupException(string operationId, string message) : base(message)
     {
         OperationId = operationId;
-        OccurredAt = DateTime.UtcNow;
+        OccurredAt = DateTime.Now;
     }
 
     /// <summary>
@@ -49,7 +49,7 @@ public abstract class BackupException : Exception
         : base(message, innerException)
     {
         OperationId = operationId;
-        OccurredAt = DateTime.UtcNow;
+        OccurredAt = DateTime.Now;
     }
 }
 
@@ -343,7 +343,7 @@ public class RecoveryResult
     public RecoveryStrategy StrategyUsed { get; set; }
     public string? Message { get; set; }
     public Exception? Exception { get; set; }
-    public DateTime AttemptedAt { get; set; } = DateTime.UtcNow;
+    public DateTime AttemptedAt { get; set; } = DateTime.Now;
     public TimeSpan Duration { get; set; }
     public Dictionary<string, object> Context { get; set; } = new();
 
@@ -438,7 +438,7 @@ public class ErrorRecoveryConfig
 public class CriticalErrorAlert
 {
     public Guid Id { get; set; } = Guid.NewGuid();
-    public DateTime OccurredAt { get; set; } = DateTime.UtcNow;
+    public DateTime OccurredAt { get; set; } = DateTime.Now;
     public string OperationId { get; set; } = string.Empty;
     public string ErrorType { get; set; } = string.Empty;
     public string ErrorMessage { get; set; } = string.Empty;

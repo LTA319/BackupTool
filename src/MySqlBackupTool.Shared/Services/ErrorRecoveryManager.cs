@@ -69,7 +69,7 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
         _logger.LogError(error, "MySQL service failure occurred for operation {OperationId}, service {ServiceName}, operation {Operation}",
             error.OperationId, error.ServiceName, error.Operation);
 
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
 
         try
         {
@@ -102,7 +102,7 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
         }
         finally
         {
-            var duration = DateTime.UtcNow - startTime;
+            var duration = DateTime.Now - startTime;
             _logger.LogInformation("MySQL service failure recovery completed in {Duration}ms", duration.TotalMilliseconds);
         }
     }
@@ -122,7 +122,7 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
         _logger.LogError(error, "Compression failure occurred for operation {OperationId}, source path {SourcePath}",
             error.OperationId, error.SourcePath);
 
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
 
         try
         {
@@ -178,7 +178,7 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
         }
         finally
         {
-            var duration = DateTime.UtcNow - startTime;
+            var duration = DateTime.Now - startTime;
             _logger.LogInformation("Compression failure recovery completed in {Duration}ms", duration.TotalMilliseconds);
         }
     }
@@ -194,7 +194,7 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
         _logger.LogError(error, "Transfer failure occurred for operation {OperationId}, file {FilePath}",
             error.OperationId, error.FilePath);
 
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
 
         try
         {
@@ -246,7 +246,7 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
         }
         finally
         {
-            var duration = DateTime.UtcNow - startTime;
+            var duration = DateTime.Now - startTime;
             _logger.LogInformation("Transfer failure recovery completed in {Duration}ms", duration.TotalMilliseconds);
         }
     }
@@ -262,7 +262,7 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
         _logger.LogError(error, "Operation timeout occurred for operation {OperationId}, type {OperationType}, configured timeout {ConfiguredTimeout}, actual duration {ActualDuration}",
             error.OperationId, error.OperationType, error.ConfiguredTimeout, error.ActualDuration);
 
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
 
         try
         {
@@ -298,7 +298,7 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
         }
         finally
         {
-            var duration = DateTime.UtcNow - startTime;
+            var duration = DateTime.Now - startTime;
             _logger.LogInformation("Timeout failure recovery completed in {Duration}ms", duration.TotalMilliseconds);
         }
     }
@@ -314,7 +314,7 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
         _logger.LogError(error, "General backup failure occurred for operation {OperationId}",
             error.OperationId);
 
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
 
         try
         {
@@ -347,7 +347,7 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
         }
         finally
         {
-            var duration = DateTime.UtcNow - startTime;
+            var duration = DateTime.Now - startTime;
             _logger.LogInformation("General failure recovery completed in {Duration}ms", duration.TotalMilliseconds);
         }
     }
@@ -399,7 +399,7 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
         using var timeoutCts = new CancellationTokenSource(timeout);
         using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
 
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
 
         try
         {
@@ -408,7 +408,7 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
 
             var result = await operation(combinedCts.Token);
 
-            var duration = DateTime.UtcNow - startTime;
+            var duration = DateTime.Now - startTime;
             _logger.LogDebug("Operation {OperationType} completed successfully in {Duration}ms",
                 operationType, duration.TotalMilliseconds);
 
@@ -416,7 +416,7 @@ public class ErrorRecoveryManager : IErrorRecoveryManager
         }
         catch (OperationCanceledException) when (timeoutCts.Token.IsCancellationRequested)
         {
-            var actualDuration = DateTime.UtcNow - startTime;
+            var actualDuration = DateTime.Now - startTime;
             var timeoutException = new OperationTimeoutException(operationId, operationType, timeout, actualDuration);
             
             _logger.LogError(timeoutException, "Operation {OperationType} timed out after {ActualDuration}",

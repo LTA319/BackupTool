@@ -21,7 +21,7 @@ public static class DatabaseConnectionTest
     public static async Task<DatabaseTestResult> TestDatabaseConnectionAsync()
     {
         var result = new DatabaseTestResult();
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
         
         try
         {
@@ -51,26 +51,26 @@ public static class DatabaseConnectionTest
             result.ContextCreated = true;
             
             // 测试数据库连接
-            var connectionTestStart = DateTime.UtcNow;
+            var connectionTestStart = DateTime.Now;
             await context.Database.OpenConnectionAsync();
-            result.ConnectionTime = DateTime.UtcNow - connectionTestStart;
+            result.ConnectionTime = DateTime.Now - connectionTestStart;
             result.CanConnect = true;
             
             // 测试基本查询
-            var queryTestStart = DateTime.UtcNow;
+            var queryTestStart = DateTime.Now;
             var configCount = await context.BackupConfigurations.CountAsync();
-            result.QueryTime = DateTime.UtcNow - queryTestStart;
+            result.QueryTime = DateTime.Now - queryTestStart;
             result.ConfigurationCount = configCount;
             result.CanQuery = true;
             
             // 专门测试正在运行的备份查询
-            var runningBackupsTestStart = DateTime.UtcNow;
+            var runningBackupsTestStart = DateTime.Now;
             var runningBackupsCount = await context.BackupLogs
                 .Where(bl => new[] { BackupStatus.Queued, BackupStatus.StoppingMySQL, BackupStatus.Compressing, 
                                    BackupStatus.Transferring, BackupStatus.StartingMySQL, BackupStatus.Verifying }
                            .Contains(bl.Status))
                 .CountAsync();
-            result.RunningBackupsQueryTime = DateTime.UtcNow - runningBackupsTestStart;
+            result.RunningBackupsQueryTime = DateTime.Now - runningBackupsTestStart;
             result.RunningBackupsCount = runningBackupsCount;
             
             await context.Database.CloseConnectionAsync();
@@ -86,7 +86,7 @@ public static class DatabaseConnectionTest
         }
         finally
         {
-            result.TotalTime = DateTime.UtcNow - startTime;
+            result.TotalTime = DateTime.Now - startTime;
         }
         
         return result;

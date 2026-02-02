@@ -72,7 +72,7 @@ public class AuthenticationService : IAuthenticationService
             }
 
             // 验证请求时间戳以防止重放攻击 / Validate request timestamp to prevent replay attacks
-            var requestAge = DateTime.UtcNow - request.Timestamp;
+            var requestAge = DateTime.Now - request.Timestamp;
             if (Math.Abs(requestAge.TotalMinutes) > 5) // 允许5分钟的时钟偏差 / Allow 5 minutes clock skew
             {
                 _logger.LogWarning("Authentication request rejected for client {ClientId} due to invalid timestamp", clientId);
@@ -211,7 +211,7 @@ public class AuthenticationService : IAuthenticationService
                 {
                     ClientId = authToken.ClientId,
                     Permissions = new List<string>(authToken.Permissions),
-                    RequestTime = DateTime.UtcNow
+                    RequestTime = DateTime.Now
                 };
             }
 
@@ -304,7 +304,7 @@ public class AuthenticationService : IAuthenticationService
     {
         try
         {
-            var cutoffTime = DateTime.UtcNow.AddMinutes(-_config.LockoutDurationMinutes * 2);
+            var cutoffTime = DateTime.Now.AddMinutes(-_config.LockoutDurationMinutes * 2);
             var keysToRemove = new List<string>();
 
             foreach (var kvp in _authenticationAttempts)
@@ -355,12 +355,12 @@ public class AuthenticationService : IAuthenticationService
         /// <summary>
         /// 第一次尝试时间 / Time of first attempt
         /// </summary>
-        public DateTime FirstAttemptTime { get; private set; } = DateTime.UtcNow;
+        public DateTime FirstAttemptTime { get; private set; } = DateTime.Now;
         
         /// <summary>
         /// 最后一次尝试时间 / Time of last attempt
         /// </summary>
-        public DateTime LastAttemptTime { get; private set; } = DateTime.UtcNow;
+        public DateTime LastAttemptTime { get; private set; } = DateTime.Now;
 
         /// <summary>
         /// 记录失败尝试 / Records a failed attempt
@@ -368,7 +368,7 @@ public class AuthenticationService : IAuthenticationService
         public void RecordFailedAttempt()
         {
             FailedAttempts++;
-            LastAttemptTime = DateTime.UtcNow;
+            LastAttemptTime = DateTime.Now;
         }
 
         /// <summary>
@@ -383,7 +383,7 @@ public class AuthenticationService : IAuthenticationService
                 return false;
 
             // 检查锁定期是否已过期 / Check if lockout period has expired
-            return DateTime.UtcNow - LastAttemptTime < lockoutDuration;
+            return DateTime.Now - LastAttemptTime < lockoutDuration;
         }
     }
 }

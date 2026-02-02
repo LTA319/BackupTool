@@ -65,10 +65,10 @@ public class ChunkManager : IChunkManager
             {
                 TransferId = transferId,
                 Metadata = metadata,
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.Now,
                 TempDirectory = Path.Combine(Path.GetTempPath(), "MySqlBackup", transferId),
                 CompletedChunks = new HashSet<int>(),
-                LastActivity = DateTime.UtcNow
+                LastActivity = DateTime.Now
             };
 
             // 为块创建临时目录 / Create temporary directory for chunks
@@ -113,7 +113,7 @@ public class ChunkManager : IChunkManager
                         ChunkIndex = chunk.ChunkIndex
                     };
                 }
-                session.LastActivity = DateTime.UtcNow;
+                session.LastActivity = DateTime.Now;
             }
 
             // 验证块校验和 / Validate chunk checksum
@@ -371,7 +371,7 @@ public class ChunkManager : IChunkManager
                 ChecksumSHA256 = session.Metadata.ChecksumSHA256,
                 TempDirectory = session.TempDirectory,
                 CreatedAt = session.CreatedAt,
-                LastActivity = DateTime.UtcNow,
+                LastActivity = DateTime.Now,
                 IsCompleted = false
             };
 
@@ -441,7 +441,7 @@ public class ChunkManager : IChunkManager
                 CreatedAt = tokenEntity.CreatedAt,
                 TempDirectory = tokenEntity.TempDirectory ?? Path.Combine(Path.GetTempPath(), "MySqlBackup", transferId),
                 CompletedChunks = new HashSet<int>(tokenEntity.CompletedChunks.Select(c => c.ChunkIndex)),
-                LastActivity = DateTime.UtcNow
+                LastActivity = DateTime.Now
             };
 
             // Ensure temp directory exists

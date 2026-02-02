@@ -184,7 +184,7 @@ public class AuthenticationAuditService : IAuthenticationAuditService, IDisposab
                 return 0;
             }
 
-            var cutoffDate = DateTime.UtcNow.AddDays(-retentionDays);
+            var cutoffDate = DateTime.Now.AddDays(-retentionDays);
             var lines = await File.ReadAllLinesAsync(_auditLogPath);
             var retainedLines = new List<string>();
 

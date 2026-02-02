@@ -178,7 +178,7 @@ public class BackupConfigurationRepository : Repository<BackupConfiguration>, IB
             if (configuration.Id == 0)
             {
                 // 新配置
-                configuration.CreatedAt = DateTime.UtcNow;
+                configuration.CreatedAt = DateTime.Now;
                 savedConfiguration = await AddAsync(configuration);
             }
             else
@@ -308,7 +308,7 @@ public class BackupConfigurationRepository : Repository<BackupConfiguration>, IB
 
         // 确保设置了CreatedAt
         if (entity.CreatedAt == default)
-            entity.CreatedAt = DateTime.UtcNow;
+            entity.CreatedAt = DateTime.Now;
 
         return await base.AddAsync(entity);
     }

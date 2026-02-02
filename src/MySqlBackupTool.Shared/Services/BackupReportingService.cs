@@ -53,7 +53,7 @@ public class BackupReportingService
 
         var report = new BackupSummaryReport
         {
-            GeneratedAt = DateTime.UtcNow,
+            GeneratedAt = DateTime.Now,
             ReportStartDate = criteria.StartDate,
             ReportEndDate = criteria.EndDate
         };

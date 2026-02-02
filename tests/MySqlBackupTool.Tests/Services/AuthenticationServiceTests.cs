@@ -55,7 +55,7 @@ public class AuthenticationServiceTests
         {
             TokenId = "test-token",
             ClientId = clientId,
-            ExpiresAt = DateTime.UtcNow.AddHours(24),
+            ExpiresAt = DateTime.Now.AddHours(24),
             Permissions = storedCredentials.Permissions
         };
 
@@ -69,7 +69,7 @@ public class AuthenticationServiceTests
         {
             ClientId = clientId,
             ClientSecret = clientSecret,
-            Timestamp = DateTime.UtcNow
+            Timestamp = DateTime.Now
         };
 
         // Act
@@ -96,7 +96,7 @@ public class AuthenticationServiceTests
         {
             ClientId = clientId,
             ClientSecret = clientSecret,
-            Timestamp = DateTime.UtcNow
+            Timestamp = DateTime.Now
         };
 
         // Act
@@ -131,7 +131,7 @@ public class AuthenticationServiceTests
         {
             ClientId = clientId,
             ClientSecret = clientSecret,
-            Timestamp = DateTime.UtcNow
+            Timestamp = DateTime.Now
         };
 
         // Act
@@ -155,7 +155,7 @@ public class AuthenticationServiceTests
             ClientId = clientId,
             ClientSecret = hashedSecret,
             IsActive = true,
-            ExpiresAt = DateTime.UtcNow.AddDays(-1), // Expired yesterday
+            ExpiresAt = DateTime.Now.AddDays(-1), // Expired yesterday
             Permissions = new List<string> { BackupPermissions.UploadBackup }
         };
 
@@ -166,7 +166,7 @@ public class AuthenticationServiceTests
         {
             ClientId = clientId,
             ClientSecret = clientSecret,
-            Timestamp = DateTime.UtcNow
+            Timestamp = DateTime.Now
         };
 
         // Act
@@ -188,7 +188,7 @@ public class AuthenticationServiceTests
         {
             ClientId = clientId,
             ClientSecret = clientSecret,
-            Timestamp = DateTime.UtcNow.AddMinutes(-10) // 10 minutes old
+            Timestamp = DateTime.Now.AddMinutes(-10) // 10 minutes old
         };
 
         // Act
@@ -209,7 +209,7 @@ public class AuthenticationServiceTests
             TokenId = tokenId,
             ClientId = "test-client",
             IsActive = true,
-            ExpiresAt = DateTime.UtcNow.AddHours(1)
+            ExpiresAt = DateTime.Now.AddHours(1)
         };
 
         _mockTokenManager.Setup(x => x.GetTokenAsync(tokenId))
@@ -252,7 +252,7 @@ public class AuthenticationServiceTests
             TokenId = tokenId,
             ClientId = "test-client",
             IsActive = true,
-            ExpiresAt = DateTime.UtcNow.AddHours(1),
+            ExpiresAt = DateTime.Now.AddHours(1),
             Permissions = new List<string> { BackupPermissions.UploadBackup }
         };
 

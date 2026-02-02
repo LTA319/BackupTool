@@ -83,7 +83,7 @@ public class SecureCredentialStorage : ICredentialStorage, ISecureCredentialStor
                 
                 // 更新缓存 / Update cache
                 _credentialsCache[credentials.ClientId] = hashedCredentials;
-                _lastCacheUpdate = DateTime.UtcNow;
+                _lastCacheUpdate = DateTime.Now;
             }
 
             _logger.LogInformation("Successfully stored credentials for client {ClientId}", credentials.ClientId);
@@ -178,7 +178,7 @@ public class SecureCredentialStorage : ICredentialStorage, ISecureCredentialStor
                 
                 // 更新缓存 / Update cache
                 _credentialsCache[credentials.ClientId] = hashedCredentials;
-                _lastCacheUpdate = DateTime.UtcNow;
+                _lastCacheUpdate = DateTime.Now;
             }
 
             _logger.LogInformation("Successfully updated credentials for client {ClientId}", credentials.ClientId);
@@ -324,7 +324,7 @@ public class SecureCredentialStorage : ICredentialStorage, ISecureCredentialStor
                 ClientName = "Default Client",
                 Permissions = new List<string> { "backup.upload", "backup.list" },
                 IsActive = true,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             };
 
             var result = await StoreCredentialsAsync(defaultCredentials);
@@ -494,7 +494,7 @@ public class SecureCredentialStorage : ICredentialStorage, ISecureCredentialStor
     /// <returns>缓存有效返回true，否则返回false / Returns true if cache is valid, false otherwise</returns>
     private bool IsCacheValid()
     {
-        return DateTime.UtcNow - _lastCacheUpdate < _cacheExpiry;
+        return DateTime.Now - _lastCacheUpdate < _cacheExpiry;
     }
 
     /// <summary>
@@ -547,7 +547,7 @@ public class SecureCredentialStorage : ICredentialStorage, ISecureCredentialStor
                     _credentialsCache[kvp.Key] = kvp.Value;
                 }
             }
-            _lastCacheUpdate = DateTime.UtcNow;
+            _lastCacheUpdate = DateTime.Now;
             
             return credentials ?? new Dictionary<string, ClientCredentials>();
         }

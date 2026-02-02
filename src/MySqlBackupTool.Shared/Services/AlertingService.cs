@@ -62,7 +62,7 @@ public class AlertingService : IAlertingService
             return false;
         }
 
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
         var operationId = Guid.NewGuid().ToString();
 
         try
@@ -103,9 +103,9 @@ public class AlertingService : IAlertingService
 
             // 更新向后兼容的属性 / Update legacy properties for backward compatibility
             alert.AlertSent = result.Success;
-            alert.AlertSentAt = result.Success ? DateTime.UtcNow : null;
+            alert.AlertSentAt = result.Success ? DateTime.Now : null;
 
-            var duration = DateTime.UtcNow - startTime;
+            var duration = DateTime.Now - startTime;
             _logger.LogInformation("Critical error alert completed for operation {OperationId}: Success={Success}, Channels={SuccessfulChannels}/{TotalChannels}, Duration={Duration}ms",
                 alert.OperationId, result.Success, result.SuccessfulChannels, channels.Count(), duration.TotalMilliseconds);
 
@@ -113,7 +113,7 @@ public class AlertingService : IAlertingService
         }
         catch (Exception ex)
         {
-            var duration = DateTime.UtcNow - startTime;
+            var duration = DateTime.Now - startTime;
             _logger.LogError(ex, "Failed to send critical error alert for operation {OperationId} after {Duration}ms: {ErrorMessage}",
                 alert.OperationId, duration.TotalMilliseconds, ex.Message);
             return false;
@@ -130,7 +130,7 @@ public class AlertingService : IAlertingService
         IEnumerable<NotificationChannel>? channels = null, 
         CancellationToken cancellationToken = default)
     {
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
         var targetChannels = channels?.ToList() ?? GetEnabledChannels().ToList();
         
         var result = new NotificationResult();
@@ -144,7 +144,7 @@ public class AlertingService : IAlertingService
             _logger.LogDebug("Notification {NotificationId} severity {Severity} is below minimum threshold {MinimumSeverity}, skipping",
                 notification.Id, notification.Severity, _configuration.MinimumSeverity);
             result.Success = false;
-            result.Duration = DateTime.UtcNow - startTime;
+            result.Duration = DateTime.Now - startTime;
             return result;
         }
 
@@ -203,7 +203,7 @@ public class AlertingService : IAlertingService
 
         await Task.WhenAll(tasks);
 
-        result.Duration = DateTime.UtcNow - startTime;
+        result.Duration = DateTime.Now - startTime;
         result.Success = result.SuccessfulChannels > 0;
 
         _logger.LogInformation("Notification {NotificationId} completed: Success={Success}, Successful={SuccessfulChannels}/{TotalChannels}, Duration={Duration}ms",
@@ -273,7 +273,7 @@ public class AlertingService : IAlertingService
     /// </summary>
     private bool IsRateLimited()
     {
-        var now = DateTime.UtcNow;
+        var now = DateTime.Now;
         var hourAgo = now.AddHours(-1);
 
         // 清理旧条目 / Clean up old entries
@@ -398,7 +398,7 @@ public class AlertingService : IAlertingService
             await smtpClient.SendMailAsync(mailMessage, cancellationToken);
 
             // 更新速率限制计数器 / Update rate limiting counters
-            var now = DateTime.UtcNow;
+            var now = DateTime.Now;
             _lastAlertTimes[NotificationChannel.Email] = now;
             _alertCounts[NotificationChannel.Email] = _alertCounts.GetValueOrDefault(NotificationChannel.Email, 0) + 1;
 
@@ -464,7 +464,7 @@ public class AlertingService : IAlertingService
             if (response.IsSuccessStatusCode)
             {
                 // 更新速率限制计数器 / Update rate limiting counters
-                var now = DateTime.UtcNow;
+                var now = DateTime.Now;
                 _lastAlertTimes[NotificationChannel.Webhook] = now;
                 _alertCounts[NotificationChannel.Webhook] = _alertCounts.GetValueOrDefault(NotificationChannel.Webhook, 0) + 1;
 
@@ -503,10 +503,10 @@ public class AlertingService : IAlertingService
 
             // 生成日志文件名 / Generate log file name
             var fileName = _configuration.FileLog.FileNamePattern
-                .Replace("{yyyy}", DateTime.UtcNow.ToString("yyyy"))
-                .Replace("{MM}", DateTime.UtcNow.ToString("MM"))
-                .Replace("{dd}", DateTime.UtcNow.ToString("dd"))
-                .Replace("{HH}", DateTime.UtcNow.ToString("HH"));
+                .Replace("{yyyy}", DateTime.Now.ToString("yyyy"))
+                .Replace("{MM}", DateTime.Now.ToString("MM"))
+                .Replace("{dd}", DateTime.Now.ToString("dd"))
+                .Replace("{HH}", DateTime.Now.ToString("HH"));
 
             var filePath = Path.Combine(_configuration.FileLog.LogDirectory, fileName);
 
@@ -520,7 +520,7 @@ public class AlertingService : IAlertingService
             await RotateLogFileIfNeededAsync(filePath);
 
             // 更新速率限制计数器 / Update rate limiting counters
-            var now = DateTime.UtcNow;
+            var now = DateTime.Now;
             _lastAlertTimes[NotificationChannel.FileLog] = now;
             _alertCounts[NotificationChannel.FileLog] = _alertCounts.GetValueOrDefault(NotificationChannel.FileLog, 0) + 1;
 
@@ -545,7 +545,7 @@ public class AlertingService : IAlertingService
         var testNotification = new Notification
         {
             Subject = "MySQL Backup Tool - Test Notification",
-            Message = $"This is a test notification sent at {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC to verify channel connectivity.",
+            Message = $"This is a test notification sent at {DateTime.Now:yyyy-MM-dd HH:mm:ss} UTC to verify channel connectivity.",
             Severity = AlertSeverity.Info
         };
 
@@ -582,7 +582,7 @@ public class AlertingService : IAlertingService
             }
 
             // 轮转当前文件 / Rotate current file
-            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+            var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
             var rotatedFileName = $"{fileNameWithoutExtension}_{timestamp}{extension}";
             var rotatedFilePath = Path.Combine(directory, rotatedFileName);
 

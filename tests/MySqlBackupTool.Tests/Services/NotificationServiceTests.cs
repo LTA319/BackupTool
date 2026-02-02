@@ -265,8 +265,8 @@ public class NotificationServiceTests
     public async Task GetStatisticsAsync_ShouldReturnValidStatistics()
     {
         // Arrange
-        var fromDate = DateTime.UtcNow.AddDays(-7);
-        var toDate = DateTime.UtcNow;
+        var fromDate = DateTime.Now.AddDays(-7);
+        var toDate = DateTime.Now;
 
         // Act
         var statistics = await _notificationService.GetStatisticsAsync(fromDate, toDate);
@@ -275,7 +275,7 @@ public class NotificationServiceTests
         Assert.NotNull(statistics);
         Assert.Equal(fromDate, statistics.FromDate);
         Assert.Equal(toDate, statistics.ToDate);
-        Assert.True(statistics.GeneratedAt <= DateTime.UtcNow);
+        Assert.True(statistics.GeneratedAt <= DateTime.Now);
         Assert.NotNull(statistics.FailureReasons);
         Assert.NotNull(statistics.DeliveriesByHour);
     }
@@ -289,7 +289,7 @@ public class NotificationServiceTests
         // Assert
         Assert.NotNull(statistics);
         Assert.True(statistics.FromDate <= statistics.ToDate);
-        Assert.True(statistics.ToDate <= DateTime.UtcNow);
+        Assert.True(statistics.ToDate <= DateTime.Now);
     }
 
     [Theory]
@@ -332,7 +332,7 @@ public class NotificationServiceTests
         Assert.Equal(EmailPriority.Normal, message.Priority);
         Assert.Empty(message.Attachments);
         Assert.Empty(message.Headers);
-        Assert.True(message.CreatedAt <= DateTime.UtcNow);
+        Assert.True(message.CreatedAt <= DateTime.Now);
     }
 
     [Fact]
@@ -361,7 +361,7 @@ public class NotificationServiceTests
         // Assert
         Assert.Equal(string.Empty, status.NotificationId);
         Assert.Equal(NotificationDeliveryStatus.Pending, status.Status);
-        Assert.True(status.CreatedAt <= DateTime.UtcNow);
+        Assert.True(status.CreatedAt <= DateTime.Now);
         Assert.Null(status.SentAt);
         Assert.Equal(0, status.AttemptCount);
         Assert.Null(status.LastError);

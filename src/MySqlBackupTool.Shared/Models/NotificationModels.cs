@@ -387,7 +387,7 @@ public enum AlertSeverity
 public class Notification
 {
     public Guid Id { get; set; } = Guid.NewGuid();
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
     public AlertSeverity Severity { get; set; } = AlertSeverity.Info;
     
     [Required]
@@ -500,7 +500,7 @@ public class EmailMessage
     /// <summary>
     /// When the email was created
     /// </summary>
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
 }
 
 /// <summary>
@@ -615,12 +615,12 @@ public class EmailTemplate
     /// <summary>
     /// When the template was created
     /// </summary>
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
     
     /// <summary>
     /// When the template was last modified
     /// </summary>
-    public DateTime ModifiedAt { get; set; } = DateTime.UtcNow;
+    public DateTime ModifiedAt { get; set; } = DateTime.Now;
 }
 
 /// <summary>
@@ -641,7 +641,7 @@ public class NotificationStatus
     /// <summary>
     /// When the notification was created
     /// </summary>
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
     
     /// <summary>
     /// When the notification was sent (if successful)
@@ -755,5 +755,5 @@ public class NotificationStatistics
     /// <summary>
     /// When these statistics were generated
     /// </summary>
-    public DateTime GeneratedAt { get; set; } = DateTime.UtcNow;
+    public DateTime GeneratedAt { get; set; } = DateTime.Now;
 }

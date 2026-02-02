@@ -85,7 +85,7 @@ public class BackupLog
     /// 备份开始时间，默认为当前UTC时间
     /// Backup start time, defaults to current UTC time
     /// </summary>
-    public DateTime StartTime { get; set; } = DateTime.UtcNow;
+    public DateTime StartTime { get; set; } = DateTime.Now;
 
     /// <summary>
     /// 备份结束时间，null表示尚未结束
@@ -183,7 +183,7 @@ public class TransferLog
     /// 传输时间，默认为当前UTC时间
     /// Transfer time, defaults to current UTC time
     /// </summary>
-    public DateTime TransferTime { get; set; } = DateTime.UtcNow;
+    public DateTime TransferTime { get; set; } = DateTime.Now;
 
     /// <summary>
     /// 传输状态，默认为"Pending"，最大长度20字符

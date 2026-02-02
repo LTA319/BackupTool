@@ -36,7 +36,7 @@ public class MemoryProfile
     /// 持续时间
     /// Duration
     /// </summary>
-    public TimeSpan Duration => EndTime?.Subtract(StartTime) ?? DateTime.UtcNow.Subtract(StartTime);
+    public TimeSpan Duration => EndTime?.Subtract(StartTime) ?? DateTime.Now.Subtract(StartTime);
     
     /// <summary>
     /// 内存快照列表
@@ -91,7 +91,7 @@ public class MemorySnapshot
     /// 时间戳，默认为当前UTC时间
     /// Timestamp, defaults to current UTC time
     /// </summary>
-    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public DateTime Timestamp { get; set; } = DateTime.Now;
     
     /// <summary>
     /// 阶段名称
@@ -294,7 +294,7 @@ public class MemoryStatistics
 /// </summary>
 public class GarbageCollectionEvent
 {
-    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public DateTime Timestamp { get; set; } = DateTime.Now;
     public int Generation { get; set; }
     public bool WasForced { get; set; }
     public long MemoryBeforeCollection { get; set; }

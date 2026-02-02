@@ -56,8 +56,8 @@ public class TokenManager : ITokenManager
             {
                 TokenId = GenerateSecureTokenId(),
                 ClientId = clientId,
-                CreatedAt = DateTime.UtcNow,
-                ExpiresAt = DateTime.UtcNow.AddHours(expirationHours),
+                CreatedAt = DateTime.Now,
+                ExpiresAt = DateTime.Now.AddHours(expirationHours),
                 Permissions = new List<string>(permissions),
                 IsActive = true
             };
@@ -219,7 +219,7 @@ public class TokenManager : ITokenManager
         try
         {
             var expiredTokens = new List<string>();
-            var now = DateTime.UtcNow;
+            var now = DateTime.Now;
 
             foreach (var kvp in _tokens)
             {

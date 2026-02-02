@@ -693,7 +693,7 @@ public partial class BackupMonitorForm : Form
                     e.Value = config?.Name ?? "未知";
                     break;
                 case "Duration":
-                    var duration = log.Duration ?? (DateTime.UtcNow - log.StartTime);
+                    var duration = log.Duration ?? (DateTime.Now - log.StartTime);
                     e.Value = $"{duration.Hours:D2}:{duration.Minutes:D2}:{duration.Seconds:D2}";
                     break;
                 case "Progress":

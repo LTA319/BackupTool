@@ -224,9 +224,9 @@ namespace MySqlBackupTool.Tests.Services
             await File.WriteAllTextAsync(inputPath, largeContent);
             
             // Act
-            var startTime = DateTime.UtcNow;
+            var startTime = DateTime.Now;
             var metadata = await _encryptionService.EncryptAsync(inputPath, outputPath, password);
-            var duration = DateTime.UtcNow - startTime;
+            var duration = DateTime.Now - startTime;
             
             // Assert
             Assert.True(File.Exists(outputPath));

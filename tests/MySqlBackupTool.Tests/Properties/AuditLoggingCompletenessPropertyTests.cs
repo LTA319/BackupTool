@@ -98,7 +98,7 @@ public class AuditLoggingCompletenessPropertyTests
                 
                 return (auditLog != null).Label("Audit log must be created")
                     .And((auditLog.Operation == AuthenticationOperation.TokenCreation).Label("Operation must be TokenCreation"))
-                    .And((auditLog.Timestamp <= DateTime.UtcNow && auditLog.Timestamp >= DateTime.UtcNow.AddMinutes(-1)).Label("Timestamp must be recent"))
+                    .And((auditLog.Timestamp <= DateTime.Now && auditLog.Timestamp >= DateTime.Now.AddMinutes(-1)).Label("Timestamp must be recent"))
                     .And((auditLog.DurationMs >= 0 && auditLog.DurationMs <= stopwatch.ElapsedMilliseconds + 1000).Label("Duration must be reasonable"))
                     .And((shouldSucceed ? 
                            (auditLog.Outcome == AuthenticationOutcome.Success && auditLog.ClientId == clientId) :
@@ -151,7 +151,7 @@ public class AuditLoggingCompletenessPropertyTests
                 
                 return (auditLog != null).Label("Audit log must be created")
                     .And((auditLog.Operation == AuthenticationOperation.TokenValidation).Label("Operation must be TokenValidation"))
-                    .And((auditLog.Timestamp <= DateTime.UtcNow && auditLog.Timestamp >= DateTime.UtcNow.AddMinutes(-1)).Label("Timestamp must be recent"))
+                    .And((auditLog.Timestamp <= DateTime.Now && auditLog.Timestamp >= DateTime.Now.AddMinutes(-1)).Label("Timestamp must be recent"))
                     .And((auditLog.DurationMs >= 0 && auditLog.DurationMs <= stopwatch.ElapsedMilliseconds + 1000).Label("Duration must be reasonable"))
                     .And((auditLog.ClientId == clientId).Label("Client ID must be logged"))
                     .And((shouldSucceed ? 
@@ -315,7 +315,7 @@ public class AuditLoggingCompletenessPropertyTests
 
         public Task<int> CleanupExpiredLogsAsync(int retentionDays)
         {
-            var cutoffDate = DateTime.UtcNow.AddDays(-retentionDays);
+            var cutoffDate = DateTime.Now.AddDays(-retentionDays);
             lock (_logs)
             {
                 var toRemove = _logs.Where(log => log.Timestamp < cutoffDate).ToList();

@@ -44,7 +44,7 @@ public class BackupLogService : IBackupLogService
         var backupLog = new BackupLog
         {
             BackupConfigId = configurationId,
-            StartTime = DateTime.UtcNow,
+            StartTime = DateTime.Now,
             Status = BackupStatus.Queued,
             ResumeToken = resumeToken
         };
@@ -134,7 +134,7 @@ public class BackupLogService : IBackupLogService
             BackupLogId = backupLogId,
             ChunkIndex = chunkIndex,
             ChunkSize = chunkSize,
-            TransferTime = DateTime.UtcNow,
+            TransferTime = DateTime.Now,
             Status = status,
             ErrorMessage = errorMessage
         };
@@ -231,8 +231,8 @@ public class BackupLogService : IBackupLogService
     /// <returns>备份统计信息 / Backup statistics</returns>
     public async Task<BackupStatistics> GetBackupStatisticsAsync(DateTime? startDate = null, DateTime? endDate = null)
     {
-        var start = startDate ?? DateTime.UtcNow.AddDays(-30);
-        var end = endDate ?? DateTime.UtcNow;
+        var start = startDate ?? DateTime.Now.AddDays(-30);
+        var end = endDate ?? DateTime.Now;
 
         _logger.LogDebug("Getting backup statistics from {StartDate} to {EndDate}", start, end);
 

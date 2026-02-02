@@ -69,7 +69,7 @@ public class ClientCredentialManager
                 ClientName = clientName ?? clientId,
                 Permissions = permissions,
                 IsActive = true,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             };
 
             var success = await _credentialStorage.StoreCredentialsAsync(credentials);
@@ -408,6 +408,6 @@ public class ClientCredentialManager
         /// <summary>
         /// 是否已过期 / Whether expired
         /// </summary>
-        public bool IsExpired => ExpiresAt.HasValue && DateTime.UtcNow > ExpiresAt.Value;
+        public bool IsExpired => ExpiresAt.HasValue && DateTime.Now > ExpiresAt.Value;
     }
 }

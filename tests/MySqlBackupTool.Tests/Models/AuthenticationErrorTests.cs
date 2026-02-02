@@ -19,7 +19,7 @@ public class AuthenticationErrorTests
         Assert.Equal("AUTH_001", error.ErrorCode);
         Assert.Equal("Client credentials are missing or invalid", error.Message);
         Assert.Contains("backup configuration settings", error.Details);
-        Assert.True(error.Timestamp <= DateTime.UtcNow);
+        Assert.True(error.Timestamp <= DateTime.Now);
     }
 
     [Fact]
@@ -33,7 +33,7 @@ public class AuthenticationErrorTests
         Assert.Equal("Authentication token is malformed", error.Message);
         Assert.Contains("base64-encoded", error.Details);
         Assert.Contains("clientId:clientSecret", error.Details);
-        Assert.True(error.Timestamp <= DateTime.UtcNow);
+        Assert.True(error.Timestamp <= DateTime.Now);
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public class AuthenticationErrorTests
         Assert.Equal("AUTH_003", error.ErrorCode);
         Assert.Equal("Authentication failed", error.Message);
         Assert.Contains("credentials are not valid", error.Details);
-        Assert.True(error.Timestamp <= DateTime.UtcNow);
+        Assert.True(error.Timestamp <= DateTime.Now);
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public class AuthenticationErrorTests
         Assert.Equal("AUTH_004", error.ErrorCode);
         Assert.Equal("Authentication token has expired", error.Message);
         Assert.Contains("new authentication token", error.Details);
-        Assert.True(error.Timestamp <= DateTime.UtcNow);
+        Assert.True(error.Timestamp <= DateTime.Now);
     }
 
     [Fact]
@@ -75,7 +75,7 @@ public class AuthenticationErrorTests
         Assert.Equal("AUTH_005", error.ErrorCode);
         Assert.Equal("Insufficient permissions", error.Message);
         Assert.Contains(requiredPermission, error.Details);
-        Assert.True(error.Timestamp <= DateTime.UtcNow);
+        Assert.True(error.Timestamp <= DateTime.Now);
     }
 
     [Fact]
@@ -88,7 +88,7 @@ public class AuthenticationErrorTests
         Assert.Equal("AUTH_006", error.ErrorCode);
         Assert.Equal("Authentication service error", error.Message);
         Assert.Contains("internal error", error.Details);
-        Assert.True(error.Timestamp <= DateTime.UtcNow);
+        Assert.True(error.Timestamp <= DateTime.Now);
     }
 
     [Fact]
@@ -104,7 +104,7 @@ public class AuthenticationErrorTests
         Assert.Equal("AUTH_007", error.ErrorCode);
         Assert.Equal("Client account is temporarily locked", error.Message);
         Assert.Contains("15 minutes", error.Details);
-        Assert.True(error.Timestamp <= DateTime.UtcNow);
+        Assert.True(error.Timestamp <= DateTime.Now);
     }
 
     [Fact]
@@ -122,7 +122,7 @@ public class AuthenticationErrorTests
         Assert.Equal(customCode, error.ErrorCode);
         Assert.Equal(customMessage, error.Message);
         Assert.Equal(customDetails, error.Details);
-        Assert.True(error.Timestamp <= DateTime.UtcNow);
+        Assert.True(error.Timestamp <= DateTime.Now);
     }
 
     [Fact]
@@ -252,11 +252,11 @@ public class AuthenticationErrorTests
     public void Timestamp_IsSetToCurrentTime()
     {
         // Arrange
-        var beforeCreation = DateTime.UtcNow;
+        var beforeCreation = DateTime.Now;
         
         // Act
         var error = AuthenticationError.MissingCredentials();
-        var afterCreation = DateTime.UtcNow;
+        var afterCreation = DateTime.Now;
 
         // Assert
         Assert.True(error.Timestamp >= beforeCreation);

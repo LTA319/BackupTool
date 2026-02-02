@@ -538,7 +538,7 @@ public static class ConfigurationGenerators
                 TargetServer = serverEndpoint,
                 NamingStrategy = namingStrategy,
                 IsActive = isActive,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             });
     }
 

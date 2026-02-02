@@ -129,7 +129,7 @@ public class AuthenticationErrorScenarioTests : IDisposable
 
         // Verify authentication failure was logged
         var auditService = _serverHost.Services.GetRequiredService<IAuthenticationAuditService>();
-        var auditLogs = await auditService.GetAuditLogsAsync(DateTime.UtcNow.AddMinutes(-5), DateTime.UtcNow);
+        var auditLogs = await auditService.GetAuditLogsAsync(DateTime.Now.AddMinutes(-5), DateTime.Now);
         
         Assert.Contains(auditLogs, log => log.Operation == AuthenticationOperation.TokenValidation && 
                                         log.Outcome == AuthenticationOutcome.Failure &&
@@ -176,7 +176,7 @@ public class AuthenticationErrorScenarioTests : IDisposable
 
         // Verify all failures were logged
         var auditService = _serverHost.Services.GetRequiredService<IAuthenticationAuditService>();
-        var auditLogs = await auditService.GetAuditLogsAsync(DateTime.UtcNow.AddMinutes(-5), DateTime.UtcNow);
+        var auditLogs = await auditService.GetAuditLogsAsync(DateTime.Now.AddMinutes(-5), DateTime.Now);
         
         var failureLogs = auditLogs.Where(log => log.Operation == AuthenticationOperation.TokenValidation && 
                                                log.Outcome == AuthenticationOutcome.Failure).ToList();
@@ -330,7 +330,7 @@ public class AuthenticationErrorScenarioTests : IDisposable
             ClientId = "expired-test-client",
             ClientSecret = "expired-test-secret",
             IsActive = false, // Mark as inactive (expired)
-            ExpiresAt = DateTime.UtcNow.AddDays(-1) // Expired yesterday
+            ExpiresAt = DateTime.Now.AddDays(-1) // Expired yesterday
         };
 
         await clientCredentialStorage.StoreCredentialsAsync(expiredCredentials);
@@ -377,7 +377,7 @@ public class AuthenticationErrorScenarioTests : IDisposable
 
         // Verify authentication failure was logged
         var auditService = _serverHost.Services.GetRequiredService<IAuthenticationAuditService>();
-        var auditLogs = await auditService.GetAuditLogsAsync(DateTime.UtcNow.AddMinutes(-5), DateTime.UtcNow);
+        var auditLogs = await auditService.GetAuditLogsAsync(DateTime.Now.AddMinutes(-5), DateTime.Now);
         
         Assert.Contains(auditLogs, log => log.Operation == AuthenticationOperation.TokenValidation && 
                                         log.Outcome == AuthenticationOutcome.Failure &&

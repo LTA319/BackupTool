@@ -83,13 +83,13 @@ public class BenchmarkRunner : IBenchmarkRunner
             var initialMemory = process.WorkingSet64;
             var initialCpuTime = process.TotalProcessorTime;
 
-            result.StartTime = DateTime.UtcNow;
+            result.StartTime = DateTime.Now;
 
             using var cancellationTokenSource = new CancellationTokenSource(config.MaxExecutionTime);
             result.BytesProcessed = await testAction(cancellationTokenSource.Token);
 
             stopwatch.Stop();
-            result.EndTime = DateTime.UtcNow;
+            result.EndTime = DateTime.Now;
 
             // 收集性能指标 / Collect performance metrics
             process.Refresh();
@@ -128,7 +128,7 @@ public class BenchmarkRunner : IBenchmarkRunner
         {
             result.Success = false;
             result.ErrorMessage = "Benchmark timed out";
-            result.EndTime = DateTime.UtcNow;
+            result.EndTime = DateTime.Now;
             
             _logger.LogWarning("Benchmark timed out: {BenchmarkName}", benchmarkName);
         }
@@ -136,7 +136,7 @@ public class BenchmarkRunner : IBenchmarkRunner
         {
             result.Success = false;
             result.ErrorMessage = ex.Message;
-            result.EndTime = DateTime.UtcNow;
+            result.EndTime = DateTime.Now;
             
             _logger.LogError(ex, "Benchmark failed: {BenchmarkName}", benchmarkName);
         }
@@ -163,7 +163,7 @@ public class BenchmarkRunner : IBenchmarkRunner
         {
             SuiteName = suiteName,
             Environment = GetEnvironmentInfo(),
-            ExecutionTime = DateTime.UtcNow
+            ExecutionTime = DateTime.Now
         };
 
         var overallStopwatch = Stopwatch.StartNew();

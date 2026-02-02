@@ -67,7 +67,7 @@ public class AuthenticationFlowCompletenessPropertyTests : IDisposable
                     ClientSecret = clientSecret,
                     ClientName = "Test Client",
                     IsActive = true,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.Now
                 };
 
                 var storeResult = credentialStorage.StoreCredentialsAsync(testCredentials).Result;

@@ -52,7 +52,7 @@ public class NetworkRetryAlertingPropertyTests : IDisposable
             var service = new NetworkRetryService(logger, config);
             var operationId = Guid.NewGuid().ToString();
             var attemptCount = 0;
-            var startTime = DateTime.UtcNow;
+            var startTime = DateTime.Now;
 
             // Act - Execute operation that fails initially then succeeds
             var result = service.ExecuteWithRetryAsync(
@@ -70,7 +70,7 @@ public class NetworkRetryAlertingPropertyTests : IDisposable
                 operationId
             ).Result;
 
-            var duration = DateTime.UtcNow - startTime;
+            var duration = DateTime.Now - startTime;
 
             // Assert - Verify retry behavior
             var expectedAttempts = config.MaxRetryAttempts;
@@ -246,7 +246,7 @@ public class NetworkRetryAlertingPropertyTests : IDisposable
             var httpClient = CreateHttpClient();
             
             var tempDir = Path.GetTempPath();
-            var logFileName = $"test_alerts_{DateTime.UtcNow:yyyyMMdd_HHmmss}_{_random.Next(1000, 9999)}.log";
+            var logFileName = $"test_alerts_{DateTime.Now:yyyyMMdd_HHmmss}_{_random.Next(1000, 9999)}.log";
             var logFilePath = Path.Combine(tempDir, logFileName);
             
             var config = new AlertingConfig
@@ -276,11 +276,11 @@ public class NetworkRetryAlertingPropertyTests : IDisposable
                 OperationId = Guid.NewGuid().ToString(),
                 ErrorType = "TestCriticalError",
                 ErrorMessage = "This is a test critical error for property testing",
-                OccurredAt = DateTime.UtcNow,
+                OccurredAt = DateTime.Now,
                 Context = new Dictionary<string, object>
                 {
                     ["TestProperty"] = "NetworkRetryAlertingPropertyTests",
-                    ["TestRun"] = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss")
+                    ["TestRun"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
                 }
             };
 
@@ -354,7 +354,7 @@ public class NetworkRetryAlertingPropertyTests : IDisposable
                     OperationId = Guid.NewGuid().ToString(),
                     ErrorType = $"RateLimitTest_{i}",
                     ErrorMessage = $"Rate limit test alert {i}",
-                    OccurredAt = DateTime.UtcNow
+                    OccurredAt = DateTime.Now
                 };
 
                 var result = service.SendCriticalErrorAlertAsync(alert).Result;

@@ -288,7 +288,7 @@ public class FileReceiver : IFileReceiver, IDisposable
     /// <returns>接收结果 / Receive result</returns>
     public async Task<ReceiveResult> ReceiveFileAsync(ReceiveRequest request)
     {
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
         
         try
         {
@@ -318,7 +318,7 @@ public class FileReceiver : IFileReceiver, IDisposable
                 Success = true,
                 FilePath = request.TargetPath,
                 BytesReceived = request.Metadata.FileSize,
-                Duration = DateTime.UtcNow - startTime
+                Duration = DateTime.Now - startTime
             };
         }
         catch (Exception ex)
@@ -328,7 +328,7 @@ public class FileReceiver : IFileReceiver, IDisposable
             {
                 Success = false,
                 ErrorMessage = ex.Message,
-                Duration = DateTime.UtcNow - startTime
+                Duration = DateTime.Now - startTime
             };
         }
     }
@@ -483,7 +483,7 @@ public class FileReceiver : IFileReceiver, IDisposable
     /// </summary>
     private async Task<ReceiveResult> ProcessFileTransferAsync(NetworkStream stream, TransferRequest request, CancellationToken cancellationToken)
     {
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
         
         try
         {
@@ -524,7 +524,7 @@ public class FileReceiver : IFileReceiver, IDisposable
             {
                 ClientId = authResult.ClientId!,
                 Permissions = new List<string>(clientCredentials.Permissions),
-                RequestTime = DateTime.UtcNow,
+                RequestTime = DateTime.Now,
                 Operation = "upload_backup"
             };
 
@@ -652,7 +652,7 @@ public class FileReceiver : IFileReceiver, IDisposable
                 Success = true,
                 FilePath = finalPath,
                 BytesReceived = totalBytesReceived,
-                Duration = DateTime.UtcNow - startTime
+                Duration = DateTime.Now - startTime
             };
         }
         catch (Exception ex)
@@ -673,7 +673,7 @@ public class FileReceiver : IFileReceiver, IDisposable
             {
                 Success = false,
                 ErrorMessage = ex.Message,
-                Duration = DateTime.UtcNow - startTime
+                Duration = DateTime.Now - startTime
             };
         }
     }

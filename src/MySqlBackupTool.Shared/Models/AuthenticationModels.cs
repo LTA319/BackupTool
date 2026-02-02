@@ -49,7 +49,7 @@ public class ClientCredentials
     /// 客户端创建时间
     /// 默认为当前UTC时间
     /// </summary>
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
 
     /// <summary>
     /// 客户端过期时间（可选）
@@ -61,7 +61,7 @@ public class ClientCredentials
     /// 验证客户端凭据是否已过期
     /// </summary>
     /// <returns>如果已过期返回true，否则返回false</returns>
-    public bool IsExpired => ExpiresAt.HasValue && DateTime.UtcNow > ExpiresAt.Value;
+    public bool IsExpired => ExpiresAt.HasValue && DateTime.Now > ExpiresAt.Value;
 
     /// <summary>
     /// 生成客户端密钥的安全哈希值用于存储
@@ -112,7 +112,7 @@ public class AuthenticationRequest
     /// 请求时间戳（用于防止重放攻击）
     /// 默认为当前UTC时间
     /// </summary>
-    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public DateTime Timestamp { get; set; } = DateTime.Now;
 
     /// <summary>
     /// 请求唯一性随机数
@@ -179,13 +179,13 @@ public class AuthenticationToken
     /// 令牌创建时间
     /// 默认为当前UTC时间
     /// </summary>
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
 
     /// <summary>
     /// 令牌过期时间
     /// 默认为创建后24小时
     /// </summary>
-    public DateTime ExpiresAt { get; set; } = DateTime.UtcNow.AddHours(24);
+    public DateTime ExpiresAt { get; set; } = DateTime.Now.AddHours(24);
 
     /// <summary>
     /// 令牌关联的权限列表
@@ -215,7 +215,7 @@ public class AuthenticationToken
     /// 验证令牌是否已过期
     /// </summary>
     /// <returns>如果已过期返回true，否则返回false</returns>
-    public bool IsExpired => DateTime.UtcNow > ExpiresAt;
+    public bool IsExpired => DateTime.Now > ExpiresAt;
 
     /// <summary>
     /// 验证令牌是否有效可用
@@ -230,7 +230,7 @@ public class AuthenticationToken
     /// </summary>
     public void UpdateLastUsed()
     {
-        LastUsedAt = DateTime.UtcNow;
+        LastUsedAt = DateTime.Now;
     }
 }
 
@@ -300,7 +300,7 @@ public class AuthorizationContext
     /// 请求时间
     /// 默认为当前UTC时间
     /// </summary>
-    public DateTime RequestTime { get; set; } = DateTime.UtcNow;
+    public DateTime RequestTime { get; set; } = DateTime.Now;
 
     /// <summary>
     /// 请求的操作类型
@@ -369,7 +369,7 @@ public class AuthenticationResult
     /// <summary>
     /// 验证操作的时间戳
     /// </summary>
-    public DateTime Timestamp { get; private set; } = DateTime.UtcNow;
+    public DateTime Timestamp { get; private set; } = DateTime.Now;
 
     /// <summary>
     /// 私有构造函数，强制使用静态工厂方法
@@ -431,7 +431,7 @@ public class AuthenticationError
     /// <summary>
     /// 错误发生的时间戳
     /// </summary>
-    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public DateTime Timestamp { get; set; } = DateTime.Now;
 
     /// <summary>
     /// 私有构造函数，强制使用静态工厂方法
@@ -449,7 +449,7 @@ public class AuthenticationError
             ErrorCode = "AUTH_001",
             Message = "Client credentials are missing or invalid",
             Details = "Please check your backup configuration settings and ensure valid ClientId and ClientSecret are provided",
-            Timestamp = DateTime.UtcNow
+            Timestamp = DateTime.Now
         };
     }
 
@@ -464,7 +464,7 @@ public class AuthenticationError
             ErrorCode = "AUTH_002",
             Message = "Authentication token is malformed",
             Details = "Token must be base64-encoded in the format 'clientId:clientSecret'",
-            Timestamp = DateTime.UtcNow
+            Timestamp = DateTime.Now
         };
     }
 
@@ -479,7 +479,7 @@ public class AuthenticationError
             ErrorCode = "AUTH_003",
             Message = "Authentication failed",
             Details = "The provided credentials are not valid. Please verify your ClientId and ClientSecret",
-            Timestamp = DateTime.UtcNow
+            Timestamp = DateTime.Now
         };
     }
 
@@ -494,7 +494,7 @@ public class AuthenticationError
             ErrorCode = "AUTH_004",
             Message = "Authentication token has expired",
             Details = "Please obtain a new authentication token and retry the operation",
-            Timestamp = DateTime.UtcNow
+            Timestamp = DateTime.Now
         };
     }
 
@@ -510,7 +510,7 @@ public class AuthenticationError
             ErrorCode = "AUTH_005",
             Message = "Insufficient permissions",
             Details = $"This operation requires the '{requiredPermission}' permission",
-            Timestamp = DateTime.UtcNow
+            Timestamp = DateTime.Now
         };
     }
 
@@ -525,7 +525,7 @@ public class AuthenticationError
             ErrorCode = "AUTH_006",
             Message = "Authentication service error",
             Details = "An internal error occurred during authentication. Please try again later",
-            Timestamp = DateTime.UtcNow
+            Timestamp = DateTime.Now
         };
     }
 
@@ -541,7 +541,7 @@ public class AuthenticationError
             ErrorCode = "AUTH_007",
             Message = "Client account is temporarily locked",
             Details = $"Too many failed authentication attempts. Please try again in {lockoutDuration.TotalMinutes:F0} minutes",
-            Timestamp = DateTime.UtcNow
+            Timestamp = DateTime.Now
         };
     }
 
@@ -559,7 +559,7 @@ public class AuthenticationError
             ErrorCode = errorCode,
             Message = message,
             Details = details,
-            Timestamp = DateTime.UtcNow
+            Timestamp = DateTime.Now
         };
     }
 
@@ -587,7 +587,7 @@ public class AuthenticationAuditLog
     /// <summary>
     /// 身份验证事件的时间戳
     /// </summary>
-    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public DateTime Timestamp { get; set; } = DateTime.Now;
 
     /// <summary>
     /// 客户端标识符（如果可用）

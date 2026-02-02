@@ -53,7 +53,7 @@ public class BackupOrchestrator : IBackupOrchestrator
     public async Task<BackupResult> ExecuteBackupAsync(BackupConfiguration configuration, IProgress<BackupProgress>? progress = null, CancellationToken cancellationToken = default)
     {
         var operationId = Guid.NewGuid();
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
         BackupLog? backupLog = null;
         var backupProgress = new BackupProgress
         {
@@ -80,8 +80,8 @@ public class BackupOrchestrator : IBackupOrchestrator
                     OperationId = operationId,
                     Success = false,
                     ErrorMessage = $"Configuration validation failed: {errorMessage}",
-                    CompletedAt = DateTime.UtcNow,
-                    Duration = DateTime.UtcNow - startTime
+                    CompletedAt = DateTime.Now,
+                    Duration = DateTime.Now - startTime
                 };
             }
 
@@ -99,8 +99,8 @@ public class BackupOrchestrator : IBackupOrchestrator
                     OperationId = operationId,
                     Success = false,
                     ErrorMessage = $"Service Check Result: {errorMessage}",
-                    CompletedAt = DateTime.UtcNow,
-                    Duration = DateTime.UtcNow - startTime
+                    CompletedAt = DateTime.Now,
+                    Duration = DateTime.Now - startTime
                 };
             }
 
@@ -114,8 +114,8 @@ public class BackupOrchestrator : IBackupOrchestrator
                     OperationId = operationId,
                     Success = false,
                     ErrorMessage = $"Service Check Result: {errorMessage}",
-                    CompletedAt = DateTime.UtcNow,
-                    Duration = DateTime.UtcNow - startTime
+                    CompletedAt = DateTime.Now,
+                    Duration = DateTime.Now - startTime
                 };
             }
 
@@ -174,8 +174,8 @@ public class BackupOrchestrator : IBackupOrchestrator
                     OperationId = operationId,
                     Success = false,
                     ErrorMessage = errorMessage,
-                    CompletedAt = DateTime.UtcNow,
-                    Duration = DateTime.UtcNow - startTime
+                    CompletedAt = DateTime.Now,
+                    Duration = DateTime.Now - startTime
                 };
             }
 
@@ -219,8 +219,8 @@ public class BackupOrchestrator : IBackupOrchestrator
                     OperationId = operationId,
                     Success = false,
                     ErrorMessage = $"Compression failed: {ex.Message}",
-                    CompletedAt = DateTime.UtcNow,
-                    Duration = DateTime.UtcNow - startTime
+                    CompletedAt = DateTime.Now,
+                    Duration = DateTime.Now - startTime
                 };
             }
 
@@ -251,8 +251,8 @@ public class BackupOrchestrator : IBackupOrchestrator
                     OperationId = operationId,
                     Success = false,
                     ErrorMessage = errorMessage,
-                    CompletedAt = DateTime.UtcNow,
-                    Duration = DateTime.UtcNow - startTime
+                    CompletedAt = DateTime.Now,
+                    Duration = DateTime.Now - startTime
                 };
             }
 
@@ -281,8 +281,8 @@ public class BackupOrchestrator : IBackupOrchestrator
                     OperationId = operationId,
                     Success = false,
                     ErrorMessage = errorMessage,
-                    CompletedAt = DateTime.UtcNow,
-                    Duration = DateTime.UtcNow - startTime
+                    CompletedAt = DateTime.Now,
+                    Duration = DateTime.Now - startTime
                 };
             }
 
@@ -295,7 +295,7 @@ public class BackupOrchestrator : IBackupOrchestrator
             progress?.Report(backupProgress);
 
             var fileInfo = new FileInfo(compressedFilePath);
-            var targetFileName = configuration.NamingStrategy.GenerateFileName("BackupServer", configuration.Name, DateTime.UtcNow);
+            var targetFileName = configuration.NamingStrategy.GenerateFileName("BackupServer", configuration.Name, DateTime.Now);
             
             var transferConfig = new TransferConfig
             {
@@ -345,8 +345,8 @@ public class BackupOrchestrator : IBackupOrchestrator
                     OperationId = operationId,
                     Success = false,
                     ErrorMessage = $"File transfer failed: {ex.Message}",
-                    CompletedAt = DateTime.UtcNow,
-                    Duration = DateTime.UtcNow - startTime
+                    CompletedAt = DateTime.Now,
+                    Duration = DateTime.Now - startTime
                 };
             }
 
@@ -364,8 +364,8 @@ public class BackupOrchestrator : IBackupOrchestrator
                     OperationId = operationId,
                     Success = false,
                     ErrorMessage = transferResult.ErrorMessage ?? "File transfer failed",
-                    CompletedAt = DateTime.UtcNow,
-                    Duration = DateTime.UtcNow - startTime
+                    CompletedAt = DateTime.Now,
+                    Duration = DateTime.Now - startTime
                 };
             }
 
@@ -384,7 +384,7 @@ public class BackupOrchestrator : IBackupOrchestrator
             backupProgress.CurrentOperation = "Backup completed successfully";
             progress?.Report(backupProgress);
 
-            var completedAt = DateTime.UtcNow;
+            var completedAt = DateTime.Now;
             var duration = completedAt - startTime;
 
             // 记录成功完成
@@ -417,8 +417,8 @@ public class BackupOrchestrator : IBackupOrchestrator
                 OperationId = operationId,
                 Success = false,
                 ErrorMessage = "Backup operation was cancelled",
-                CompletedAt = DateTime.UtcNow,
-                Duration = DateTime.UtcNow - startTime
+                CompletedAt = DateTime.Now,
+                Duration = DateTime.Now - startTime
             };
         }
         catch (Exception ex)
@@ -434,8 +434,8 @@ public class BackupOrchestrator : IBackupOrchestrator
                 OperationId = operationId,
                 Success = false,
                 ErrorMessage = $"Unexpected error: {ex.Message}",
-                CompletedAt = DateTime.UtcNow,
-                Duration = DateTime.UtcNow - startTime
+                CompletedAt = DateTime.Now,
+                Duration = DateTime.Now - startTime
             };
         }
     }
