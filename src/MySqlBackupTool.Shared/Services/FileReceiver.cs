@@ -401,6 +401,13 @@ public class FileReceiver : IFileReceiver, IDisposable
 
                 using var stream = client.GetStream();
                 
+                // 检查连接状态 / Check connection status
+                if (!client.Connected)
+                {
+                    _logger.LogWarning("Client {Client} disconnected before processing", clientEndpoint);
+                    return;
+                }
+                
                 // 读取传输请求 / Read the transfer request
                 var request = await ReadTransferRequestAsync(stream, cancellationToken);
                 if (request == null)
@@ -415,8 +422,17 @@ public class FileReceiver : IFileReceiver, IDisposable
                 // 处理文件传输 / Process the file transfer
                 var result = await ProcessFileTransferAsync(stream, request, cancellationToken);
                 
-                // 向客户端发送响应 / Send response back to client
-                await SendResponseAsync(stream, result, cancellationToken);
+                // 检查连接是否仍然有效再发送响应 / Check if connection is still valid before sending response
+                if (client.Connected && stream.CanWrite)
+                {
+                    // 向客户端发送响应 / Send response back to client
+                    await SendResponseAsync(stream, result, cancellationToken);
+                }
+                else
+                {
+                    _logger.LogInformation("Client {Client} disconnected before final response could be sent. Transfer result: {Success}", 
+                        clientEndpoint, result.Success);
+                }
 
                 _logger.LogInformation("Completed file transfer for {FileName} from client {Client}. Success: {Success}", 
                     request.Metadata.FileName, clientEndpoint, result.Success);
@@ -426,9 +442,20 @@ public class FileReceiver : IFileReceiver, IDisposable
         {
             _logger.LogInformation("Client handling cancelled for {Client}", clientEndpoint);
         }
+        catch (IOException ioEx) when (ioEx.InnerException is SocketException socketEx)
+        {
+            // 网络连接问题是常见的，特别是在文件传输完成后 / Network issues are common, especially after file transfer completion
+            _logger.LogInformation("Network error handling client {Client}: {SocketError} ({ErrorCode})", 
+                clientEndpoint, socketEx.Message, socketEx.ErrorCode);
+        }
+        catch (SocketException socketEx)
+        {
+            _logger.LogInformation("Socket error handling client {Client}: {SocketError} ({ErrorCode})", 
+                clientEndpoint, socketEx.Message, socketEx.ErrorCode);
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error handling client {Client}", clientEndpoint);
+            _logger.LogError(ex, "Unexpected error handling client {Client}", clientEndpoint);
         }
     }
 
@@ -439,11 +466,16 @@ public class FileReceiver : IFileReceiver, IDisposable
     {
         try
         {
+            // 使用超时来避免无限等待 / Use timeout to avoid infinite waiting
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(30)); // 30秒超时
+
             // Read message length (4 bytes)
             var lengthBuffer = new byte[4];
-            var bytesRead = await stream.ReadAsync(lengthBuffer, 0, 4, cancellationToken);
+            var bytesRead = await stream.ReadAsync(lengthBuffer, 0, 4, timeoutCts.Token);
             if (bytesRead != 4)
             {
+                _logger.LogWarning("Expected 4 bytes for message length, got {BytesRead}", bytesRead);
                 return null;
             }
 
@@ -460,20 +492,50 @@ public class FileReceiver : IFileReceiver, IDisposable
             while (totalBytesRead < messageLength)
             {
                 bytesRead = await stream.ReadAsync(messageBuffer, totalBytesRead, 
-                    messageLength - totalBytesRead, cancellationToken);
+                    messageLength - totalBytesRead, timeoutCts.Token);
                 if (bytesRead == 0)
                 {
+                    _logger.LogWarning("Connection closed while reading transfer request");
                     return null; // Connection closed
                 }
                 totalBytesRead += bytesRead;
             }
 
             var json = Encoding.UTF8.GetString(messageBuffer);
-            return JsonSerializer.Deserialize<TransferRequest>(json);
+            var request = JsonSerializer.Deserialize<TransferRequest>(json);
+            
+            if (request == null)
+            {
+                _logger.LogWarning("Failed to deserialize transfer request");
+            }
+            
+            return request;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogInformation("Transfer request reading cancelled due to shutdown");
+            return null;
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Transfer request reading timed out");
+            return null;
+        }
+        catch (IOException ioEx) when (ioEx.InnerException is SocketException socketEx)
+        {
+            _logger.LogInformation("Network error reading transfer request: {SocketError} ({ErrorCode})", 
+                socketEx.Message, socketEx.ErrorCode);
+            return null;
+        }
+        catch (SocketException socketEx)
+        {
+            _logger.LogInformation("Socket error reading transfer request: {SocketError} ({ErrorCode})", 
+                socketEx.Message, socketEx.ErrorCode);
+            return null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error reading transfer request");
+            _logger.LogError(ex, "Unexpected error reading transfer request");
             return null;
         }
     }
@@ -832,6 +894,13 @@ public class FileReceiver : IFileReceiver, IDisposable
     {
         try
         {
+            // 检查连接是否仍然有效 / Check if connection is still valid
+            if (!stream.CanWrite || !stream.Socket.Connected)
+            {
+                _logger.LogWarning("Cannot send transfer response: connection is closed or not writable");
+                return;
+            }
+
             var response = new TransferResponse
             {
                 Success = success,
@@ -843,13 +912,39 @@ public class FileReceiver : IFileReceiver, IDisposable
             var messageBytes = Encoding.UTF8.GetBytes(json);
             var lengthBytes = BitConverter.GetBytes(messageBytes.Length);
 
-            await stream.WriteAsync(lengthBytes, 0, lengthBytes.Length, cancellationToken);
-            await stream.WriteAsync(messageBytes, 0, messageBytes.Length, cancellationToken);
-            await stream.FlushAsync(cancellationToken);
+            // 使用超时发送响应 / Send response with timeout
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(10)); // 10秒超时
+
+            await stream.WriteAsync(lengthBytes, 0, lengthBytes.Length, timeoutCts.Token);
+            await stream.WriteAsync(messageBytes, 0, messageBytes.Length, timeoutCts.Token);
+            await stream.FlushAsync(timeoutCts.Token);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogInformation("Transfer response sending cancelled due to shutdown");
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Transfer response sending timed out - client may have disconnected");
+        }
+        catch (IOException ioEx) when (ioEx.InnerException is SocketException socketEx)
+        {
+            _logger.LogInformation("Client disconnected during transfer response sending: {SocketError} ({ErrorCode})", 
+                socketEx.Message, socketEx.ErrorCode);
+        }
+        catch (SocketException socketEx)
+        {
+            _logger.LogInformation("Network error sending transfer response: {SocketError} ({ErrorCode})", 
+                socketEx.Message, socketEx.ErrorCode);
+        }
+        catch (ObjectDisposedException)
+        {
+            _logger.LogInformation("Cannot send transfer response: stream has been disposed");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error sending transfer response");
+            _logger.LogError(ex, "Unexpected error sending transfer response");
         }
     }
 
@@ -860,6 +955,13 @@ public class FileReceiver : IFileReceiver, IDisposable
     {
         try
         {
+            // 检查连接是否仍然有效 / Check if connection is still valid
+            if (!stream.CanWrite || !stream.Socket.Connected)
+            {
+                _logger.LogWarning("Cannot send chunk response: connection is closed or not writable");
+                return;
+            }
+
             var response = new ChunkResult
             {
                 Success = success,
@@ -871,13 +973,39 @@ public class FileReceiver : IFileReceiver, IDisposable
             var messageBytes = Encoding.UTF8.GetBytes(json);
             var lengthBytes = BitConverter.GetBytes(messageBytes.Length);
 
-            await stream.WriteAsync(lengthBytes, 0, lengthBytes.Length, cancellationToken);
-            await stream.WriteAsync(messageBytes, 0, messageBytes.Length, cancellationToken);
-            await stream.FlushAsync(cancellationToken);
+            // 使用超时发送响应 / Send response with timeout
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(5)); // 5秒超时，块响应应该更快
+
+            await stream.WriteAsync(lengthBytes, 0, lengthBytes.Length, timeoutCts.Token);
+            await stream.WriteAsync(messageBytes, 0, messageBytes.Length, timeoutCts.Token);
+            await stream.FlushAsync(timeoutCts.Token);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogInformation("Chunk response sending cancelled due to shutdown");
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Chunk response sending timed out for chunk {ChunkIndex} - client may have disconnected", chunkIndex);
+        }
+        catch (IOException ioEx) when (ioEx.InnerException is SocketException socketEx)
+        {
+            _logger.LogInformation("Client disconnected during chunk response sending for chunk {ChunkIndex}: {SocketError} ({ErrorCode})", 
+                chunkIndex, socketEx.Message, socketEx.ErrorCode);
+        }
+        catch (SocketException socketEx)
+        {
+            _logger.LogInformation("Network error sending chunk response for chunk {ChunkIndex}: {SocketError} ({ErrorCode})", 
+                chunkIndex, socketEx.Message, socketEx.ErrorCode);
+        }
+        catch (ObjectDisposedException)
+        {
+            _logger.LogInformation("Cannot send chunk response for chunk {ChunkIndex}: stream has been disposed", chunkIndex);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error sending chunk response");
+            _logger.LogError(ex, "Unexpected error sending chunk response for chunk {ChunkIndex}", chunkIndex);
         }
     }
 
@@ -888,6 +1016,13 @@ public class FileReceiver : IFileReceiver, IDisposable
     {
         try
         {
+            // 检查连接是否仍然有效 / Check if connection is still valid
+            if (!stream.CanWrite || !stream.Socket.Connected)
+            {
+                _logger.LogWarning("Cannot send response: connection is closed or not writable");
+                return;
+            }
+
             var response = new TransferResponse
             {
                 Success = result.Success,
@@ -899,17 +1034,47 @@ public class FileReceiver : IFileReceiver, IDisposable
             var messageBytes = Encoding.UTF8.GetBytes(json);
             var lengthBytes = BitConverter.GetBytes(messageBytes.Length);
 
+            // 使用超时发送响应 / Send response with timeout
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(10)); // 10秒超时
+
             // Send message length first
-            await stream.WriteAsync(lengthBytes, 0, lengthBytes.Length, cancellationToken);
+            await stream.WriteAsync(lengthBytes, 0, lengthBytes.Length, timeoutCts.Token);
             
             // Send message content
-            await stream.WriteAsync(messageBytes, 0, messageBytes.Length, cancellationToken);
+            await stream.WriteAsync(messageBytes, 0, messageBytes.Length, timeoutCts.Token);
             
-            await stream.FlushAsync(cancellationToken);
+            await stream.FlushAsync(timeoutCts.Token);
+            
+            _logger.LogDebug("Successfully sent response to client");
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogInformation("Response sending cancelled due to shutdown");
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Response sending timed out - client may have disconnected");
+        }
+        catch (IOException ioEx) when (ioEx.InnerException is SocketException socketEx)
+        {
+            // 网络连接问题，这是常见的，不需要记录为错误 / Network connection issues are common, don't log as error
+            _logger.LogInformation("Client disconnected during response sending: {SocketError} ({ErrorCode})", 
+                socketEx.Message, socketEx.ErrorCode);
+        }
+        catch (SocketException socketEx)
+        {
+            // 直接的Socket异常 / Direct socket exceptions
+            _logger.LogInformation("Network error sending response to client: {SocketError} ({ErrorCode})", 
+                socketEx.Message, socketEx.ErrorCode);
+        }
+        catch (ObjectDisposedException)
+        {
+            _logger.LogInformation("Cannot send response: stream has been disposed");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error sending response to client");
+            _logger.LogError(ex, "Unexpected error sending response to client");
         }
     }
 
