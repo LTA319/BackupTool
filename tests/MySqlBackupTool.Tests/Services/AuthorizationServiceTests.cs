@@ -11,19 +11,19 @@ public class AuthorizationServiceTests
 {
     private readonly Mock<ILogger<AuthorizationService>> _mockLogger;
     private readonly Mock<ICredentialStorage> _mockCredentialStorage;
-    private readonly Mock<IBackupLogRepository> _mockLogRepository;
+    private readonly Mock<IAuthenticationAuditService> _mockAuditService;
     private readonly AuthorizationService _authorizationService;
 
     public AuthorizationServiceTests()
     {
         _mockLogger = new Mock<ILogger<AuthorizationService>>();
         _mockCredentialStorage = new Mock<ICredentialStorage>();
-        _mockLogRepository = new Mock<IBackupLogRepository>();
+        _mockAuditService = new Mock<IAuthenticationAuditService>();
 
         _authorizationService = new AuthorizationService(
             _mockLogger.Object,
             _mockCredentialStorage.Object,
-            _mockLogRepository.Object);
+            _mockAuditService.Object);
     }
 
     [Fact]
@@ -195,18 +195,17 @@ public class AuthorizationServiceTests
             RequestTime = DateTime.Now
         };
 
-        _mockLogRepository.Setup(x => x.AddAsync(It.IsAny<BackupLog>()))
-            .ReturnsAsync((BackupLog log) => log);
-
-        _mockLogRepository.Setup(x => x.SaveChangesAsync())
-            .ReturnsAsync(1);
+        _mockAuditService.Setup(x => x.LogAuthenticationEventAsync(It.IsAny<AuthenticationAuditLog>()))
+            .Returns(Task.CompletedTask);
 
         // Act
         await _authorizationService.LogAuthorizationAttemptAsync(context, "upload_backup", true, "Success");
 
         // Assert
-        _mockLogRepository.Verify(x => x.AddAsync(It.IsAny<BackupLog>()), Times.Once);
-        _mockLogRepository.Verify(x => x.SaveChangesAsync(), Times.Once);
+        _mockAuditService.Verify(x => x.LogAuthenticationEventAsync(It.Is<AuthenticationAuditLog>(log => 
+            log.ClientId == "test-client" && 
+            log.Operation == AuthenticationOperation.PermissionCheck &&
+            log.Outcome == AuthenticationOutcome.Success)), Times.Once);
     }
 
     [Theory]

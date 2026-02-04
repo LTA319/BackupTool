@@ -13,7 +13,7 @@ public class AuthorizationService : IAuthorizationService
 {
     private readonly ILogger<AuthorizationService> _logger;
     private readonly ICredentialStorage _credentialStorage;
-    private readonly IBackupLogRepository _logRepository;
+    private readonly IAuthenticationAuditService _auditService;
 
     // 操作到权限的映射 / Operation to permission mappings
     private readonly Dictionary<string, string[]> _operationPermissions = new()
@@ -36,15 +36,15 @@ public class AuthorizationService : IAuthorizationService
     /// </summary>
     /// <param name="logger">日志记录器 / Logger instance</param>
     /// <param name="credentialStorage">凭据存储服务 / Credential storage service</param>
-    /// <param name="logRepository">备份日志存储库 / Backup log repository</param>
+    /// <param name="auditService">审计服务 / Authentication audit service</param>
     public AuthorizationService(
         ILogger<AuthorizationService> logger,
         ICredentialStorage credentialStorage,
-        IBackupLogRepository logRepository)
+        IAuthenticationAuditService auditService)
     {
         _logger = logger;
         _credentialStorage = credentialStorage ?? throw new ArgumentNullException(nameof(credentialStorage));
-        _logRepository = logRepository ?? throw new ArgumentNullException(nameof(logRepository));
+        _auditService = auditService ?? throw new ArgumentNullException(nameof(auditService));
     }
 
     /// <summary>
@@ -175,8 +175,8 @@ public class AuthorizationService : IAuthorizationService
 
     /// <summary>
     /// 记录授权尝试 / Logs an authorization attempt
-    /// 将授权尝试记录到备份日志中，用于安全审计和监控
-    /// Records authorization attempts to backup log for security auditing and monitoring
+    /// 将授权尝试记录到审计日志中，用于安全审计和监控
+    /// Records authorization attempts to audit log for security auditing and monitoring
     /// </summary>
     public async Task LogAuthorizationAttemptAsync(AuthorizationContext context, string operation, bool success, string? reason = null)
     {
@@ -185,43 +185,28 @@ public class AuthorizationService : IAuthorizationService
 
         try
         {
-            // 为授权尝试创建日志条目 / Create a log entry for the authorization attempt
-            var logEntry = new BackupLog
+            // 创建审计日志条目 / Create audit log entry
+            var auditLog = new AuthenticationAuditLog
             {
-                BackupConfigId = 0, // 不适用于授权日志 / Not applicable for authorization logs
-                StartTime = context.RequestTime,
-                EndTime = DateTime.Now,
-                Status = success ? BackupStatus.Completed : BackupStatus.Failed,
+                Id = Guid.NewGuid().ToString(),
+                Timestamp = DateTime.UtcNow,
+                ClientId = context.ClientId,
+                ClientIPAddress = context.IPAddress,
+                Operation = AuthenticationOperation.PermissionCheck,
+                Outcome = success ? AuthenticationOutcome.Success : AuthenticationOutcome.Failure,
+                ErrorCode = success ? null : "AUTHORIZATION_FAILED",
                 ErrorMessage = success ? null : reason,
-                FilePath = null // 不适用 / Not applicable
+                DurationMs = (int)(DateTime.Now - context.RequestTime).TotalMilliseconds,
+                AdditionalData = new Dictionary<string, object>
+                {
+                    { "AuthorizedOperation", operation },
+                    { "Permissions", string.Join(", ", context.Permissions) },
+                    { "RequestTime", context.RequestTime.ToString("O") }
+                }
             };
 
-            // 添加额外的上下文信息 / Add additional context information
-            var contextInfo = new Dictionary<string, object>
-            {
-                { "ClientId", context.ClientId },
-                { "Operation", operation },
-                { "Success", success },
-                { "IPAddress", context.IPAddress ?? "Unknown" },
-                { "Permissions", string.Join(", ", context.Permissions) }
-            };
-
-            if (!string.IsNullOrEmpty(reason))
-            {
-                contextInfo["Reason"] = reason;
-            }
-
-            // 在日志条目中存储额外的上下文（这需要在实际的BackupLog模型中扩展）
-            // 现在，我们将其包含在失败尝试的错误消息中
-            // Store additional context in the log entry (this would need to be extended in the actual BackupLog model)
-            // For now, we'll include it in the error message for failed attempts
-            if (!success && !string.IsNullOrEmpty(reason))
-            {
-                logEntry.ErrorMessage = $"Authorization failed: {reason}. Client: {context.ClientId}, Operation: {operation}";
-            }
-
-            await _logRepository.AddAsync(logEntry);
-            await _logRepository.SaveChangesAsync();
+            // 记录到审计服务 / Log to audit service
+            await _auditService.LogAuthenticationEventAsync(auditLog);
 
             _logger.LogInformation("Logged authorization attempt: Client {ClientId}, Operation {Operation}, Success {Success}", 
                 context.ClientId, operation, success);
