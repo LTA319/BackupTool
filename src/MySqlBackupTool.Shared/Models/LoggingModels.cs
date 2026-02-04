@@ -207,6 +207,166 @@ public class TransferLog
 }
 
 /// <summary>
+/// 传输统计信息
+/// Transfer statistics information
+/// </summary>
+public class TransferStatistics
+{
+    /// <summary>
+    /// 总传输数量
+    /// Total transfer count
+    /// </summary>
+    public int TotalTransfers { get; set; }
+
+    /// <summary>
+    /// 成功传输数量
+    /// Successful transfer count
+    /// </summary>
+    public int SuccessfulTransfers { get; set; }
+
+    /// <summary>
+    /// 失败传输数量
+    /// Failed transfer count
+    /// </summary>
+    public int FailedTransfers { get; set; }
+
+    /// <summary>
+    /// 正在进行的传输数量
+    /// Ongoing transfer count
+    /// </summary>
+    public int OngoingTransfers { get; set; }
+
+    /// <summary>
+    /// 总传输字节数
+    /// Total bytes transferred
+    /// </summary>
+    public long TotalBytesTransferred { get; set; }
+
+    /// <summary>
+    /// 平均传输速度（字节/秒）
+    /// Average transfer speed (bytes/second)
+    /// </summary>
+    public double AverageTransferSpeed { get; set; }
+
+    /// <summary>
+    /// 成功率百分比
+    /// Success rate percentage
+    /// </summary>
+    public double SuccessRate => TotalTransfers > 0 ? (double)SuccessfulTransfers / TotalTransfers * 100 : 0;
+
+    /// <summary>
+    /// 失败率百分比
+    /// Failure rate percentage
+    /// </summary>
+    public double FailureRate => TotalTransfers > 0 ? (double)FailedTransfers / TotalTransfers * 100 : 0;
+}
+
+/// <summary>
+/// 传输进度信息
+/// Transfer progress information
+/// </summary>
+public class TransferProgress
+{
+    /// <summary>
+    /// 备份日志ID
+    /// Backup log ID
+    /// </summary>
+    public int BackupLogId { get; set; }
+
+    /// <summary>
+    /// 总分块数量
+    /// Total chunk count
+    /// </summary>
+    public int TotalChunks { get; set; }
+
+    /// <summary>
+    /// 已完成分块数量
+    /// Completed chunk count
+    /// </summary>
+    public int CompletedChunks { get; set; }
+
+    /// <summary>
+    /// 失败分块数量
+    /// Failed chunk count
+    /// </summary>
+    public int FailedChunks { get; set; }
+
+    /// <summary>
+    /// 总字节数
+    /// Total bytes
+    /// </summary>
+    public long TotalBytes { get; set; }
+
+    /// <summary>
+    /// 已传输字节数
+    /// Transferred bytes
+    /// </summary>
+    public long TransferredBytes { get; set; }
+
+    /// <summary>
+    /// 进度百分比
+    /// Progress percentage
+    /// </summary>
+    public double ProgressPercentage => TotalChunks > 0 ? (double)CompletedChunks / TotalChunks * 100 : 0;
+
+    /// <summary>
+    /// 字节进度百分比
+    /// Byte progress percentage
+    /// </summary>
+    public double ByteProgressPercentage => TotalBytes > 0 ? (double)TransferredBytes / TotalBytes * 100 : 0;
+
+    /// <summary>
+    /// 是否完成
+    /// Is completed
+    /// </summary>
+    public bool IsCompleted => CompletedChunks == TotalChunks && FailedChunks == 0;
+
+    /// <summary>
+    /// 最后更新时间
+    /// Last update time
+    /// </summary>
+    public DateTime LastUpdateTime { get; set; } = DateTime.Now;
+}
+
+/// <summary>
+/// 传输错误摘要
+/// Transfer error summary
+/// </summary>
+public class TransferErrorSummary
+{
+    /// <summary>
+    /// 错误消息
+    /// Error message
+    /// </summary>
+    [Required]
+    public string ErrorMessage { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 错误发生次数
+    /// Error occurrence count
+    /// </summary>
+    public int OccurrenceCount { get; set; }
+
+    /// <summary>
+    /// 首次发生时间
+    /// First occurrence time
+    /// </summary>
+    public DateTime FirstOccurrence { get; set; }
+
+    /// <summary>
+    /// 最后发生时间
+    /// Last occurrence time
+    /// </summary>
+    public DateTime LastOccurrence { get; set; }
+
+    /// <summary>
+    /// 影响的备份日志ID列表
+    /// Affected backup log IDs
+    /// </summary>
+    public List<int> AffectedBackupLogIds { get; set; } = new();
+}
+
+/// <summary>
 /// 备份操作的进度信息
 /// Progress information for a backup operation
 /// </summary>

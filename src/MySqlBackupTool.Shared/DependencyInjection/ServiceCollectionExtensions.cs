@@ -126,6 +126,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRetentionPolicyRepository, RetentionPolicyRepository>();
         services.AddScoped<IResumeTokenRepository, ResumeTokenRepository>();
         services.AddScoped<IScheduleConfigurationRepository, ScheduleConfigurationRepository>();
+        services.AddScoped<ITransferLogRepository, TransferLogRepository>();
 
         // 注册数据库迁移服务
         // 负责数据库初始化、架构更新和种子数据填充
@@ -140,6 +141,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<BackupReportingService>();                        // 备份报告生成服务
         services.AddScoped<IRetentionPolicyService, RetentionManagementService>(); // 保留策略服务接口
         services.AddScoped<RetentionManagementService>();                    // 保留策略管理服务实现
+        services.AddScoped<ITransferLogService, TransferLogService>();       // 传输日志管理服务
 
         #endregion
 

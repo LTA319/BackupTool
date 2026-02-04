@@ -204,6 +204,25 @@ public class BackupDbContext : DbContext
             // 配置字段约束
             entity.Property(e => e.Status).IsRequired().HasMaxLength(20);
             entity.Property(e => e.TransferTime).HasDefaultValueSql("datetime('now')");
+            entity.Property(e => e.ErrorMessage).HasMaxLength(1000);
+            
+            // 配置与备份日志的外键关系
+            entity.HasOne(e => e.BackupLog)
+                .WithMany(e => e.TransferLogs)
+                .HasForeignKey(e => e.BackupLogId)
+                .OnDelete(DeleteBehavior.Cascade); // 删除备份日志时级联删除传输日志
+            
+            // 创建复合索引优化查询性能
+            entity.HasIndex(e => new { e.BackupLogId, e.ChunkIndex })
+                .HasDatabaseName("IX_TransferLog_BackupLogId_ChunkIndex");
+            
+            // 按状态索引，优化状态过滤查询
+            entity.HasIndex(e => e.Status)
+                .HasDatabaseName("IX_TransferLog_Status");
+            
+            // 按传输时间索引，优化时间范围查询
+            entity.HasIndex(e => e.TransferTime)
+                .HasDatabaseName("IX_TransferLog_TransferTime");
         });
 
         #endregion

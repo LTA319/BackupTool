@@ -15,6 +15,11 @@ public class BackupLogService : IBackupLogService
     private readonly IBackupLogRepository _backupLogRepository;
     
     /// <summary>
+    /// 传输日志服务 / Transfer log service
+    /// </summary>
+    private readonly ITransferLogService? _transferLogService;
+    
+    /// <summary>
     /// 日志记录器 / Logger
     /// </summary>
     private readonly ILogger<BackupLogService> _logger;
@@ -24,11 +29,16 @@ public class BackupLogService : IBackupLogService
     /// </summary>
     /// <param name="backupLogRepository">备份日志存储库 / Backup log repository</param>
     /// <param name="logger">日志记录器 / Logger</param>
+    /// <param name="transferLogService">传输日志服务（可选） / Transfer log service (optional)</param>
     /// <exception cref="ArgumentNullException">当必需参数为null时抛出 / Thrown when required parameters are null</exception>
-    public BackupLogService(IBackupLogRepository backupLogRepository, ILogger<BackupLogService> logger)
+    public BackupLogService(
+        IBackupLogRepository backupLogRepository, 
+        ILogger<BackupLogService> logger,
+        ITransferLogService? transferLogService = null)
     {
         _backupLogRepository = backupLogRepository ?? throw new ArgumentNullException(nameof(backupLogRepository));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _transferLogService = transferLogService;
     }
 
     /// <summary>
