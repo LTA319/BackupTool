@@ -13,6 +13,7 @@ public class ScheduleConfigurationRepository : Repository<ScheduleConfiguration>
     {
     }
 
+
     /// <summary>
     /// Gets all schedule configurations for a specific backup configuration
     /// </summary>
