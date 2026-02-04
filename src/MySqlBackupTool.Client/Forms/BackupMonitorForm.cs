@@ -148,21 +148,21 @@ public partial class BackupMonitorForm : Form
             Name = "IsActive",
             HeaderText = "激活",
             DataPropertyName = "IsActive",
-            Width = 60
+            Width = 100
         });
 
         dgvConfigurations.Columns.Add(new DataGridViewTextBoxColumn
         {
             Name = "MySQLHost",
             HeaderText = "MySQL主机",
-            Width = 100
+            Width = 120
         });
 
         dgvConfigurations.Columns.Add(new DataGridViewTextBoxColumn
         {
             Name = "TargetServer",
             HeaderText = "目标服务器",
-            Width = 100
+            Width = 120
         });
 
         // 设置正在运行的备份网格
@@ -200,14 +200,14 @@ public partial class BackupMonitorForm : Form
         {
             Name = "Duration",
             HeaderText = "持续时间",
-            Width = 80
+            Width = 100
         });
 
         dgvRunningBackups.Columns.Add(new DataGridViewTextBoxColumn
         {
             Name = "Progress",
             HeaderText = "进度",
-            Width = 80
+            Width = 100
         });
 
         // 处理单元格格式化

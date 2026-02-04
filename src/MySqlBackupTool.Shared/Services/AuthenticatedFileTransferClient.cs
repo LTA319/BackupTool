@@ -77,7 +77,7 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
             }
 
             // 确保我们有有效的身份验证令牌 / Ensure we have a valid authentication token
-            string authToken;
+            string? authToken;
             try
             {
                 authToken = await CreateAuthenticationTokenAsync(config);
@@ -202,7 +202,7 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
                 filePath, resumeToken);
 
             // 确保我们有有效的身份验证令牌 / Ensure we have a valid authentication token
-            string authToken;
+            string? authToken;
             try
             {
                 authToken = await CreateAuthenticationTokenAsync(config);

@@ -94,7 +94,7 @@ public class MySQLManager : IMySQLManager, IBackupService
             return result;
 
             //using var service = new ServiceController(serviceName);
-            
+
             //// 检查服务是否存在
             //try
             //{
@@ -149,7 +149,7 @@ public class MySQLManager : IMySQLManager, IBackupService
             //}
             //else
             //{
-            //    _logger.LogError("MySQL service '{ServiceName}' failed to stop within timeout. Current status: {Status}", 
+            //    _logger.LogError("MySQL service '{ServiceName}' failed to stop within timeout. Current status: {Status}",
             //        serviceName, service.Status);
             //    _memoryProfiler?.RecordSnapshot(operationId, "Timeout", $"Stop timeout, status: {service.Status}");
             //    _memoryProfiler?.StopProfiling(operationId);
