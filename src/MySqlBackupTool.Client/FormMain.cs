@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MySqlBackupTool.Client.Forms;
+using MySqlBackupTool.Client.Tools;
 
 namespace MySqlBackupTool.Client;
 
@@ -158,6 +159,7 @@ public partial class FormMain : Form
             {
                 _logger.LogInformation("数据库连接测试通过，耗时 {Time}ms",
                     testResult.TotalTime.TotalMilliseconds);
+                this.Text = "MySQL Backup Tool - Client";
             }
 
             // 打开监控窗体
@@ -439,23 +441,23 @@ public partial class FormMain : Form
             // 显示系统托盘功能帮助信息
             var helpMessage = @"MySQL Backup Tool 系统托盘功能帮助
 
-基本操作：
-• 点击关闭按钮 (X) → 隐藏到系统托盘
-• 双击托盘图标 → 恢复主窗体
-• 右键托盘图标 → 显示菜单
+                                基本操作：
+                                • 点击关闭按钮 (X) → 隐藏到系统托盘
+                                • 双击托盘图标 → 恢复主窗体
+                                • 右键托盘图标 → 显示菜单
 
-完全退出：
-• 菜单栏：File → Exit
-• 托盘右键：退出
+                                完全退出：
+                                • 菜单栏：File → Exit
+                                • 托盘右键：退出
 
-特性：
-• 首次隐藏时显示提示气球
-• 后台持续运行
-• 快速访问和恢复
+                                特性：
+                                • 首次隐藏时显示提示气球
+                                • 后台持续运行
+                                • 快速访问和恢复
 
-注意：
-• 关闭按钮默认隐藏到托盘，不会退出程序
-• 使用菜单或托盘右键菜单才能完全退出";
+                                注意：
+                                • 关闭按钮默认隐藏到托盘，不会退出程序
+                                • 使用菜单或托盘右键菜单才能完全退出";
 
             MessageBox.Show(helpMessage, "系统托盘功能帮助", 
                 MessageBoxButtons.OK, MessageBoxIcon.Information);

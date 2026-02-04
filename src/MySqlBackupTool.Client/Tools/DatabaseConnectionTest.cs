@@ -5,7 +5,7 @@ using MySqlBackupTool.Shared.Data;
 using MySqlBackupTool.Shared.DependencyInjection;
 using MySqlBackupTool.Shared.Models;
 
-namespace MySqlBackupTool.Client;
+namespace MySqlBackupTool.Client.Tools;
 
 /// <summary>
 /// 数据库连接测试工具类

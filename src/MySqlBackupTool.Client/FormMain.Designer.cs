@@ -29,6 +29,7 @@ namespace MySqlBackupTool.Client
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FormMain));
             menuStrip = new MenuStrip();
             fileToolStripMenuItem = new ToolStripMenuItem();
             exitToolStripMenuItem = new ToolStripMenuItem();
@@ -61,8 +62,8 @@ namespace MySqlBackupTool.Client
             menuStrip.Items.AddRange(new ToolStripItem[] { fileToolStripMenuItem, toolsToolStripMenuItem, helpToolStripMenuItem });
             menuStrip.Location = new Point(0, 0);
             menuStrip.Name = "menuStrip";
-            menuStrip.Padding = new Padding(9, 3, 0, 3);
-            menuStrip.Size = new Size(1340, 34);
+            menuStrip.Padding = new Padding(7, 2, 0, 2);
+            menuStrip.Size = new Size(1096, 28);
             menuStrip.TabIndex = 0;
             menuStrip.Text = "menuStrip";
             // 
@@ -70,13 +71,13 @@ namespace MySqlBackupTool.Client
             // 
             fileToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { exitToolStripMenuItem });
             fileToolStripMenuItem.Name = "fileToolStripMenuItem";
-            fileToolStripMenuItem.Size = new Size(56, 28);
+            fileToolStripMenuItem.Size = new Size(48, 24);
             fileToolStripMenuItem.Text = "&File";
             // 
             // exitToolStripMenuItem
             // 
             exitToolStripMenuItem.Name = "exitToolStripMenuItem";
-            exitToolStripMenuItem.Size = new Size(141, 34);
+            exitToolStripMenuItem.Size = new Size(118, 26);
             exitToolStripMenuItem.Text = "E&xit";
             exitToolStripMenuItem.Click += exitToolStripMenuItem_Click;
             // 
@@ -84,39 +85,39 @@ namespace MySqlBackupTool.Client
             // 
             toolsToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { configurationToolStripMenuItem, backupMonitorToolStripMenuItem, logBrowserToolStripMenuItem, toolStripSeparator1, testDatabaseConnectionToolStripMenuItem });
             toolsToolStripMenuItem.Name = "toolsToolStripMenuItem";
-            toolsToolStripMenuItem.Size = new Size(71, 28);
+            toolsToolStripMenuItem.Size = new Size(63, 24);
             toolsToolStripMenuItem.Text = "&Tools";
             // 
             // configurationToolStripMenuItem
             // 
             configurationToolStripMenuItem.Name = "configurationToolStripMenuItem";
-            configurationToolStripMenuItem.Size = new Size(350, 34);
+            configurationToolStripMenuItem.Size = new Size(293, 26);
             configurationToolStripMenuItem.Text = "&Configuration Management";
             configurationToolStripMenuItem.Click += configurationToolStripMenuItem_Click;
             // 
             // backupMonitorToolStripMenuItem
             // 
             backupMonitorToolStripMenuItem.Name = "backupMonitorToolStripMenuItem";
-            backupMonitorToolStripMenuItem.Size = new Size(350, 34);
+            backupMonitorToolStripMenuItem.Size = new Size(293, 26);
             backupMonitorToolStripMenuItem.Text = "&Backup Monitor";
             backupMonitorToolStripMenuItem.Click += backupMonitorToolStripMenuItem_Click;
             // 
             // logBrowserToolStripMenuItem
             // 
             logBrowserToolStripMenuItem.Name = "logBrowserToolStripMenuItem";
-            logBrowserToolStripMenuItem.Size = new Size(350, 34);
+            logBrowserToolStripMenuItem.Size = new Size(293, 26);
             logBrowserToolStripMenuItem.Text = "&Log Browser";
             logBrowserToolStripMenuItem.Click += logBrowserToolStripMenuItem_Click;
             // 
             // toolStripSeparator1
             // 
             toolStripSeparator1.Name = "toolStripSeparator1";
-            toolStripSeparator1.Size = new Size(347, 6);
+            toolStripSeparator1.Size = new Size(290, 6);
             // 
             // testDatabaseConnectionToolStripMenuItem
             // 
             testDatabaseConnectionToolStripMenuItem.Name = "testDatabaseConnectionToolStripMenuItem";
-            testDatabaseConnectionToolStripMenuItem.Size = new Size(350, 34);
+            testDatabaseConnectionToolStripMenuItem.Size = new Size(293, 26);
             testDatabaseConnectionToolStripMenuItem.Text = "&Test Database Connection";
             testDatabaseConnectionToolStripMenuItem.Click += testDatabaseConnectionToolStripMenuItem_Click;
             // 
@@ -124,25 +125,25 @@ namespace MySqlBackupTool.Client
             // 
             helpToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { aboutToolStripMenuItem, toolStripSeparator3, systemTrayHelpToolStripMenuItem });
             helpToolStripMenuItem.Name = "helpToolStripMenuItem";
-            helpToolStripMenuItem.Size = new Size(67, 28);
+            helpToolStripMenuItem.Size = new Size(58, 24);
             helpToolStripMenuItem.Text = "&Help";
             // 
             // aboutToolStripMenuItem
             // 
             aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
-            aboutToolStripMenuItem.Size = new Size(164, 34);
+            aboutToolStripMenuItem.Size = new Size(182, 26);
             aboutToolStripMenuItem.Text = "&About";
             aboutToolStripMenuItem.Click += aboutToolStripMenuItem_Click;
             // 
             // toolStripSeparator3
             // 
             toolStripSeparator3.Name = "toolStripSeparator3";
-            toolStripSeparator3.Size = new Size(161, 6);
+            toolStripSeparator3.Size = new Size(179, 6);
             // 
             // systemTrayHelpToolStripMenuItem
             // 
             systemTrayHelpToolStripMenuItem.Name = "systemTrayHelpToolStripMenuItem";
-            systemTrayHelpToolStripMenuItem.Size = new Size(164, 34);
+            systemTrayHelpToolStripMenuItem.Size = new Size(182, 26);
             systemTrayHelpToolStripMenuItem.Text = "系统托盘帮助";
             systemTrayHelpToolStripMenuItem.Click += systemTrayHelpToolStripMenuItem_Click;
             // 
@@ -150,27 +151,27 @@ namespace MySqlBackupTool.Client
             // 
             statusStrip.ImageScalingSize = new Size(24, 24);
             statusStrip.Items.AddRange(new ToolStripItem[] { toolStripStatusLabel });
-            statusStrip.Location = new Point(0, 705);
+            statusStrip.Location = new Point(0, 587);
             statusStrip.Name = "statusStrip";
-            statusStrip.Padding = new Padding(2, 0, 22, 0);
-            statusStrip.Size = new Size(1340, 31);
+            statusStrip.Padding = new Padding(2, 0, 18, 0);
+            statusStrip.Size = new Size(1096, 26);
             statusStrip.TabIndex = 1;
             statusStrip.Text = "statusStrip";
             // 
             // toolStripStatusLabel
             // 
             toolStripStatusLabel.Name = "toolStripStatusLabel";
-            toolStripStatusLabel.Size = new Size(64, 24);
+            toolStripStatusLabel.Size = new Size(54, 20);
             toolStripStatusLabel.Text = "Ready";
             // 
             // lblWelcome
             // 
             lblWelcome.AutoSize = true;
             lblWelcome.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
-            lblWelcome.Location = new Point(218, 245);
-            lblWelcome.Margin = new Padding(5, 0, 5, 0);
+            lblWelcome.Location = new Point(178, 204);
+            lblWelcome.Margin = new Padding(4, 0, 4, 0);
             lblWelcome.Name = "lblWelcome";
-            lblWelcome.Size = new Size(382, 32);
+            lblWelcome.Size = new Size(318, 28);
             lblWelcome.TabIndex = 2;
             lblWelcome.Text = "Welcome to MySQL Backup Tool";
             lblWelcome.Click += lblWelcome_Click;
@@ -187,39 +188,39 @@ namespace MySqlBackupTool.Client
             trayContextMenu.ImageScalingSize = new Size(24, 24);
             trayContextMenu.Items.AddRange(new ToolStripItem[] { showToolStripMenuItem, toolStripSeparator2, exitTrayToolStripMenuItem });
             trayContextMenu.Name = "trayContextMenu";
-            trayContextMenu.Size = new Size(181, 70);
+            trayContextMenu.Size = new Size(154, 58);
             // 
             // showToolStripMenuItem
             // 
             showToolStripMenuItem.Name = "showToolStripMenuItem";
-            showToolStripMenuItem.Size = new Size(180, 32);
+            showToolStripMenuItem.Size = new Size(153, 24);
             showToolStripMenuItem.Text = "显示主窗口";
             showToolStripMenuItem.Click += showToolStripMenuItem_Click;
             // 
             // toolStripSeparator2
             // 
             toolStripSeparator2.Name = "toolStripSeparator2";
-            toolStripSeparator2.Size = new Size(177, 6);
+            toolStripSeparator2.Size = new Size(150, 6);
             // 
             // exitTrayToolStripMenuItem
             // 
             exitTrayToolStripMenuItem.Name = "exitTrayToolStripMenuItem";
-            exitTrayToolStripMenuItem.Size = new Size(180, 32);
+            exitTrayToolStripMenuItem.Size = new Size(153, 24);
             exitTrayToolStripMenuItem.Text = "退出";
             exitTrayToolStripMenuItem.Click += exitTrayToolStripMenuItem_Click;
             // 
             // FormMain
             // 
-            AutoScaleDimensions = new SizeF(11F, 24F);
+            AutoScaleDimensions = new SizeF(9F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1340, 736);
+            ClientSize = new Size(1096, 613);
             Controls.Add(lblWelcome);
             Controls.Add(statusStrip);
             Controls.Add(menuStrip);
             MainMenuStrip = menuStrip;
-            Margin = new Padding(5, 5, 5, 5);
+            Margin = new Padding(4, 4, 4, 4);
             Name = "FormMain";
-            Text = "MySQL Backup Tool - Client";
+            Text = resources.GetString("$this.Text");
             menuStrip.ResumeLayout(false);
             menuStrip.PerformLayout();
             statusStrip.ResumeLayout(false);

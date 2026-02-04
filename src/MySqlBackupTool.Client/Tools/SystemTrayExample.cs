@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace MySqlBackupTool.Client;
+namespace MySqlBackupTool.Client.Tools;
 
 /// <summary>
 /// 系统托盘功能演示示例

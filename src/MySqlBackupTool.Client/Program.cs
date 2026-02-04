@@ -59,7 +59,7 @@ internal static class Program
                 //services.AddClientServices();
                 services.AddClientServices(useSecureTransfer :false);
                 
-                // 添加备份调度服务（当前已禁用）
+                // 添加备份调度服务
                 // 可根据需要重新启用备份调度功能
                 services.AddBackupSchedulingServices();
             });
