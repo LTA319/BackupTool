@@ -291,7 +291,7 @@ public class DatabaseMigrationService
                     DataDirectoryPath = @"C:\ProgramData\MySQL\MySQL Server 8.0\Data"
                 },
                 DataDirectoryPath = @"C:\ProgramData\MySQL\MySQL Server 8.0\Data",
-                ServiceName = "MySQL80",
+                ServiceName = "MySQL",
                 TargetServer = new ServerEndpoint
                 {
                     IPAddress = "127.0.0.1",
@@ -305,7 +305,7 @@ public class DatabaseMigrationService
                         ClientName = "Default Backup Client"
                     }
                 },
-                TargetDirectory = "backups",
+                TargetDirectory = @"D:\Backup",
                 NamingStrategy = new FileNamingStrategy
                 {
                     Pattern = "{server}_{database}_{timestamp}.zip",

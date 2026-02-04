@@ -77,6 +77,26 @@ public partial class LogBrowserForm : Form
         _configRepository = serviceProvider.GetRequiredService<IBackupConfigurationRepository>();
         _reportingService = serviceProvider.GetRequiredService<BackupReportingService>();
 
+        // 检查当前线程的STA状态（用于COM组件），但不尝试更改
+        try
+        {
+            var apartmentState = Thread.CurrentThread.GetApartmentState();
+            if (apartmentState != ApartmentState.STA)
+            {
+                _logger.LogWarning("Thread is in {ApartmentState} mode, not STA. File dialogs may have compatibility issues.", apartmentState);
+                // 不尝试更改线程状态，因为这在运行时通常会失败
+                // 文件对话框仍然可能工作，如果不工作会自动回退到备选方案
+            }
+            else
+            {
+                _logger.LogInformation("Thread is in STA mode, file dialogs should work properly.");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not check thread apartment state");
+        }
+
         InitializeComponent();
         InitializeForm();
     }
@@ -420,6 +440,110 @@ public partial class LogBrowserForm : Form
         return $"{len:0.##} {sizes[order]}";
     }
 
+    private string? ShowFolderDialogSafe() {
+        // 确保在UI线程上执行
+        if (InvokeRequired)
+        {
+            return Invoke(new Func<string?>(() =>
+                ShowFolderDialogSafe()));
+        }
+
+        // 检查当前线程的单元状态，但不尝试更改
+        var apartmentState = Thread.CurrentThread.GetApartmentState();
+        if (apartmentState != ApartmentState.STA)
+        {
+            _logger.LogWarning("Current thread is in {ApartmentState} mode, not STA. File dialogs may have issues.", apartmentState);
+            // 不尝试更改线程状态，因为这在运行时通常会失败
+            // 直接尝试使用对话框，如果失败会自动回退到备选方案
+        }
+
+        #region 方法1：使用OpenFileDialog
+
+        // 优先使用您在Designer中添加的openFileDialogDataDirectory
+        try
+        {
+            // 如果当前线程不是STA，尝试在STA线程中运行对话框
+            if (Thread.CurrentThread.GetApartmentState() != ApartmentState.STA)
+            {
+                _logger.LogInformation("Running openFileDialogDataDirectory in STA thread");
+                return RunDialogInSTAThread(() => ShowOpenFileDialog());
+            }
+            else
+            {
+                return ShowOpenFileDialog();
+            }
+        }
+        catch (ThreadStateException ex)
+        {
+            _logger.LogError(ex, "STA thread state exception in openFileDialogDataDirectory, trying alternative methods");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "openFileDialogDataDirectory failed, trying FolderBrowserDialog");
+        }
+        return null;
+        #endregion
+    }
+
+    /// <summary>
+    /// 在STA线程中运行对话框
+    /// </summary>
+    /// <param name="dialogAction">对话框操作</param>
+    /// <returns>选择的路径</returns>
+    private string? RunDialogInSTAThread(Func<string?> dialogAction)
+    {
+        string? result = null;
+        Exception? exception = null;
+
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                result = dialogAction();
+            }
+            catch (Exception ex)
+            {
+                exception = ex;
+            }
+        });
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+
+        if (exception != null)
+        {
+            throw exception;
+        }
+
+        return result;
+    }
+
+    private string? ShowOpenFileDialog()
+    {
+        // 配置对话框用于选择文件夹
+        using var openDialog = new OpenFileDialog();
+        openDialog.Filter = "All files (*.*)|*.*";
+        openDialog.FileName = "Select any file in this folder";
+        openDialog.CheckFileExists = false;
+        openDialog.CheckPathExists = true;
+        openDialog.Multiselect = false;
+
+
+        var result = openDialog.ShowDialog();
+        if (result == DialogResult.OK)
+        {
+            var selectedDir = Path.GetDirectoryName(openDialog.FileName);
+            if (!string.IsNullOrEmpty(selectedDir))
+            {
+                _logger.LogInformation("Folder selected via openFileDialogDataDirectory: {Path}", selectedDir);
+                return selectedDir;
+            }
+        }
+
+        return null;
+    }
+
     #endregion
 
     #region 事件处理程序
@@ -671,16 +795,30 @@ public partial class LogBrowserForm : Form
 
         try
         {
-            using var saveDialog = new SaveFileDialog();
-            saveDialog.Filter = "文本文件 (*.txt)|*.txt|所有文件 (*.*)|*.*";
-            saveDialog.FileName = $"backup_log_{_selectedLog.Id}_{_selectedLog.StartTime:yyyyMMdd_HHmmss}.txt";
+            //using var saveDialog = new SaveFileDialog();
+            //saveDialog.Filter = "文本文件 (*.txt)|*.txt|所有文件 (*.*)|*.*";
+            //saveDialog.FileName = $"backup_log_{_selectedLog.Id}_{_selectedLog.StartTime:yyyyMMdd_HHmmss}.txt";
 
-            if (saveDialog.ShowDialog() == DialogResult.OK)
-            {
-                File.WriteAllText(saveDialog.FileName, txtLogDetails.Text);
-                MessageBox.Show($"日志导出成功到:\n{saveDialog.FileName}", "导出完成", 
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
+            //if (saveDialog.ShowDialog() == DialogResult.OK)
+            //{
+            //    File.WriteAllText(saveDialog.FileName, txtLogDetails.Text);
+            //    MessageBox.Show($"日志导出成功到:\n{saveDialog.FileName}", "导出完成",
+            //        MessageBoxButtons.OK, MessageBoxIcon.Information);
+            //}
+
+            var selectedPath = ShowFolderDialogSafe();
+            if (selectedPath == null) return;
+
+            // 构建完整的文件路径
+            string fileName = $"backup_log_{_selectedLog.Id}_{_selectedLog.StartTime:yyyyMMdd_HHmmss}.txt";
+            string fullPath = Path.Combine(selectedPath, fileName);
+
+            // 确保目录存在
+            Directory.CreateDirectory(selectedPath);
+
+            File.WriteAllText(fullPath, txtLogDetails.Text);
+            MessageBox.Show($"日志导出成功到:\n{fullPath}", "导出完成",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
         catch (Exception ex)
         {

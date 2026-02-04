@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -30,7 +31,9 @@ internal class Program
                 // 添加共享服务
                 // 创建默认数据库连接字符串，使用服务器端数据库文件
                 var connectionString = ServiceCollectionExtensions.CreateDefaultConnectionString("server_backup_tool.db");
-                services.AddSharedServices(connectionString);
+
+                var configuration = new ConfigurationBuilder().Build();
+                services.AddSharedServices(connectionString, configuration);
                 
                 // 添加服务器特定的服务
                 // 设置备份文件存储路径到系统公共应用程序数据目录
