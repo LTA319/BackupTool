@@ -712,15 +712,25 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
     {
         try
         {
+            // 使用超时来避免无限等待 / Use timeout to avoid infinite waiting
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(30)); // 30秒超时
+
             // 读取消息长度 / Read message length
             var lengthBuffer = new byte[4];
-            var bytesRead = await stream.ReadAsync(lengthBuffer, 0, 4, cancellationToken);
+            var bytesRead = await stream.ReadAsync(lengthBuffer, 0, 4, timeoutCts.Token);
             if (bytesRead != 4)
+            {
+                _logger.LogWarning("Expected 4 bytes for message length, got {BytesRead}", bytesRead);
                 return null;
+            }
 
             var messageLength = BitConverter.ToInt32(lengthBuffer, 0);
             if (messageLength <= 0 || messageLength > 1024 * 1024)
+            {
+                _logger.LogWarning("Invalid message length: {Length}", messageLength);
                 return null;
+            }
 
             // 读取消息内容 / Read message content
             var messageBuffer = new byte[messageLength];
@@ -728,18 +738,50 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
             while (totalBytesRead < messageLength)
             {
                 bytesRead = await stream.ReadAsync(messageBuffer, totalBytesRead, 
-                    messageLength - totalBytesRead, cancellationToken);
+                    messageLength - totalBytesRead, timeoutCts.Token);
                 if (bytesRead == 0)
+                {
+                    _logger.LogWarning("Connection closed while reading authenticated transfer response");
                     return null;
+                }
                 totalBytesRead += bytesRead;
             }
 
             var json = Encoding.UTF8.GetString(messageBuffer);
-            return JsonSerializer.Deserialize<TransferResponse>(json);
+            var response = JsonSerializer.Deserialize<TransferResponse>(json);
+            
+            if (response == null)
+            {
+                _logger.LogWarning("Failed to deserialize authenticated transfer response");
+            }
+            
+            return response;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogInformation("Authenticated transfer response reading cancelled due to shutdown");
+            return null;
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Authenticated transfer response reading timed out");
+            return null;
+        }
+        catch (IOException ioEx) when (ioEx.InnerException is SocketException socketEx)
+        {
+            _logger.LogInformation("Network error reading authenticated transfer response: {SocketError} ({ErrorCode})", 
+                socketEx.Message, socketEx.ErrorCode);
+            return null;
+        }
+        catch (SocketException socketEx)
+        {
+            _logger.LogInformation("Socket error reading authenticated transfer response: {SocketError} ({ErrorCode})", 
+                socketEx.Message, socketEx.ErrorCode);
+            return null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error reading transfer response");
+            _logger.LogError(ex, "Unexpected error reading authenticated transfer response");
             return null;
         }
     }

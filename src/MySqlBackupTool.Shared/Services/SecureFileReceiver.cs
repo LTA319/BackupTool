@@ -276,6 +276,13 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
                 client.ReceiveTimeout = 30000; // 30 second timeout
                 client.SendTimeout = 30000;
 
+                // 检查连接状态 / Check connection status
+                if (!client.Connected)
+                {
+                    _logger.LogWarning("Client {Client} disconnected before processing", clientEndpoint);
+                    return;
+                }
+
                 // Create the appropriate stream (SSL or plain TCP)
                 Stream stream;
                 if (_useSSL)
@@ -303,8 +310,27 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
                     // Process the file transfer
                     var result = await ProcessFileTransferAsync(stream, request, cancellationToken);
                     
-                    // Send response back to client
-                    await SendResponseAsync(stream, result, cancellationToken);
+                    // 检查连接是否仍然有效再发送响应 / Check if connection is still valid before sending response
+                    bool canSendResponse = false;
+                    if (stream is SslStream sslStream)
+                    {
+                        canSendResponse = client.Connected && sslStream.CanWrite && sslStream.IsAuthenticated;
+                    }
+                    else
+                    {
+                        canSendResponse = client.Connected && stream.CanWrite;
+                    }
+
+                    if (canSendResponse)
+                    {
+                        // Send response back to client
+                        await SendResponseAsync(stream, result, cancellationToken);
+                    }
+                    else
+                    {
+                        _logger.LogInformation("Client {Client} disconnected before final secure response could be sent. Transfer result: {Success}", 
+                            clientEndpoint, result.Success);
+                    }
 
                     _logger.LogInformation("Completed secure file transfer for {FileName} from client {Client}. Success: {Success}", 
                         request.Metadata.FileName, clientEndpoint, result.Success);
@@ -315,9 +341,24 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
         {
             _logger.LogInformation("Client handling cancelled for {Client}", clientEndpoint);
         }
+        catch (IOException ioEx) when (ioEx.InnerException is SocketException socketEx)
+        {
+            _logger.LogInformation("Network error handling secure client {Client}: {SocketError} ({ErrorCode})", 
+                clientEndpoint, socketEx.Message, socketEx.ErrorCode);
+        }
+        catch (SocketException socketEx)
+        {
+            _logger.LogInformation("Socket error handling secure client {Client}: {SocketError} ({ErrorCode})", 
+                clientEndpoint, socketEx.Message, socketEx.ErrorCode);
+        }
+        catch (AuthenticationException authEx)
+        {
+            _logger.LogWarning("SSL authentication error handling client {Client}: {AuthError}", 
+                clientEndpoint, authEx.Message);
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error handling client {Client}", clientEndpoint);
+            _logger.LogError(ex, "Unexpected error handling secure client {Client}", clientEndpoint);
         }
     }
 
@@ -809,6 +850,21 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
     {
         try
         {
+            // 检查流是否仍然可写 / Check if stream is still writable
+            if (stream is SslStream sslStream)
+            {
+                if (!sslStream.CanWrite || !sslStream.IsAuthenticated)
+                {
+                    _logger.LogWarning("Cannot send secure response: SSL stream is closed or not authenticated");
+                    return;
+                }
+            }
+            else if (!stream.CanWrite)
+            {
+                _logger.LogWarning("Cannot send secure response: stream is not writable");
+                return;
+            }
+
             var response = new TransferResponse
             {
                 Success = result.Success,
@@ -820,17 +876,49 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
             var messageBytes = Encoding.UTF8.GetBytes(json);
             var lengthBytes = BitConverter.GetBytes(messageBytes.Length);
 
+            // 使用超时发送响应 / Send response with timeout
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(10)); // 10秒超时
+
             // Send message length first
-            await stream.WriteAsync(lengthBytes, 0, lengthBytes.Length, cancellationToken);
+            await stream.WriteAsync(lengthBytes, 0, lengthBytes.Length, timeoutCts.Token);
             
             // Send message content
-            await stream.WriteAsync(messageBytes, 0, messageBytes.Length, cancellationToken);
+            await stream.WriteAsync(messageBytes, 0, messageBytes.Length, timeoutCts.Token);
             
-            await stream.FlushAsync(cancellationToken);
+            await stream.FlushAsync(timeoutCts.Token);
+            
+            _logger.LogDebug("Successfully sent secure response to client");
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogInformation("Secure response sending cancelled due to shutdown");
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Secure response sending timed out - client may have disconnected");
+        }
+        catch (IOException ioEx) when (ioEx.InnerException is SocketException socketEx)
+        {
+            _logger.LogInformation("Client disconnected during secure response sending: {SocketError} ({ErrorCode})", 
+                socketEx.Message, socketEx.ErrorCode);
+        }
+        catch (SocketException socketEx)
+        {
+            _logger.LogInformation("Network error sending secure response: {SocketError} ({ErrorCode})", 
+                socketEx.Message, socketEx.ErrorCode);
+        }
+        catch (AuthenticationException authEx)
+        {
+            _logger.LogInformation("SSL authentication error sending secure response: {AuthError}", authEx.Message);
+        }
+        catch (ObjectDisposedException)
+        {
+            _logger.LogInformation("Cannot send secure response: stream has been disposed");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error sending secure response to client");
+            _logger.LogError(ex, "Unexpected error sending secure response to client");
         }
     }
 

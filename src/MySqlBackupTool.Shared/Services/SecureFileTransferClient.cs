@@ -713,12 +713,51 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
     private async Task ReadExactlyAsync(Stream stream, byte[] buffer, int count, CancellationToken cancellationToken)
     {
         int totalRead = 0;
-        while (totalRead < count)
+        
+        // 使用超时来避免无限等待 / Use timeout to avoid infinite waiting
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutCts.CancelAfter(TimeSpan.FromSeconds(30)); // 30秒超时
+        
+        try
         {
-            var bytesRead = await stream.ReadAsync(buffer, totalRead, count - totalRead, cancellationToken);
-            if (bytesRead == 0)
-                throw new EndOfStreamException("Unexpected end of stream");
-            totalRead += bytesRead;
+            while (totalRead < count)
+            {
+                var bytesRead = await stream.ReadAsync(buffer, totalRead, count - totalRead, timeoutCts.Token);
+                if (bytesRead == 0)
+                {
+                    _logger.LogWarning("Unexpected end of secure stream while reading response. Expected {Count} bytes, got {TotalRead} bytes", 
+                        count, totalRead);
+                    throw new EndOfStreamException($"Unexpected end of secure stream. Expected {count} bytes, got {totalRead} bytes");
+                }
+                totalRead += bytesRead;
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogInformation("Secure read operation cancelled due to shutdown");
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Secure read operation timed out after 30 seconds");
+            throw new TimeoutException("Secure read operation timed out after 30 seconds");
+        }
+        catch (IOException ioEx) when (ioEx.InnerException is SocketException socketEx)
+        {
+            _logger.LogWarning("Network error during secure read operation: {SocketError} ({ErrorCode})", 
+                socketEx.Message, socketEx.ErrorCode);
+            throw new InvalidOperationException($"Network error during secure read: {socketEx.Message}", ioEx);
+        }
+        catch (SocketException socketEx)
+        {
+            _logger.LogWarning("Socket error during secure read operation: {SocketError} ({ErrorCode})", 
+                socketEx.Message, socketEx.ErrorCode);
+            throw new InvalidOperationException($"Socket error during secure read: {socketEx.Message}", socketEx);
+        }
+        catch (AuthenticationException authEx)
+        {
+            _logger.LogWarning("SSL authentication error during secure read operation: {AuthError}", authEx.Message);
+            throw new InvalidOperationException($"SSL authentication error during secure read: {authEx.Message}", authEx);
         }
     }
 
