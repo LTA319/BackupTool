@@ -459,7 +459,7 @@ public partial class FormMain : Form
                                 • 关闭按钮默认隐藏到托盘，不会退出程序
                                 • 使用菜单或托盘右键菜单才能完全退出";
 
-            MessageBox.Show(helpMessage, "系统托盘功能帮助", 
+            MessageBox.Show(helpMessage, "系统托盘功能帮助",
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
 
             // 同时在日志中记录帮助信息的显示
@@ -469,6 +469,21 @@ public partial class FormMain : Form
         {
             _logger.LogError(ex, "显示系统托盘帮助时发生错误");
             MessageBox.Show($"显示帮助信息时发生错误: {ex.Message}",
+                "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void transferLogViewToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            using var configListForm = new ConfigurationListForm(_serviceProvider);
+            configListForm.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "打开配置管理时发生错误");
+            MessageBox.Show($"打开配置管理时发生错误: {ex.Message}",
                 "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
@@ -496,7 +511,7 @@ public partial class FormMain : Form
             }
 
             _logger.LogInformation("应用程序正在关闭");
-            
+
             // 隐藏托盘图标
             if (notifyIcon != null)
             {
@@ -524,11 +539,11 @@ public partial class FormMain : Form
         {
             this.Hide();
             notifyIcon.Visible = true;
-            
+
             // 显示托盘提示
-            notifyIcon.ShowBalloonTip(2000, 
-                "MySQL Backup Tool", 
-                "应用程序已最小化到系统托盘。双击图标或右键选择\"显示主窗口\"来恢复窗口。", 
+            notifyIcon.ShowBalloonTip(2000,
+                "MySQL Backup Tool",
+                "应用程序已最小化到系统托盘。双击图标或右键选择\"显示主窗口\"来恢复窗口。",
                 ToolTipIcon.Info);
 
             _logger.LogInformation("应用程序已隐藏到系统托盘");
@@ -561,4 +576,6 @@ public partial class FormMain : Form
     }
 
     #endregion
+
+
 }
