@@ -105,7 +105,7 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
             // 获取文件信息并创建元数据 / Get file info and create metadata
             _memoryProfiler?.RecordSnapshot(operationId, "CreateMetadata", "Creating file metadata");
             var fileInfo = new FileInfo(filePath);
-            var metadata = await CreateFileMetadataAsync(filePath, config.FileName);
+            var metadata = await CreateFileMetadataAsync(filePath, config.FileName, config);
 
             // 创建传输请求 / Create transfer request
             var transferRequest = new TransferRequest
@@ -257,7 +257,7 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
 
             // 创建文件元数据 / Create file metadata
             _memoryProfiler?.RecordSnapshot(operationId, "CreateMetadata", "Creating file metadata for resume");
-            var metadata = await CreateFileMetadataAsync(filePath, config.FileName);
+            var metadata = await CreateFileMetadataAsync(filePath, config.FileName, config);
 
             // 创建恢复传输请求 / Create resume transfer request
             var transferRequest = new TransferRequest
@@ -938,8 +938,9 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     /// </summary>
     /// <param name="filePath">文件路径</param>
     /// <param name="targetFileName">目标文件名</param>
+    /// <param name="config">传输配置，用于创建源配置信息</param>
     /// <returns>文件元数据</returns>
-    private async Task<FileMetadata> CreateFileMetadataAsync(string filePath, string targetFileName)
+    private async Task<FileMetadata> CreateFileMetadataAsync(string filePath, string targetFileName, TransferConfig config)
     {
         var (md5, sha256, fileSize) = await _checksumService.CreateFileMetadataAsync(filePath);
         
@@ -949,7 +950,8 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
             FileSize = fileSize,
             ChecksumMD5 = md5,
             ChecksumSHA256 = sha256,
-            CreatedAt = DateTime.Now
+            CreatedAt = DateTime.Now,
+            SourceConfig = config.SourceConfig  // 设置源配置信息
         };
     }
 

@@ -130,7 +130,8 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
                     FileSize = fileInfo.Length,
                     ChecksumMD5 = md5Hash,
                     ChecksumSHA256 = sha256Hash,
-                    CreatedAt = DateTime.Now
+                    CreatedAt = DateTime.Now,
+                    SourceConfig = config.SourceConfig
                 },
                 ChunkingStrategy = config.ChunkingStrategy,
                 ResumeTransfer = false
@@ -255,7 +256,8 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
                     FileSize = fileInfo.Length,
                     ChecksumMD5 = md5Hash,
                     ChecksumSHA256 = sha256Hash,
-                    CreatedAt = DateTime.Now
+                    CreatedAt = DateTime.Now,
+                    SourceConfig = config.SourceConfig
                 },
                 ChunkingStrategy = config.ChunkingStrategy,
                 ResumeTransfer = true,

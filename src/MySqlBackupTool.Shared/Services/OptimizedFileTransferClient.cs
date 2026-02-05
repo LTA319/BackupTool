@@ -193,7 +193,8 @@ public class OptimizedFileTransferClient : IFileTransferClient
             FileName = originalConfig.FileName,
             TimeoutSeconds = OptimizeTimeout(originalConfig.TimeoutSeconds, fileSize),
             MaxRetries = originalConfig.MaxRetries,
-            ChunkingStrategy = ChunkingStrategy.GetOptimizedStrategy(fileSize)
+            ChunkingStrategy = ChunkingStrategy.GetOptimizedStrategy(fileSize),
+            SourceConfig = originalConfig.SourceConfig
         };
 
         _logger.LogDebug("Optimized transfer config for {FileSize} bytes: ChunkSize={ChunkSize}, MaxConcurrent={MaxConcurrent}, Timeout={Timeout}s",

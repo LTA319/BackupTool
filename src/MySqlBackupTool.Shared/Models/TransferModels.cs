@@ -48,6 +48,11 @@ public class TransferConfig
     /// Maximum retry attempts, defaults to 3
     /// </summary>
     public int MaxRetries { get; set; } = 3;
+    /// <summary>
+    /// 源备份配置
+    /// Source backup configuration
+    /// </summary>
+    public BackupConfiguration? SourceConfig { get; set; }
 }
 
 /// <summary>

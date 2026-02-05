@@ -78,7 +78,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
 
             // Get file info and create metadata
             var fileInfo = new FileInfo(filePath);
-            var metadata = await CreateFileMetadataAsync(filePath, config.FileName);
+            var metadata = await CreateFileMetadataAsync(filePath, config.FileName, config);
 
             // Create transfer request
             var transferRequest = new TransferRequest
@@ -194,7 +194,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
             }
 
             // Create file metadata
-            var metadata = await CreateFileMetadataAsync(filePath, config.FileName);
+            var metadata = await CreateFileMetadataAsync(filePath, config.FileName, config);
 
             // Create resume transfer request
             var transferRequest = new TransferRequest
@@ -762,19 +762,20 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
     }
 
     /// <summary>
-    /// Creates file metadata including checksums
+    /// Creates file metadata including checksums and source configuration
     /// </summary>
-    private async Task<FileMetadata> CreateFileMetadataAsync(string filePath, string targetFileName)
+    private async Task<FileMetadata> CreateFileMetadataAsync(string filePath, string targetFileName, TransferConfig config)
     {
         var (md5, sha256, fileSize) = await _checksumService.CreateFileMetadataAsync(filePath);
-        
+                
         return new FileMetadata
         {
             FileName = targetFileName,
             FileSize = fileSize,
             ChecksumMD5 = md5,
             ChecksumSHA256 = sha256,
-            CreatedAt = DateTime.Now
+            CreatedAt = DateTime.Now,
+            SourceConfig = config.SourceConfig  // 设置源配置信息
         };
     }
 }

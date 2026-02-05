@@ -309,7 +309,8 @@ public class BackupOrchestrator : IBackupOrchestrator
                 FileName = targetFileName,
                 ChunkingStrategy = new ChunkingStrategy(),
                 MaxRetries = 3,
-                TimeoutSeconds = 300
+                TimeoutSeconds = 300,
+                SourceConfig = configuration
             };
 
             // Ensure the target server has the authentication credentials from the backup configuration
