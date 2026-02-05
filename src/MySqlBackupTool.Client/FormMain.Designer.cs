@@ -35,6 +35,7 @@ namespace MySqlBackupTool.Client
             exitToolStripMenuItem = new ToolStripMenuItem();
             toolsToolStripMenuItem = new ToolStripMenuItem();
             configurationToolStripMenuItem = new ToolStripMenuItem();
+            scheduleManagementToolStripMenuItem = new ToolStripMenuItem();
             backupMonitorToolStripMenuItem = new ToolStripMenuItem();
             logBrowserToolStripMenuItem = new ToolStripMenuItem();
             toolStripSeparator1 = new ToolStripSeparator();
@@ -84,7 +85,7 @@ namespace MySqlBackupTool.Client
             // 
             // toolsToolStripMenuItem
             // 
-            toolsToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { configurationToolStripMenuItem, backupMonitorToolStripMenuItem, logBrowserToolStripMenuItem, toolStripSeparator1, testDatabaseConnectionToolStripMenuItem, transferLogViewToolStripMenuItem });
+            toolsToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { configurationToolStripMenuItem, scheduleManagementToolStripMenuItem, backupMonitorToolStripMenuItem, logBrowserToolStripMenuItem, transferLogViewToolStripMenuItem, toolStripSeparator1, testDatabaseConnectionToolStripMenuItem });
             toolsToolStripMenuItem.Name = "toolsToolStripMenuItem";
             toolsToolStripMenuItem.Size = new Size(71, 28);
             toolsToolStripMenuItem.Text = "&Tools";
@@ -95,6 +96,13 @@ namespace MySqlBackupTool.Client
             configurationToolStripMenuItem.Size = new Size(350, 34);
             configurationToolStripMenuItem.Text = "&Configuration Management";
             configurationToolStripMenuItem.Click += configurationToolStripMenuItem_Click;
+            // 
+            // scheduleManagementToolStripMenuItem
+            // 
+            scheduleManagementToolStripMenuItem.Name = "scheduleManagementToolStripMenuItem";
+            scheduleManagementToolStripMenuItem.Size = new Size(350, 34);
+            scheduleManagementToolStripMenuItem.Text = "&Schedule Management";
+            scheduleManagementToolStripMenuItem.Click += scheduleManagementToolStripMenuItem_Click;
             // 
             // backupMonitorToolStripMenuItem
             // 
@@ -214,7 +222,7 @@ namespace MySqlBackupTool.Client
             // 
             transferLogViewToolStripMenuItem.Name = "transferLogViewToolStripMenuItem";
             transferLogViewToolStripMenuItem.Size = new Size(350, 34);
-            transferLogViewToolStripMenuItem.Text = "Transfer Log View";
+            transferLogViewToolStripMenuItem.Text = "Transfer Log";
             transferLogViewToolStripMenuItem.Click += transferLogViewToolStripMenuItem_Click;
             // 
             // FormMain
@@ -245,6 +253,7 @@ namespace MySqlBackupTool.Client
         private System.Windows.Forms.ToolStripMenuItem exitToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem toolsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem configurationToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem scheduleManagementToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem backupMonitorToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem logBrowserToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;

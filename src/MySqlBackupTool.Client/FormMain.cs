@@ -204,6 +204,27 @@ public partial class FormMain : Form
     }
 
     /// <summary>
+    /// 调度管理菜单项点击事件处理程序
+    /// 打开调度配置管理窗体
+    /// </summary>
+    /// <param name="sender">事件发送者</param>
+    /// <param name="e">事件参数</param>
+    private void scheduleManagementToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            using var scheduleListForm = new ScheduleListForm(_serviceProvider);
+            scheduleListForm.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "打开调度管理时发生错误");
+            MessageBox.Show($"打开调度管理时发生错误: {ex.Message}",
+                "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    /// <summary>
     /// 备份监控菜单项点击事件处理程序
     /// 测试数据库连接后打开备份监控窗体
     /// </summary>
