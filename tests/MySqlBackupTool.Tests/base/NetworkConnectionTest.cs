@@ -2,7 +2,7 @@ using System;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 
-namespace MySqlBackupTool.NetworkTest
+namespace MySqlBackupTool.Tests.Base
 {
     /// <summary>
     /// 简单的网络连接测试，用于验证网络异常处理改进
