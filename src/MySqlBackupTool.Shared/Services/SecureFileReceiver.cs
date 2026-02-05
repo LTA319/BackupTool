@@ -509,7 +509,7 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
         
         try
         {
-            // Create backup path
+            // Create backup path using client's target directory if available
             var backupMetadata = new BackupMetadata
             {
                 ServerName = request.Metadata.SourceConfig?.Name ?? "Unknown",
@@ -519,7 +519,15 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
                 EstimatedSize = request.Metadata.FileSize
             };
 
-            var targetPath = await _storageManager.CreateBackupPathAsync(backupMetadata);
+            // Extract target directory from client configuration
+            string? clientTargetDirectory = request.Metadata.SourceConfig?.TargetDirectory;
+            
+            // Use client's target directory if provided, otherwise use server's default
+            var targetPath = await _storageManager.CreateBackupPathAsync(backupMetadata, clientTargetDirectory);
+            
+            _logger.LogInformation("Using {DirectoryType} target directory for secure backup storage: {Directory}", 
+                !string.IsNullOrWhiteSpace(clientTargetDirectory) ? "client-specified" : "server-default",
+                !string.IsNullOrWhiteSpace(clientTargetDirectory) ? clientTargetDirectory : "default server path");
             
             // Validate storage space
             var hasSpace = await _storageManager.ValidateStorageSpaceAsync(request.Metadata.FileSize);

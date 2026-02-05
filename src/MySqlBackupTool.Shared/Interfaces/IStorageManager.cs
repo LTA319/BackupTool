@@ -19,6 +19,16 @@ public interface IStorageManager
     Task<string> CreateBackupPathAsync(BackupMetadata metadata);
 
     /// <summary>
+    /// 为备份文件创建存储路径，支持自定义目标目录 / Creates a storage path for a backup file with custom target directory support
+    /// 根据备份元数据和自定义目标目录生成合适的文件存储路径
+    /// Generates appropriate file storage path based on backup metadata and custom target directory
+    /// </summary>
+    /// <param name="metadata">备份的元数据信息 / Metadata about the backup</param>
+    /// <param name="customTargetDirectory">自定义目标目录，为null时使用默认基础路径 / Custom target directory, uses default base path when null</param>
+    /// <returns>备份应该存储的路径 / Path where the backup should be stored</returns>
+    Task<string> CreateBackupPathAsync(BackupMetadata metadata, string? customTargetDirectory);
+
+    /// <summary>
     /// 验证是否有足够的存储空间可用 / Validates that sufficient storage space is available
     /// 检查指定大小的存储空间是否可用，确保备份操作不会因空间不足而失败
     /// Checks if storage space of specified size is available to ensure backup operations won't fail due to insufficient space

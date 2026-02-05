@@ -36,11 +36,9 @@ internal class Program
                 services.AddSharedServices(connectionString, configuration);
                 
                 // 添加服务器特定的服务
-                // 设置备份文件存储路径到系统公共应用程序数据目录
-                var storagePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "MySqlBackupTool", "Backups");
-                
-                // 注册服务器服务，第二个参数false表示不启用SSL（可根据需要调整）
-                services.AddServerServices(storagePath, false);
+                // 注册服务器服务，不再使用硬编码的存储路径，而是使用客户端配置中的TargetDirectory
+                // 第二个参数false表示不启用SSL（可根据需要调整）
+                services.AddServerServices(baseStoragePath: null, useSecureReceiver: false);
                 
                 // 添加保留策略后台服务，每24小时运行一次清理过期备份
                 services.AddRetentionPolicyBackgroundService(TimeSpan.FromHours(24));

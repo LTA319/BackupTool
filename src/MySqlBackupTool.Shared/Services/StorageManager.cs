@@ -47,11 +47,35 @@ public class StorageManager : IStorageManager
     /// <returns>创建的备份文件路径 / Created backup file path</returns>
     public async Task<string> CreateBackupPathAsync(BackupMetadata metadata)
     {
+        return await CreateBackupPathAsync(metadata, null);
+    }
+
+    /// <summary>
+    /// 为备份文件创建存储路径，支持自定义目标目录 / Creates a storage path for a backup file with custom target directory support
+    /// 使用目录组织器创建目录结构，生成唯一的文件名 / Uses directory organizer to create directory structure and generates unique filename
+    /// </summary>
+    /// <param name="metadata">备份元数据 / Backup metadata</param>
+    /// <param name="customTargetDirectory">自定义目标目录，为null时使用默认基础路径 / Custom target directory, uses default base path when null</param>
+    /// <returns>创建的备份文件路径 / Created backup file path</returns>
+    public async Task<string> CreateBackupPathAsync(BackupMetadata metadata, string? customTargetDirectory)
+    {
         try
         {
+            // Use custom target directory if provided, otherwise use base storage path
+            var baseDirectory = !string.IsNullOrWhiteSpace(customTargetDirectory) 
+                ? customTargetDirectory 
+                : _baseStoragePath;
+
+            // Ensure the base directory exists
+            if (!Directory.Exists(baseDirectory))
+            {
+                Directory.CreateDirectory(baseDirectory);
+                _logger.LogInformation("Created custom target directory: {Directory}", baseDirectory);
+            }
+
             // Create directory structure using the organizer
             var targetDirectory = _directoryOrganizer.CreateDirectoryStructure(
-                _baseStoragePath, 
+                baseDirectory, 
                 metadata, 
                 _organizationStrategy);
 
@@ -67,7 +91,9 @@ public class StorageManager : IStorageManager
             // Ensure filename is unique
             targetPath = await EnsureUniqueFilePathAsync(targetPath);
 
-            _logger.LogInformation("Created backup path: {Path}", targetPath);
+            _logger.LogInformation("Created backup path: {Path} (using {DirectoryType} directory)", 
+                targetPath, 
+                !string.IsNullOrWhiteSpace(customTargetDirectory) ? "custom" : "default");
             return targetPath;
         }
         catch (Exception ex)

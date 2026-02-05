@@ -609,7 +609,7 @@ public class FileReceiver : IFileReceiver, IDisposable
             _logger.LogInformation("Successfully authenticated and authorized file transfer request from client {ClientId} for {FileName}", 
                 authContext.ClientId, request.Metadata.FileName);
 
-            // Create backup path
+            // Create backup path using client's target directory if available
             var backupMetadata = new BackupMetadata
             {
                 ServerName = request.Metadata.SourceConfig?.Name ?? authContext.ClientId,
@@ -619,7 +619,15 @@ public class FileReceiver : IFileReceiver, IDisposable
                 EstimatedSize = request.Metadata.FileSize
             };
 
-            var targetPath = await _storageManager.CreateBackupPathAsync(backupMetadata);
+            // Extract target directory from client configuration
+            string? clientTargetDirectory = request.Metadata.SourceConfig?.TargetDirectory;
+            
+            // Use client's target directory if provided, otherwise use server's default
+            var targetPath = await _storageManager.CreateBackupPathAsync(backupMetadata, clientTargetDirectory);
+            
+            _logger.LogInformation("Using {DirectoryType} target directory for backup storage: {Directory}", 
+                !string.IsNullOrWhiteSpace(clientTargetDirectory) ? "client-specified" : "server-default",
+                !string.IsNullOrWhiteSpace(clientTargetDirectory) ? clientTargetDirectory : "default server path");
             
             // Validate storage space
             var hasSpace = await _storageManager.ValidateStorageSpaceAsync(request.Metadata.FileSize);
