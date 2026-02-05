@@ -1,8 +1,10 @@
-using System.ComponentModel;
-using System.Data;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using MySqlBackupTool.Shared.Interfaces;
 using MySqlBackupTool.Shared.Models;
-using Microsoft.Extensions.Logging;
+using MySqlBackupTool.Shared.Services;
+using System.ComponentModel;
+using System.Data;
 
 namespace MySqlBackupTool.Client.Forms;
 
@@ -12,41 +14,32 @@ namespace MySqlBackupTool.Client.Forms;
 /// </summary>
 public partial class TransferLogViewerForm : Form
 {
+    /// <summary>
+    /// 依赖注入服务提供者，用于获取各种服务实例
+    /// </summary>
+    private readonly IServiceProvider _serviceProvider;
+
     private readonly ITransferLogService _transferLogService;
     private readonly ILogger<TransferLogViewerForm> _logger;
+
     private int _currentBackupLogId;
 
-    // UI 控件
-    private DataGridView _transferLogGrid;
-    private Panel _controlPanel;
-    private Button _refreshButton;
-    private Button _exportButton;
-    private Button _retryFailedButton;
-    private Label _progressLabel;
-    private ProgressBar _progressBar;
-    private ComboBox _statusFilter;
-    private DateTimePicker _startDatePicker;
-    private DateTimePicker _endDatePicker;
-    private Button _filterButton;
-    private GroupBox _statisticsGroup;
-    private Label _totalTransfersLabel;
-    private Label _successfulTransfersLabel;
-    private Label _failedTransfersLabel;
-    private Label _successRateLabel;
+    // UI 控件在设计文件中定义
 
     /// <summary>
     /// 构造函数
     /// Constructor
     /// </summary>
-    /// <param name="transferLogService">传输日志服务</param>
-    /// <param name="logger">日志记录器</param>
-    public TransferLogViewerForm(ITransferLogService transferLogService, ILogger<TransferLogViewerForm> logger)
+    /// <param name="serviceProvider">服务提供者</param>
+    public TransferLogViewerForm(IServiceProvider serviceProvider)
     {
-        _transferLogService = transferLogService ?? throw new ArgumentNullException(nameof(transferLogService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _serviceProvider = serviceProvider;
+        _transferLogService = serviceProvider.GetRequiredService<ITransferLogService>();
+        _logger = serviceProvider.GetRequiredService<ILogger<TransferLogViewerForm>>();
         
         InitializeComponent();
         InitializeEventHandlers();
+        InitializeFormSettings();
     }
 
     /// <summary>
@@ -63,233 +56,17 @@ public partial class TransferLogViewerForm : Form
     }
 
     /// <summary>
-    /// 初始化UI组件
-    /// Initialize UI components
+    /// 初始化窗体设置
+    /// Initialize form settings
     /// </summary>
-    private void InitializeComponent()
+    private void InitializeFormSettings()
     {
-        this.Size = new Size(1000, 700);
-        this.Text = "传输日志查看器";
-        this.StartPosition = FormStartPosition.CenterParent;
-
-        // 创建主面板
-        var mainPanel = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 1,
-            RowCount = 4
-        };
-
-        // 控制面板
-        _controlPanel = CreateControlPanel();
-        mainPanel.Controls.Add(_controlPanel, 0, 0);
-        mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 80));
-
-        // 统计信息面板
-        _statisticsGroup = CreateStatisticsPanel();
-        mainPanel.Controls.Add(_statisticsGroup, 0, 1);
-        mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 100));
-
-        // 数据网格
-        _transferLogGrid = CreateTransferLogGrid();
-        mainPanel.Controls.Add(_transferLogGrid, 0, 2);
-        mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-
-        // 进度条
-        _progressBar = new ProgressBar
-        {
-            Dock = DockStyle.Fill,
-            Visible = false
-        };
-        _progressLabel = new Label
-        {
-            Dock = DockStyle.Fill,
-            TextAlign = ContentAlignment.MiddleCenter,
-            Text = "准备就绪"
-        };
-
-        var progressPanel = new Panel { Height = 30, Dock = DockStyle.Fill };
-        progressPanel.Controls.Add(_progressBar);
-        progressPanel.Controls.Add(_progressLabel);
-        
-        mainPanel.Controls.Add(progressPanel, 0, 3);
-        mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
-
-        this.Controls.Add(mainPanel);
-    }
-
-    /// <summary>
-    /// 创建控制面板
-    /// Create control panel
-    /// </summary>
-    private Panel CreateControlPanel()
-    {
-        var panel = new Panel { Dock = DockStyle.Fill };
-
-        // 刷新按钮
-        _refreshButton = new Button
-        {
-            Text = "刷新",
-            Size = new Size(80, 30),
-            Location = new Point(10, 10)
-        };
-
-        // 导出按钮
-        _exportButton = new Button
-        {
-            Text = "导出",
-            Size = new Size(80, 30),
-            Location = new Point(100, 10)
-        };
-
-        // 重试失败按钮
-        _retryFailedButton = new Button
-        {
-            Text = "重试失败",
-            Size = new Size(80, 30),
-            Location = new Point(190, 10)
-        };
-
-        // 状态过滤器
-        var statusLabel = new Label
-        {
-            Text = "状态:",
-            Size = new Size(40, 20),
-            Location = new Point(300, 15)
-        };
-
-        _statusFilter = new ComboBox
-        {
-            Size = new Size(100, 25),
-            Location = new Point(350, 12),
-            DropDownStyle = ComboBoxStyle.DropDownList
-        };
-        _statusFilter.Items.AddRange(new[] { "全部", "Pending", "InProgress", "Completed", "Failed" });
+        // 设置状态过滤器默认值
         _statusFilter.SelectedIndex = 0;
-
-        // 日期过滤器
-        var dateLabel = new Label
-        {
-            Text = "日期:",
-            Size = new Size(40, 20),
-            Location = new Point(470, 15)
-        };
-
-        _startDatePicker = new DateTimePicker
-        {
-            Size = new Size(120, 25),
-            Location = new Point(520, 12),
-            Value = DateTime.Today.AddDays(-7)
-        };
-
-        var toLabel = new Label
-        {
-            Text = "至",
-            Size = new Size(20, 20),
-            Location = new Point(650, 15)
-        };
-
-        _endDatePicker = new DateTimePicker
-        {
-            Size = new Size(120, 25),
-            Location = new Point(680, 12),
-            Value = DateTime.Today.AddDays(1)
-        };
-
-        _filterButton = new Button
-        {
-            Text = "筛选",
-            Size = new Size(60, 30),
-            Location = new Point(810, 10)
-        };
-
-        panel.Controls.AddRange(new Control[]
-        {
-            _refreshButton, _exportButton, _retryFailedButton,
-            statusLabel, _statusFilter,
-            dateLabel, _startDatePicker, toLabel, _endDatePicker, _filterButton
-        });
-
-        return panel;
-    }
-
-    /// <summary>
-    /// 创建统计信息面板
-    /// Create statistics panel
-    /// </summary>
-    private GroupBox CreateStatisticsPanel()
-    {
-        var groupBox = new GroupBox
-        {
-            Text = "传输统计",
-            Dock = DockStyle.Fill
-        };
-
-        _totalTransfersLabel = new Label
-        {
-            Text = "总传输: 0",
-            Location = new Point(20, 25),
-            Size = new Size(120, 20)
-        };
-
-        _successfulTransfersLabel = new Label
-        {
-            Text = "成功: 0",
-            Location = new Point(150, 25),
-            Size = new Size(100, 20)
-        };
-
-        _failedTransfersLabel = new Label
-        {
-            Text = "失败: 0",
-            Location = new Point(260, 25),
-            Size = new Size(100, 20)
-        };
-
-        _successRateLabel = new Label
-        {
-            Text = "成功率: 0%",
-            Location = new Point(370, 25),
-            Size = new Size(120, 20)
-        };
-
-        groupBox.Controls.AddRange(new Control[]
-        {
-            _totalTransfersLabel, _successfulTransfersLabel, _failedTransfersLabel, _successRateLabel
-        });
-
-        return groupBox;
-    }
-
-    /// <summary>
-    /// 创建传输日志数据网格
-    /// Create transfer log data grid
-    /// </summary>
-    private DataGridView CreateTransferLogGrid()
-    {
-        var grid = new DataGridView
-        {
-            Dock = DockStyle.Fill,
-            AutoGenerateColumns = false,
-            AllowUserToAddRows = false,
-            AllowUserToDeleteRows = false,
-            ReadOnly = true,
-            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-            MultiSelect = true
-        };
-
-        // 添加列
-        grid.Columns.AddRange(new DataGridViewColumn[]
-        {
-            new DataGridViewTextBoxColumn { Name = "Id", HeaderText = "ID", Width = 60, DataPropertyName = "Id" },
-            new DataGridViewTextBoxColumn { Name = "ChunkIndex", HeaderText = "分块索引", Width = 80, DataPropertyName = "ChunkIndex" },
-            new DataGridViewTextBoxColumn { Name = "ChunkSize", HeaderText = "分块大小", Width = 100, DataPropertyName = "ChunkSizeFormatted" },
-            new DataGridViewTextBoxColumn { Name = "Status", HeaderText = "状态", Width = 80, DataPropertyName = "Status" },
-            new DataGridViewTextBoxColumn { Name = "TransferTime", HeaderText = "传输时间", Width = 150, DataPropertyName = "TransferTime" },
-            new DataGridViewTextBoxColumn { Name = "ErrorMessage", HeaderText = "错误消息", Width = 300, DataPropertyName = "ErrorMessage" }
-        });
-
-        return grid;
+        
+        // 设置日期选择器默认值
+        _startDatePicker.Value = DateTime.Today.AddDays(-7);
+        _endDatePicker.Value = DateTime.Today.AddDays(1);
     }
 
     /// <summary>

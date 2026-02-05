@@ -477,13 +477,13 @@ public partial class FormMain : Form
     {
         try
         {
-            using var configListForm = new ConfigurationListForm(_serviceProvider);
-            configListForm.ShowDialog();
+            using var transferLogViewerForm = new TransferLogViewerForm(_serviceProvider);
+            transferLogViewerForm.ShowDialog();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "打开配置管理时发生错误");
-            MessageBox.Show($"打开配置管理时发生错误: {ex.Message}",
+            _logger.LogError(ex, "打开传输日记时发生错误");
+            MessageBox.Show($"打开传输日记时发生错误: {ex.Message}",
                 "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
