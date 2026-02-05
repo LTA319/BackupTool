@@ -35,6 +35,8 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
     <!-- Microsoft.Extensions.DependencyInjection: 提供依赖注入容器 -->
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+    <!-- System.Configuration.ConfigurationManager: 提供App.config文件读取支持 -->
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.0" />
   </ItemGroup>
 
 </Project>
