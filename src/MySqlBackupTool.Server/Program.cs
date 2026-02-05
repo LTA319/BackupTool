@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MySqlBackupTool.Shared.DependencyInjection;
+using MySqlBackupTool.Server.Configuration;
 
 namespace MySqlBackupTool.Server;
 
@@ -26,22 +27,43 @@ internal class Program
 
         // 创建主机构建器用于依赖注入和服务配置
         var hostBuilder = Host.CreateDefaultBuilder(args)
+            .ConfigureAppConfiguration((context, config) =>
+            {
+                // 清除默认配置源
+                config.Sources.Clear();
+                
+                // 添加App.config配置源
+                config.Add(new AppConfigConfigurationSource());
+                
+                // 添加环境变量支持
+                config.AddEnvironmentVariables();
+                
+                // 添加命令行参数支持
+                if (args != null)
+                {
+                    config.AddCommandLine(args);
+                }
+            })
             .ConfigureServices((context, services) =>
             {
                 // 添加共享服务
-                // 创建默认数据库连接字符串，使用服务器端数据库文件
-                var connectionString = ServiceCollectionExtensions.CreateDefaultConnectionString("server_backup_tool.db");
+                // 从App.config读取数据库连接字符串
+                var connectionString = AppConfigHelper.GetConnectionString("DefaultConnection", 
+                    ServiceCollectionExtensions.CreateDefaultConnectionString("server_backup_tool.db"));
 
-                var configuration = new ConfigurationBuilder().Build();
-                services.AddSharedServices(connectionString, configuration);
+                services.AddSharedServices(connectionString, context.Configuration);
                 
                 // 添加服务器特定的服务
-                // 注册服务器服务，不再使用硬编码的存储路径，而是使用客户端配置中的TargetDirectory
-                // 第二个参数false表示不启用SSL（可根据需要调整）
-                services.AddServerServices(baseStoragePath: null, useSecureReceiver: false);
+                // 从配置读取SSL设置
+                var useSecureReceiver = AppConfigHelper.GetBoolValue("ServerConfig.EnableSsl", false);
+                var baseStoragePath = AppConfigHelper.GetConfigValue("StorageConfig.PrimaryStoragePath");
                 
-                // 添加保留策略后台服务，每24小时运行一次清理过期备份
-                services.AddRetentionPolicyBackgroundService(TimeSpan.FromHours(24));
+                services.AddServerServices(baseStoragePath: string.IsNullOrEmpty(baseStoragePath) ? null : baseStoragePath, 
+                                         useSecureReceiver: useSecureReceiver);
+                
+                // 添加保留策略后台服务
+                var cleanupInterval = AppConfigHelper.GetTimeSpanValue("StorageConfig.CleanupInterval", TimeSpan.FromHours(24));
+                services.AddRetentionPolicyBackgroundService(cleanupInterval);
                 
                 // 添加文件接收服务作为托管服务
                 services.AddHostedService<FileReceiverService>();
