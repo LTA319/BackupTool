@@ -238,6 +238,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
     }
 
     /// <summary>
+    /// 使用重试逻辑执行文件传输
     /// Performs file transfer with retry logic
     /// </summary>
     private async Task<TransferResult> TransferWithRetryAsync(string filePath, TransferRequest request, TransferConfig config, CancellationToken cancellationToken)
@@ -291,6 +292,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
     }
 
     /// <summary>
+    /// 执行实际的安全文件传输
     /// Performs the actual secure file transfer
     /// </summary>
     private async Task<TransferResult> PerformSecureTransferAsync(string filePath, TransferRequest request, TransferConfig config, CancellationToken cancellationToken)
@@ -383,6 +385,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
     }
 
     /// <summary>
+    /// 为安全通信创建SSL流
     /// Creates an SSL stream for secure communication
     /// </summary>
     private async Task<SslStream> CreateSslStreamAsync(TcpClient tcpClient, ServerEndpoint endpoint, CancellationToken cancellationToken)
@@ -433,6 +436,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
     }
 
     /// <summary>
+    /// 验证服务器证书
     /// Validates the server certificate
     /// </summary>
     private bool ValidateServerCertificate(object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors)
@@ -442,6 +446,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
     }
 
     /// <summary>
+    /// 使用端点特定配置验证服务器证书
     /// Validates the server certificate with endpoint-specific configuration
     /// </summary>
     private bool ValidateServerCertificate(object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors, ServerEndpoint endpoint)
@@ -482,6 +487,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
         return false;
     }
     /// <summary>
+    /// 向服务器发送传输请求头
     /// Sends the transfer request header to the server
     /// </summary>
     private async Task SendTransferRequestAsync(Stream stream, TransferRequest request, CancellationToken cancellationToken)
@@ -499,6 +505,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
     }
 
     /// <summary>
+    /// 接收来自服务器的确认
     /// Receives acknowledgment from server
     /// </summary>
     private async Task<TransferResponse> ReceiveAcknowledgmentAsync(Stream stream, CancellationToken cancellationToken)
@@ -518,6 +525,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
     }
 
     /// <summary>
+    /// 向服务器发送文件数据
     /// Sends file data to the server
     /// </summary>
     private async Task<long> SendFileDataAsync(Stream stream, string filePath, TransferRequest request, HashSet<int> completedChunks, CancellationToken cancellationToken)
@@ -541,6 +549,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
     }
 
     /// <summary>
+    /// 直接发送文件数据而不分块
     /// Sends file data directly without chunking
     /// </summary>
     private async Task<long> SendFileDataDirectAsync(Stream stream, string filePath, TransferRequest request, CancellationToken cancellationToken)
@@ -579,6 +588,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
     }
 
     /// <summary>
+    /// 使用分块策略发送文件数据
     /// Sends file data using chunking strategy
     /// </summary>
     private async Task<long> SendFileDataChunkedAsync(Stream stream, string filePath, TransferRequest request, HashSet<int> completedChunks, CancellationToken cancellationToken)
@@ -649,6 +659,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
     }
 
     /// <summary>
+    /// 向服务器发送单个分块
     /// Sends a single chunk to the server
     /// </summary>
     private async Task SendChunkAsync(Stream stream, ChunkData chunk, CancellationToken cancellationToken)
@@ -671,6 +682,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
     }
 
     /// <summary>
+    /// 接收来自服务器的分块确认
     /// Receives acknowledgment for a chunk from server
     /// </summary>
     private async Task<ChunkResult> ReceiveChunkAcknowledgmentAsync(Stream stream, CancellationToken cancellationToken)
@@ -689,6 +701,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
     }
 
     /// <summary>
+    /// 接收来自服务器的最终确认
     /// Receives final confirmation from server
     /// </summary>
     private async Task<TransferResponse> ReceiveFinalConfirmationAsync(Stream stream, CancellationToken cancellationToken)
@@ -708,6 +721,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
     }
 
     /// <summary>
+    /// 从流中精确读取指定字节数
     /// Reads exactly the specified number of bytes from the stream
     /// </summary>
     private async Task ReadExactlyAsync(Stream stream, byte[] buffer, int count, CancellationToken cancellationToken)
@@ -762,6 +776,7 @@ public class SecureFileTransferClient : IFileTransferClient, IFileTransferServic
     }
 
     /// <summary>
+    /// 创建包括校验和和源配置的文件元数据
     /// Creates file metadata including checksums and source configuration
     /// </summary>
     private async Task<FileMetadata> CreateFileMetadataAsync(string filePath, string targetFileName, TransferConfig config)

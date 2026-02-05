@@ -649,6 +649,7 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
     }
 
     /// <summary>
+    /// 直接接收文件数据而不分块
     /// Receives file data directly without chunking
     /// </summary>
     private async Task<long> ReceiveFileDirectAsync(Stream stream, string targetPath, long expectedSize, CancellationToken cancellationToken)
@@ -687,6 +688,7 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
     }
 
     /// <summary>
+    /// 使用分块协议接收文件数据
     /// Receives file data using chunking protocol
     /// </summary>
     private async Task<long> ReceiveFileChunkedAsync(Stream stream, string transferId, TransferRequest request, CancellationToken cancellationToken)
@@ -742,6 +744,7 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
     }
 
     /// <summary>
+    /// 从客户端接收单个分块
     /// Receives a single chunk from the client
     /// </summary>
     private async Task<ChunkData?> ReceiveChunkAsync(Stream stream, CancellationToken cancellationToken)
@@ -788,6 +791,7 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
     }
 
     /// <summary>
+    /// 向客户端发送传输响应
     /// Sends a transfer response to the client
     /// </summary>
     private async Task SendTransferResponseAsync(Stream stream, bool success, string? message, CancellationToken cancellationToken)
@@ -796,6 +800,7 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
     }
 
     /// <summary>
+    /// 向客户端发送带有可选恢复信息的传输响应
     /// Sends a transfer response to the client with optional resume information
     /// </summary>
     private async Task SendTransferResponseAsync(Stream stream, bool success, string? message, string? resumeInfo, CancellationToken cancellationToken)
@@ -824,6 +829,7 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
     }
 
     /// <summary>
+    /// 向客户端发送分块响应
     /// Sends a chunk response to the client
     /// </summary>
     private async Task SendChunkResponseAsync(Stream stream, bool success, string? message, int chunkIndex, CancellationToken cancellationToken)
@@ -852,6 +858,7 @@ public class SecureFileReceiver : IFileReceiver, IDisposable
     }
 
     /// <summary>
+    /// 向客户端发送响应
     /// Sends a response back to the client
     /// </summary>
     private async Task SendResponseAsync(Stream stream, ReceiveResult result, CancellationToken cancellationToken)

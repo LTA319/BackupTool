@@ -291,6 +291,7 @@ public class StorageManager : IStorageManager
     }
 
     /// <summary>
+    /// 获取存储目录中的所有备份文件
     /// Gets all backup files in the storage directory
     /// </summary>
     private List<System.IO.FileInfo> GetAllBackupFiles()
@@ -299,6 +300,7 @@ public class StorageManager : IStorageManager
     }
 
     /// <summary>
+    /// 获取指定目录中的所有备份文件
     /// Gets all backup files in a specific directory
     /// </summary>
     private List<System.IO.FileInfo> GetBackupFilesInDirectory(string directory)
@@ -324,6 +326,7 @@ public class StorageManager : IStorageManager
     }
 
     /// <summary>
+    /// 通过添加后缀确保文件路径唯一
     /// Ensures the file path is unique by adding a suffix if necessary
     /// </summary>
     private async Task<string> EnsureUniqueFilePathAsync(string originalPath)
@@ -357,6 +360,7 @@ public class StorageManager : IStorageManager
     }
 
     /// <summary>
+    /// 递归清理空目录
     /// Recursively cleans up empty directories
     /// </summary>
     private async Task CleanupEmptyDirectoriesAsync(string rootPath)

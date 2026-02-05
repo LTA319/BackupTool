@@ -297,6 +297,8 @@ public class SecureCredentialStorage : ICredentialStorage, ISecureCredentialStor
     }
 
     /// <summary>
+    /// 确保数据库中存在默认客户端凭据
+    /// 如果不存在则创建默认凭据，保留现有凭据
     /// Ensures that default client credentials exist in the database
     /// Creates default credentials if they don't exist, preserves existing ones
     /// </summary>
@@ -347,6 +349,7 @@ public class SecureCredentialStorage : ICredentialStorage, ISecureCredentialStor
     }
 
     /// <summary>
+    /// 检索默认客户端凭据
     /// Retrieves the default client credentials
     /// </summary>
     /// <returns>Default client credentials or null if not found</returns>

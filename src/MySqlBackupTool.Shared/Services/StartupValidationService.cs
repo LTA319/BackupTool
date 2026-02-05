@@ -285,6 +285,7 @@ public class StartupValidationService
     }
 
     /// <summary>
+    /// 使用增强的错误处理和依赖链分析验证特定服务类型
     /// Validates a specific service type with enhanced error handling and dependency chain analysis
     /// </summary>
     private async Task ValidateServiceAsync<T>(
@@ -324,6 +325,7 @@ public class StartupValidationService
     }
 
     /// <summary>
+    /// 分析依赖解析错误以提供有关缺失依赖项的详细信息
     /// Analyzes dependency resolution errors to provide detailed information about missing dependencies
     /// </summary>
     private string AnalyzeDependencyResolutionError<T>(InvalidOperationException ex) where T : class
@@ -363,6 +365,7 @@ public class StartupValidationService
     }
 
     /// <summary>
+    /// 从异常详细信息中提取依赖链信息
     /// Extracts dependency chain information from exception details
     /// </summary>
     private List<string> ExtractDependencyChainFromException(Exception ex)
@@ -405,6 +408,7 @@ public class StartupValidationService
     }
 
     /// <summary>
+    /// 分析服务类型的构造函数依赖项
     /// Analyzes constructor dependencies for a service type
     /// </summary>
     private string AnalyzeConstructorDependencies(Type serviceType)
@@ -435,6 +439,7 @@ public class StartupValidationService
     }
 
     /// <summary>
+    /// 为解决依赖问题提供特定于服务的指导
     /// Provides service-specific guidance for resolving dependency issues
     /// </summary>
     private string GetServiceSpecificGuidance<T>(string errorMessage) where T : class
@@ -486,41 +491,49 @@ public class StartupValidationService
 }
 
 /// <summary>
+/// 启动服务验证的结果
 /// Result of startup service validation
 /// </summary>
 public class StartupValidationResult
 {
     /// <summary>
+    /// 是否所有服务都通过了验证
     /// Whether all services passed validation
     /// </summary>
     public bool IsValid { get; set; }
 
     /// <summary>
+    /// 成功验证的服务
     /// Services that were successfully validated
     /// </summary>
     public Dictionary<string, string> ValidatedServices { get; set; } = new();
 
     /// <summary>
+    /// 验证失败的服务及其错误消息
     /// Services that failed validation with error messages
     /// </summary>
     public Dictionary<string, string> FailedServices { get; set; } = new();
 
     /// <summary>
+    /// 完成验证所用的时间
     /// Time taken to complete validation
     /// </summary>
     public TimeSpan ValidationDuration { get; set; }
 
     /// <summary>
+    /// 验证期间发生的异常（如果有）
     /// Exception that occurred during validation (if any)
     /// </summary>
     public Exception? ValidationException { get; set; }
 
     /// <summary>
+    /// 检查的服务总数
     /// Total number of services checked
     /// </summary>
     public int TotalServicesChecked => ValidatedServices.Count + FailedServices.Count;
 
     /// <summary>
+    /// 成功率百分比
     /// Success rate as a percentage
     /// </summary>
     public double SuccessRate => TotalServicesChecked > 0 
