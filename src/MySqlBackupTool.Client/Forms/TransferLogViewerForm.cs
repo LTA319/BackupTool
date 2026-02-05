@@ -36,7 +36,25 @@ public partial class TransferLogViewerForm : Form
         _serviceProvider = serviceProvider;
         _transferLogService = serviceProvider.GetRequiredService<ITransferLogService>();
         _logger = serviceProvider.GetRequiredService<ILogger<TransferLogViewerForm>>();
-        
+        // 检查当前线程的STA状态（用于COM组件），但不尝试更改
+        try
+        {
+            var apartmentState = Thread.CurrentThread.GetApartmentState();
+            if (apartmentState != ApartmentState.STA)
+            {
+                _logger.LogWarning("Thread is in {ApartmentState} mode, not STA. File dialogs may have compatibility issues.", apartmentState);
+                // 不尝试更改线程状态，因为这在运行时通常会失败
+                // 文件对话框仍然可能工作，如果不工作会自动回退到备选方案
+            }
+            else
+            {
+                _logger.LogInformation("Thread is in STA mode, file dialogs should work properly.");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not check thread apartment state");
+        }
         InitializeComponent();
         InitializeEventHandlers();
         InitializeFormSettings();
@@ -177,33 +195,197 @@ public partial class TransferLogViewerForm : Form
     {
         try
         {
-            using var saveDialog = new SaveFileDialog
+            var selectedRows = _transferLogGrid.SelectedRows.Cast<DataGridViewRow>().ToList();
+            
+            // 如果没有选择行，提示用户
+            if (!selectedRows.Any())
             {
-                Filter = "CSV文件|*.csv|JSON文件|*.json",
-                DefaultExt = "csv",
-                FileName = $"transfer_logs_backup_{_currentBackupLogId}_{DateTime.Now:yyyyMMdd_HHmmss}"
-            };
+                MessageBox.Show("请选择要导出的传输记录", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
 
-            if (saveDialog.ShowDialog() == DialogResult.OK)
+            // 询问用户导出格式
+            var formatResult = MessageBox.Show("选择导出格式:\n\n是 = CSV格式\n否 = JSON格式", 
+                "选择导出格式", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+            
+            if (formatResult == DialogResult.Cancel)
             {
-                ShowProgress("正在导出传输日志...");
+                return;
+            }
 
-                var format = Path.GetExtension(saveDialog.FileName).ToLowerInvariant() == ".json" ? "JSON" : "CSV";
-                var exportData = await _transferLogService.ExportTransferLogsAsync(_currentBackupLogId, format);
+            var format = formatResult == DialogResult.Yes ? "CSV" : "JSON";
+            var extension = format.ToLowerInvariant();
 
-                await File.WriteAllBytesAsync(saveDialog.FileName, exportData);
+            // 选择保存位置
+            var selectedPath = ShowFolderDialogSafe();
+            if (selectedPath == null)
+            {
+                return; // 用户取消了选择
+            }
 
-                HideProgress();
-                MessageBox.Show($"传输日志已成功导出到: {saveDialog.FileName}", "导出成功", 
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+            ShowProgress("正在导出选中的传输日志...");
+
+            // 获取选中行的传输日志ID
+            var selectedTransferLogIds = new List<int>();
+            foreach (DataGridViewRow row in selectedRows)
+            {
+                if (row.DataBoundItem != null)
+                {
+                    // 从绑定的数据对象中获取ID
+                    var dataItem = row.DataBoundItem;
+                    var idProperty = dataItem.GetType().GetProperty("Id");
+                    if (idProperty != null)
+                    {
+                        var id = (int)idProperty.GetValue(dataItem)!;
+                        selectedTransferLogIds.Add(id);
+                    }
+                }
+            }
+            
+            // 从服务获取完整的传输日志数据
+            var allTransferLogs = await _transferLogService.GetAllTransferLogsAsync();
+            var selectedTransferLogs = allTransferLogs.Where(tl => selectedTransferLogIds.Contains(tl.Id)).ToList();
+
+            var exportData = ExportSelectedTransferLogs(selectedTransferLogs, format);
+
+            // 构建完整的文件路径
+            var fileName = $"selected_transfer_logs_{DateTime.Now:yyyyMMdd_HHmmss}.{extension}";
+            var filePath = Path.Combine(selectedPath, fileName);
+
+            // 确保目录存在
+            Directory.CreateDirectory(selectedPath);
+
+            await File.WriteAllBytesAsync(filePath, exportData);
+
+            HideProgress();
+            
+            // 询问是否打开文件位置
+            var openResult = MessageBox.Show($"已成功导出 {selectedTransferLogs.Count} 条传输日志到:\n{filePath}\n\n是否打开文件位置？", 
+                "导出成功", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+            
+            if (openResult == DialogResult.Yes)
+            {
+                try
+                {
+                    System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{filePath}\"");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to open file location");
+                    MessageBox.Show($"无法打开文件位置: {ex.Message}", "警告", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
             }
         }
         catch (Exception ex)
         {
             HideProgress();
-            _logger.LogError(ex, "Failed to export transfer logs for backup {BackupLogId}", _currentBackupLogId);
+            _logger.LogError(ex, "Failed to export selected transfer logs");
             MessageBox.Show($"导出传输日志失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
+    }
+
+    /// <summary>
+    /// 安全地显示文件夹选择对话框
+    /// Show folder dialog safely
+    /// </summary>
+    private string? ShowFolderDialogSafe()
+    {
+        // 确保在UI线程上执行
+        if (InvokeRequired)
+        {
+            return Invoke(new Func<string?>(() => ShowFolderDialogSafe()));
+        }
+
+        // 检查当前线程的单元状态，但不尝试更改
+        var apartmentState = Thread.CurrentThread.GetApartmentState();
+        if (apartmentState != ApartmentState.STA)
+        {
+            _logger.LogWarning("Current thread is in {ApartmentState} mode, not STA. File dialogs may have issues.", apartmentState);
+        }
+
+        try
+        {
+            // 如果当前线程不是STA，尝试在STA线程中运行对话框
+            if (Thread.CurrentThread.GetApartmentState() != ApartmentState.STA)
+            {
+                _logger.LogInformation("Running folder dialog in STA thread");
+                return RunDialogInSTAThread(() => ShowOpenFileDialog());
+            }
+            else
+            {
+                return ShowOpenFileDialog();
+            }
+        }
+        catch (ThreadStateException ex)
+        {
+            _logger.LogError(ex, "STA thread state exception in folder dialog, using desktop as fallback");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Folder dialog failed, using desktop as fallback");
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// 在STA线程中运行对话框
+    /// Run dialog in STA thread
+    /// </summary>
+    private string? RunDialogInSTAThread(Func<string?> dialogAction)
+    {
+        string? result = null;
+        Exception? exception = null;
+
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                result = dialogAction();
+            }
+            catch (Exception ex)
+            {
+                exception = ex;
+            }
+        });
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+
+        if (exception != null)
+        {
+            throw exception;
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// 显示文件选择对话框来选择文件夹
+    /// Show file dialog to select folder
+    /// </summary>
+    private string? ShowOpenFileDialog()
+    {
+        using var openDialog = new OpenFileDialog();
+        openDialog.Filter = "All files (*.*)|*.*";
+        openDialog.FileName = "选择此文件夹中的任意文件";
+        openDialog.CheckFileExists = false;
+        openDialog.CheckPathExists = true;
+        openDialog.Multiselect = false;
+        openDialog.Title = "选择导出文件夹";
+
+        var result = openDialog.ShowDialog(this);
+        if (result == DialogResult.OK)
+        {
+            var selectedDir = Path.GetDirectoryName(openDialog.FileName);
+            if (!string.IsNullOrEmpty(selectedDir))
+            {
+                _logger.LogInformation("Folder selected: {Path}", selectedDir);
+                return selectedDir;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -221,7 +403,21 @@ public partial class TransferLogViewerForm : Form
                 return;
             }
 
-            var transferLogIds = selectedRows.Select(row => (int)row.Cells["Id"].Value).ToList();
+            var transferLogIds = new List<int>();
+            foreach (DataGridViewRow row in selectedRows)
+            {
+                if (row.DataBoundItem != null)
+                {
+                    // 从绑定的数据对象中获取ID
+                    var dataItem = row.DataBoundItem;
+                    var idProperty = dataItem.GetType().GetProperty("Id");
+                    if (idProperty != null)
+                    {
+                        var id = (int)idProperty.GetValue(dataItem)!;
+                        transferLogIds.Add(id);
+                    }
+                }
+            }
             
             ShowProgress("正在重置失败的传输...");
 
@@ -279,5 +475,58 @@ public partial class TransferLogViewerForm : Form
             len = len / 1024;
         }
         return $"{len:0.##} {sizes[order]}";
+    }
+
+    /// <summary>
+    /// 导出选中的传输日志
+    /// Export selected transfer logs
+    /// </summary>
+    private byte[] ExportSelectedTransferLogs(IEnumerable<TransferLog> transferLogs, string format)
+    {
+        switch (format.ToUpperInvariant())
+        {
+            case "CSV":
+                return ExportToCsv(transferLogs);
+            case "JSON":
+                return ExportToJson(transferLogs);
+            default:
+                throw new ArgumentException($"不支持的导出格式: {format}");
+        }
+    }
+
+    /// <summary>
+    /// 导出为CSV格式
+    /// Export to CSV format
+    /// </summary>
+    private byte[] ExportToCsv(IEnumerable<TransferLog> transferLogs)
+    {
+        var csv = new System.Text.StringBuilder();
+        csv.AppendLine("ID,备份日志ID,分块索引,分块大小,传输时间,状态,错误消息");
+
+        foreach (var log in transferLogs)
+        {
+            csv.AppendLine($"{log.Id},{log.BackupLogId},{log.ChunkIndex},{log.ChunkSize}," +
+                          $"{log.TransferTime:yyyy-MM-dd HH:mm:ss},{log.Status}," +
+                          $"\"{log.ErrorMessage?.Replace("\"", "\"\"")}\"");
+        }
+
+        return System.Text.Encoding.UTF8.GetBytes(csv.ToString());
+    }
+
+    /// <summary>
+    /// 导出为JSON格式
+    /// Export to JSON format
+    /// </summary>
+    private byte[] ExportToJson(IEnumerable<TransferLog> transferLogs)
+    {
+        var options = new System.Text.Json.JsonSerializerOptions
+        {
+            WriteIndented = true,
+            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        };
+
+        var json = System.Text.Json.JsonSerializer.Serialize(transferLogs, options);
+        return System.Text.Encoding.UTF8.GetBytes(json);
     }
 }
