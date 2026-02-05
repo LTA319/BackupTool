@@ -427,7 +427,7 @@ public class BackupOrchestrator : IBackupOrchestrator
             var duration = completedAt - startTime;
 
             // 记录成功完成
-            await _backupLogService.CompleteBackupAsync(backupLog.Id, BackupStatus.Completed, targetFileName, fileInfo.Length);
+            await _backupLogService.CompleteBackupAsync(backupLog.Id, BackupStatus.Completed, transferConfig.TargetDirectory +"\\"+ targetFileName, fileInfo.Length);
 
             _logger.LogInformation("Backup operation {OperationId} completed successfully in {Duration}", 
                 operationId, duration);
