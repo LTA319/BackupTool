@@ -6,6 +6,7 @@ using MySqlBackupTool.Shared.Models;
 namespace MySqlBackupTool.Shared.Data.Repositories;
 
 /// <summary>
+/// 管理恢复令牌的存储库
 /// Repository for managing resume tokens
 /// </summary>
 public class ResumeTokenRepository : Repository<ResumeToken>, IResumeTokenRepository
@@ -19,6 +20,7 @@ public class ResumeTokenRepository : Repository<ResumeToken>, IResumeTokenReposi
     }
 
     /// <summary>
+    /// 根据令牌值获取恢复令牌
     /// Gets a resume token by its token value
     /// </summary>
     public async Task<ResumeToken?> GetByTokenAsync(string token)
@@ -38,6 +40,7 @@ public class ResumeTokenRepository : Repository<ResumeToken>, IResumeTokenReposi
     }
 
     /// <summary>
+    /// 根据传输ID获取恢复令牌
     /// Gets a resume token by transfer ID
     /// </summary>
     public async Task<ResumeToken?> GetByTransferIdAsync(string transferId)
@@ -57,6 +60,7 @@ public class ResumeTokenRepository : Repository<ResumeToken>, IResumeTokenReposi
     }
 
     /// <summary>
+    /// 获取所有活跃（未完成）的恢复令牌
     /// Gets all active (incomplete) resume tokens
     /// </summary>
     public async Task<List<ResumeToken>> GetActiveTokensAsync()
@@ -77,6 +81,7 @@ public class ResumeTokenRepository : Repository<ResumeToken>, IResumeTokenReposi
     }
 
     /// <summary>
+    /// 获取超过指定时间的过期恢复令牌
     /// Gets resume tokens older than the specified age
     /// </summary>
     public async Task<List<ResumeToken>> GetExpiredTokensAsync(TimeSpan maxAge)
@@ -97,6 +102,7 @@ public class ResumeTokenRepository : Repository<ResumeToken>, IResumeTokenReposi
     }
 
     /// <summary>
+    /// 将恢复令牌标记为已完成
     /// Marks a resume token as completed
     /// </summary>
     public async Task MarkCompletedAsync(string token)
@@ -123,6 +129,7 @@ public class ResumeTokenRepository : Repository<ResumeToken>, IResumeTokenReposi
     }
 
     /// <summary>
+    /// 更新恢复令牌的最后活动时间
     /// Updates the last activity time for a resume token
     /// </summary>
     public async Task UpdateLastActivityAsync(string token)
@@ -146,6 +153,7 @@ public class ResumeTokenRepository : Repository<ResumeToken>, IResumeTokenReposi
     }
 
     /// <summary>
+    /// 向恢复令牌添加已完成的分块
     /// Adds a completed chunk to a resume token
     /// </summary>
     public async Task AddCompletedChunkAsync(string token, int chunkIndex, long chunkSize, string? chunkChecksum = null)
@@ -191,6 +199,7 @@ public class ResumeTokenRepository : Repository<ResumeToken>, IResumeTokenReposi
     }
 
     /// <summary>
+    /// 获取恢复令牌的已完成分块
     /// Gets completed chunks for a resume token
     /// </summary>
     public async Task<List<int>> GetCompletedChunksAsync(string token)
@@ -214,6 +223,7 @@ public class ResumeTokenRepository : Repository<ResumeToken>, IResumeTokenReposi
     }
 
     /// <summary>
+    /// 清理已完成的恢复令牌及其关联数据
     /// Cleans up completed resume tokens and their associated data
     /// </summary>
     public async Task<int> CleanupCompletedTokensAsync(TimeSpan maxAge)

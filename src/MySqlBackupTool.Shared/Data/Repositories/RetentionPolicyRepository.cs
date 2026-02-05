@@ -5,6 +5,7 @@ using MySqlBackupTool.Shared.Models;
 namespace MySqlBackupTool.Shared.Data.Repositories;
 
 /// <summary>
+/// 保留策略实体的存储库实现
 /// Repository implementation for RetentionPolicy entities
 /// </summary>
 public class RetentionPolicyRepository : Repository<RetentionPolicy>, IRetentionPolicyRepository
@@ -13,6 +14,10 @@ public class RetentionPolicyRepository : Repository<RetentionPolicy>, IRetention
     {
     }
 
+    /// <summary>
+    /// 获取所有启用的保留策略
+    /// Gets all enabled retention policies
+    /// </summary>
     public async Task<IEnumerable<RetentionPolicy>> GetEnabledPoliciesAsync()
     {
         return await _dbSet
@@ -21,6 +26,10 @@ public class RetentionPolicyRepository : Repository<RetentionPolicy>, IRetention
             .ToListAsync();
     }
 
+    /// <summary>
+    /// 获取默认保留策略
+    /// Gets the default retention policy
+    /// </summary>
     public async Task<RetentionPolicy?> GetDefaultPolicyAsync()
     {
         // For now, return the first enabled policy
@@ -31,6 +40,10 @@ public class RetentionPolicyRepository : Repository<RetentionPolicy>, IRetention
             .FirstOrDefaultAsync();
     }
 
+    /// <summary>
+    /// 设置为默认策略
+    /// Sets a policy as default
+    /// </summary>
     public async Task<bool> SetAsDefaultAsync(int id)
     {
         var policy = await GetByIdAsync(id);
@@ -48,6 +61,10 @@ public class RetentionPolicyRepository : Repository<RetentionPolicy>, IRetention
         return true;
     }
 
+    /// <summary>
+    /// 根据名称获取保留策略
+    /// Gets a retention policy by name
+    /// </summary>
     public async Task<RetentionPolicy?> GetByNameAsync(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -56,6 +73,10 @@ public class RetentionPolicyRepository : Repository<RetentionPolicy>, IRetention
         return await _dbSet.FirstOrDefaultAsync(rp => rp.Name == name);
     }
 
+    /// <summary>
+    /// 检查名称是否唯一
+    /// Checks if a name is unique
+    /// </summary>
     public async Task<bool> IsNameUniqueAsync(string name, int excludeId = 0)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -64,6 +85,10 @@ public class RetentionPolicyRepository : Repository<RetentionPolicy>, IRetention
         return !await _dbSet.AnyAsync(rp => rp.Name == name && rp.Id != excludeId);
     }
 
+    /// <summary>
+    /// 启用策略
+    /// Enables a policy
+    /// </summary>
     public async Task<bool> EnablePolicyAsync(int id)
     {
         var policy = await GetByIdAsync(id);
@@ -76,6 +101,10 @@ public class RetentionPolicyRepository : Repository<RetentionPolicy>, IRetention
         return true;
     }
 
+    /// <summary>
+    /// 禁用策略
+    /// Disables a policy
+    /// </summary>
     public async Task<bool> DisablePolicyAsync(int id)
     {
         var policy = await GetByIdAsync(id);
@@ -88,6 +117,10 @@ public class RetentionPolicyRepository : Repository<RetentionPolicy>, IRetention
         return true;
     }
 
+    /// <summary>
+    /// 应用保留策略
+    /// Applies retention policies
+    /// </summary>
     public async Task<RetentionResult> ApplyRetentionPoliciesAsync()
     {
         var result = new RetentionResult();

@@ -5,6 +5,7 @@ using MySqlBackupTool.Shared.Models;
 namespace MySqlBackupTool.Shared.Data.Repositories;
 
 /// <summary>
+/// 备份日志实体的存储库实现
 /// Repository implementation for BackupLog entities
 /// </summary>
 public class BackupLogRepository : Repository<BackupLog>, IBackupLogRepository
@@ -13,6 +14,10 @@ public class BackupLogRepository : Repository<BackupLog>, IBackupLogRepository
     {
     }
 
+    /// <summary>
+    /// 根据配置ID获取备份日志
+    /// Gets backup logs by configuration ID
+    /// </summary>
     public async Task<IEnumerable<BackupLog>> GetByConfigurationIdAsync(int configurationId)
     {
         return await _dbSet
@@ -21,6 +26,10 @@ public class BackupLogRepository : Repository<BackupLog>, IBackupLogRepository
             .ToListAsync();
     }
 
+    /// <summary>
+    /// 根据日期范围获取备份日志
+    /// Gets backup logs by date range
+    /// </summary>
     public async Task<IEnumerable<BackupLog>> GetByDateRangeAsync(DateTime startDate, DateTime endDate)
     {
         return await _dbSet
@@ -29,6 +38,10 @@ public class BackupLogRepository : Repository<BackupLog>, IBackupLogRepository
             .ToListAsync();
     }
 
+    /// <summary>
+    /// 根据状态获取备份日志
+    /// Gets backup logs by status
+    /// </summary>
     public async Task<IEnumerable<BackupLog>> GetByStatusAsync(BackupStatus status)
     {
         return await _dbSet
@@ -37,6 +50,10 @@ public class BackupLogRepository : Repository<BackupLog>, IBackupLogRepository
             .ToListAsync();
     }
 
+    /// <summary>
+    /// 获取正在运行的备份
+    /// Gets running backups
+    /// </summary>
     public async Task<IEnumerable<BackupLog>> GetRunningBackupsAsync()
     {
         var runningStatuses = new[]
@@ -55,6 +72,10 @@ public class BackupLogRepository : Repository<BackupLog>, IBackupLogRepository
             .ToListAsync();
     }
 
+    /// <summary>
+    /// 获取失败的备份
+    /// Gets failed backups
+    /// </summary>
     public async Task<IEnumerable<BackupLog>> GetFailedBackupsAsync()
     {
         return await _dbSet
@@ -63,6 +84,10 @@ public class BackupLogRepository : Repository<BackupLog>, IBackupLogRepository
             .ToListAsync();
     }
 
+    /// <summary>
+    /// 获取包含传输日志的备份日志
+    /// Gets backup log with transfer logs
+    /// </summary>
     public async Task<BackupLog?> GetWithTransferLogsAsync(int id)
     {
         return await _dbSet
@@ -70,6 +95,10 @@ public class BackupLogRepository : Repository<BackupLog>, IBackupLogRepository
             .FirstOrDefaultAsync(bl => bl.Id == id);
     }
 
+    /// <summary>
+    /// 获取备份统计信息
+    /// Gets backup statistics
+    /// </summary>
     public async Task<BackupStatistics> GetStatisticsAsync(DateTime startDate, DateTime endDate)
     {
         var logs = await _dbSet
@@ -106,6 +135,10 @@ public class BackupLogRepository : Repository<BackupLog>, IBackupLogRepository
         };
     }
 
+    /// <summary>
+    /// 清理旧的日志记录
+    /// Cleans up old log records
+    /// </summary>
     public async Task<int> CleanupOldLogsAsync(int maxAgeDays, int? maxCount = null)
     {
         var cutoffDate = DateTime.Now.AddDays(-maxAgeDays);
@@ -135,6 +168,10 @@ public class BackupLogRepository : Repository<BackupLog>, IBackupLogRepository
         return deletedCount;
     }
 
+    /// <summary>
+    /// 获取最近的备份日志
+    /// Gets the most recent backup log
+    /// </summary>
     public async Task<BackupLog?> GetMostRecentAsync(int configurationId)
     {
         return await _dbSet
@@ -143,6 +180,10 @@ public class BackupLogRepository : Repository<BackupLog>, IBackupLogRepository
             .FirstOrDefaultAsync();
     }
 
+    /// <summary>
+    /// 更新备份状态
+    /// Updates backup status
+    /// </summary>
     public async Task<bool> UpdateStatusAsync(int id, BackupStatus status, string? errorMessage = null)
     {
         var log = await GetByIdAsync(id);
@@ -158,6 +199,10 @@ public class BackupLogRepository : Repository<BackupLog>, IBackupLogRepository
         return true;
     }
 
+    /// <summary>
+    /// 完成备份操作
+    /// Completes backup operation
+    /// </summary>
     public async Task<bool> CompleteBackupAsync(int id, BackupStatus finalStatus, string? filePath = null, long? fileSize = null, string? errorMessage = null)
     {
         var log = await GetByIdAsync(id);

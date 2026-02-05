@@ -92,103 +92,118 @@ public interface IAuthorizationService
 }
 
 /// <summary>
+/// 安全凭据存储接口
 /// Interface for secure credential storage
 /// </summary>
 public interface ICredentialStorage
 {
     /// <summary>
+    /// 安全存储客户端凭据
     /// Stores client credentials securely
     /// </summary>
-    /// <param name="credentials">Client credentials to store</param>
-    /// <returns>True if stored successfully, false otherwise</returns>
+    /// <param name="credentials">要存储的客户端凭据 / Client credentials to store</param>
+    /// <returns>如果存储成功返回true，否则返回false / True if stored successfully, false otherwise</returns>
     Task<bool> StoreCredentialsAsync(ClientCredentials credentials);
 
     /// <summary>
+    /// 根据客户端ID检索客户端凭据
     /// Retrieves client credentials by client ID
     /// </summary>
-    /// <param name="clientId">Client identifier</param>
-    /// <returns>Client credentials or null if not found</returns>
+    /// <param name="clientId">客户端标识符 / Client identifier</param>
+    /// <returns>客户端凭据，如果未找到则返回null / Client credentials or null if not found</returns>
     Task<ClientCredentials?> GetCredentialsAsync(string clientId);
 
     /// <summary>
+    /// 更新客户端凭据
     /// Updates client credentials
     /// </summary>
-    /// <param name="credentials">Updated credentials</param>
-    /// <returns>True if updated successfully, false otherwise</returns>
+    /// <param name="credentials">更新的凭据 / Updated credentials</param>
+    /// <returns>如果更新成功返回true，否则返回false / True if updated successfully, false otherwise</returns>
     Task<bool> UpdateCredentialsAsync(ClientCredentials credentials);
 
     /// <summary>
+    /// 删除客户端凭据
     /// Deletes client credentials
     /// </summary>
-    /// <param name="clientId">Client identifier</param>
-    /// <returns>True if deleted successfully, false if not found</returns>
+    /// <param name="clientId">客户端标识符 / Client identifier</param>
+    /// <returns>如果删除成功返回true，如果未找到返回false / True if deleted successfully, false if not found</returns>
     Task<bool> DeleteCredentialsAsync(string clientId);
 
     /// <summary>
+    /// 列出所有客户端ID
     /// Lists all client IDs
     /// </summary>
-    /// <returns>List of client identifiers</returns>
+    /// <returns>客户端标识符列表 / List of client identifiers</returns>
     Task<List<string>> ListClientIdsAsync();
 
     /// <summary>
+    /// 验证凭据存储的完整性
     /// Validates the integrity of the credential storage
     /// </summary>
-    /// <returns>True if storage is valid, false if corrupted</returns>
+    /// <returns>如果存储有效返回true，如果损坏返回false / True if storage is valid, false if corrupted</returns>
     Task<bool> ValidateStorageIntegrityAsync();
 }
 
 /// <summary>
+/// 身份验证令牌管理接口
 /// Interface for authentication token management
 /// </summary>
 public interface ITokenManager
 {
     /// <summary>
+    /// 生成新的身份验证令牌
     /// Generates a new authentication token
     /// </summary>
-    /// <param name="clientId">Client identifier</param>
-    /// <param name="permissions">Client permissions</param>
-    /// <param name="expirationHours">Token expiration in hours (default: 24)</param>
-    /// <returns>Generated authentication token</returns>
+    /// <param name="clientId">客户端标识符 / Client identifier</param>
+    /// <param name="permissions">客户端权限 / Client permissions</param>
+    /// <param name="expirationHours">令牌过期时间（小时，默认：24） / Token expiration in hours (default: 24)</param>
+    /// <returns>生成的身份验证令牌 / Generated authentication token</returns>
     Task<AuthenticationToken> GenerateTokenAsync(string clientId, List<string> permissions, int expirationHours = 24);
 
     /// <summary>
+    /// 验证并检索令牌
     /// Validates and retrieves a token
     /// </summary>
-    /// <param name="tokenId">Token identifier</param>
-    /// <returns>Authentication token or null if invalid</returns>
+    /// <param name="tokenId">令牌标识符 / Token identifier</param>
+    /// <returns>身份验证令牌，如果无效则返回null / Authentication token or null if invalid</returns>
     Task<AuthenticationToken?> GetTokenAsync(string tokenId);
 
     /// <summary>
+    /// 更新令牌最后使用时间戳
     /// Updates token last used timestamp
     /// </summary>
-    /// <param name="tokenId">Token identifier</param>
-    /// <returns>True if updated successfully</returns>
+    /// <param name="tokenId">令牌标识符 / Token identifier</param>
+    /// <returns>如果更新成功返回true / True if updated successfully</returns>
     Task<bool> UpdateTokenUsageAsync(string tokenId);
 
     /// <summary>
+    /// 撤销令牌
     /// Revokes a token
     /// </summary>
-    /// <param name="tokenId">Token identifier</param>
-    /// <returns>True if revoked successfully</returns>
+    /// <param name="tokenId">令牌标识符 / Token identifier</param>
+    /// <returns>如果撤销成功返回true / True if revoked successfully</returns>
     Task<bool> RevokeTokenAsync(string tokenId);
 
     /// <summary>
+    /// 撤销客户端的所有令牌
     /// Revokes all tokens for a client
     /// </summary>
-    /// <param name="clientId">Client identifier</param>
-    /// <returns>Number of tokens revoked</returns>
+    /// <param name="clientId">客户端标识符 / Client identifier</param>
+    /// <returns>撤销的令牌数量 / Number of tokens revoked</returns>
     Task<int> RevokeClientTokensAsync(string clientId);
 
     /// <summary>
+    /// 清理过期的令牌
     /// Cleans up expired tokens
     /// </summary>
-    /// <returns>Number of tokens cleaned up</returns>
+    /// <returns>清理的令牌数量 / Number of tokens cleaned up</returns>
     Task<int> CleanupExpiredTokensAsync();
 
     /// <summary>
+    /// 获取客户端的所有活跃令牌
     /// Gets all active tokens for a client
     /// </summary>
-    /// <param name="clientId">Client identifier</param>
-    /// <returns>List of active tokens</returns>
+    /// <param name="clientId">客户端标识符 / Client identifier</param>
+    /// <returns>活跃令牌列表 / List of active tokens</returns>
     Task<List<AuthenticationToken>> GetClientTokensAsync(string clientId);
 }
