@@ -287,7 +287,7 @@ public partial class ScheduleForm : Form
                 await _scheduleRepository.AddAsync(_currentSchedule);
                 _logger.LogInformation("调度配置创建成功");
             }
-
+            await _scheduleRepository.SaveChangesAsync();
             return true;
         }
         catch (Exception ex)
