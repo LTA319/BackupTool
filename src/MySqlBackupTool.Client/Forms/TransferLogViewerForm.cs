@@ -40,6 +40,8 @@ public partial class TransferLogViewerForm : Form
         InitializeComponent();
         InitializeEventHandlers();
         InitializeFormSettings();
+
+        _ = LoadTransferLogsAsync();
     }
 
     /// <summary>
@@ -91,13 +93,34 @@ public partial class TransferLogViewerForm : Form
         {
             ShowProgress("正在加载传输日志...");
 
-            var transferLogs = await _transferLogService.GetFailedTransferChunksAsync(_currentBackupLogId);
+            IEnumerable<TransferLog> transferLogs;
             
-            // 如果有状态过滤器，应用过滤
-            if (_statusFilter.SelectedIndex > 0)
+            // 根据状态过滤器获取不同的传输日志
+            if (_statusFilter.SelectedIndex == 0) // "全部"
             {
+                // 获取所有传输日志
+                if (_currentBackupLogId == 0)
+                {
+                    transferLogs = await _transferLogService.GetAllTransferLogsAsync(null, _startDatePicker.Value, _endDatePicker.Value);
+                }
+                else 
+                {
+                    transferLogs = await _transferLogService.GetAllTransferLogsAsync(_currentBackupLogId, _startDatePicker.Value, _endDatePicker.Value);
+                }
+
+            }
+            else
+            {
+                // 获取特定状态的传输日志
                 var selectedStatus = _statusFilter.SelectedItem.ToString();
-                transferLogs = transferLogs.Where(tl => tl.Status == selectedStatus);
+                if (selectedStatus == "Failed")
+                {
+                    transferLogs = await _transferLogService.GetFailedTransferChunksAsync();
+                }
+                else
+                {
+                    transferLogs = await _transferLogService.GetTransferLogsByStatusAsync(null, selectedStatus, _startDatePicker.Value, _endDatePicker.Value);
+                }
             }
 
             // 转换为显示用的数据
@@ -107,7 +130,7 @@ public partial class TransferLogViewerForm : Form
                 tl.ChunkIndex,
                 ChunkSizeFormatted = FormatFileSize(tl.ChunkSize),
                 tl.Status,
-                tl.TransferTime,
+                TransferTime = tl.TransferTime.ToString("yyyy-MM-dd HH:mm:ss"),
                 tl.ErrorMessage
             }).ToList();
 

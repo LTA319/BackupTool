@@ -333,7 +333,7 @@ namespace MySqlBackupTool.Client.Forms
             // transferTimeColumn
             // 
             this.transferTimeColumn.DataPropertyName = "TransferTime";
-            this.transferTimeColumn.HeaderText = "传输时间";
+            this.transferTimeColumn.HeaderText = "开始时间";
             this.transferTimeColumn.Name = "transferTimeColumn";
             this.transferTimeColumn.ReadOnly = true;
             this.transferTimeColumn.Width = 150;

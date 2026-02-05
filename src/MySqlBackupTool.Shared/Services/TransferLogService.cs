@@ -311,6 +311,55 @@ public class TransferLogService : ITransferLogService
     }
 
     /// <summary>
+    /// 获取所有传输日志
+    /// Gets all transfer logs
+    /// </summary>
+    public async Task<IEnumerable<TransferLog>> GetAllTransferLogsAsync(int? backupLogId = null, DateTime? startDate = null, DateTime? endDate = null)
+    {
+        _logger.LogDebug("Getting all transfer logs for backup {BackupLogId}, date range: {StartDate} - {EndDate}",
+            backupLogId, startDate, endDate);
+
+        if (backupLogId.HasValue)
+        {
+            var transferLogs = await _transferLogRepository.GetByBackupLogIdAsync(backupLogId.Value);
+            
+            // 应用日期过滤
+            if (startDate.HasValue || endDate.HasValue)
+            {
+                var start = startDate ?? DateTime.MinValue;
+                var end = endDate ?? DateTime.MaxValue;
+                transferLogs = transferLogs.Where(tl => tl.TransferTime >= start && tl.TransferTime <= end);
+            }
+            
+            return transferLogs.OrderByDescending(tl => tl.TransferTime);
+        }
+
+        // 如果没有指定备份ID，获取所有传输日志
+        if (startDate.HasValue || endDate.HasValue)
+        {
+            var start = startDate ?? DateTime.MinValue;
+            var end = endDate ?? DateTime.MaxValue;
+            return await _transferLogRepository.GetByDateRangeAsync(start, end);
+        }
+
+        // 获取所有传输日志（可能需要分页）
+        return await _transferLogRepository.GetAllAsync();
+    }
+
+    /// <summary>
+    /// 根据状态获取传输日志
+    /// Gets transfer logs by status
+    /// </summary>
+    public async Task<IEnumerable<TransferLog>> GetTransferLogsByStatusAsync(int? backupLogId, string status, DateTime? startDate = null, DateTime? endDate = null)
+    {
+        _logger.LogDebug("Getting transfer logs by status {Status} for backup {BackupLogId}, date range: {StartDate} - {EndDate}",
+            status, backupLogId, startDate, endDate);
+
+        var allLogs = await GetAllTransferLogsAsync(backupLogId, startDate, endDate);
+        return allLogs.Where(tl => tl.Status.Equals(status, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
     /// 导出为CSV格式
     /// Export to CSV format
     /// </summary>

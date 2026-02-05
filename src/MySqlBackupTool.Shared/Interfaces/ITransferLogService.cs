@@ -113,6 +113,27 @@ public interface ITransferLogService
     /// <param name="backupLogId">备份日志ID</param>
     /// <returns>性能指标</returns>
     Task<TransferPerformanceMetrics> GetTransferPerformanceMetricsAsync(int backupLogId);
+
+    /// <summary>
+    /// 获取所有传输日志
+    /// Gets all transfer logs
+    /// </summary>
+    /// <param name="backupLogId">备份日志ID（可选）</param>
+    /// <param name="startDate">开始日期（可选）</param>
+    /// <param name="endDate">结束日期（可选）</param>
+    /// <returns>传输日志列表</returns>
+    Task<IEnumerable<TransferLog>> GetAllTransferLogsAsync(int? backupLogId = null, DateTime? startDate = null, DateTime? endDate = null);
+
+    /// <summary>
+    /// 根据状态获取传输日志
+    /// Gets transfer logs by status
+    /// </summary>
+    /// <param name="backupLogId">备份日志ID（可选）</param>
+    /// <param name="status">状态</param>
+    /// <param name="startDate">开始日期（可选）</param>
+    /// <param name="endDate">结束日期（可选）</param>
+    /// <returns>传输日志列表</returns>
+    Task<IEnumerable<TransferLog>> GetTransferLogsByStatusAsync(int? backupLogId, string status, DateTime? startDate = null, DateTime? endDate = null);
 }
 
 /// <summary>

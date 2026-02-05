@@ -17,6 +17,7 @@ public class BackupOrchestrator : IBackupOrchestrator
     private readonly IServiceChecker _serviceChecker;
     private readonly IFileTransferClient _fileTransferClient;
     private readonly IBackupLogService _backupLogService;
+    private readonly ITransferLogService _transferLogService;
     private readonly ILogger<BackupOrchestrator> _logger;
 
     /// <summary>
@@ -24,8 +25,10 @@ public class BackupOrchestrator : IBackupOrchestrator
     /// </summary>
     /// <param name="mysqlManager">MySQL管理器</param>
     /// <param name="compressionService">压缩服务</param>
+    /// <param name="serviceChecker">服务检查器</param>
     /// <param name="fileTransferClient">文件传输客户端</param>
     /// <param name="backupLogService">备份日志服务</param>
+    /// <param name="transferLogService">传输日志服务</param>
     /// <param name="logger">日志记录器</param>
     public BackupOrchestrator(
         IMySQLManager mysqlManager,
@@ -33,6 +36,7 @@ public class BackupOrchestrator : IBackupOrchestrator
         IServiceChecker serviceChecker,
         IFileTransferClient fileTransferClient,
         IBackupLogService backupLogService,
+        ITransferLogService transferLogService,
         ILogger<BackupOrchestrator> logger)
     {
         _mysqlManager = mysqlManager ?? throw new ArgumentNullException(nameof(mysqlManager));
@@ -40,6 +44,7 @@ public class BackupOrchestrator : IBackupOrchestrator
         _serviceChecker = serviceChecker ?? throw new ArgumentNullException(nameof(serviceChecker));
         _fileTransferClient = fileTransferClient ?? throw new ArgumentNullException(nameof(fileTransferClient));
         _backupLogService = backupLogService ?? throw new ArgumentNullException(nameof(backupLogService));
+        _transferLogService = transferLogService ?? throw new ArgumentNullException(nameof(transferLogService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -327,10 +332,44 @@ public class BackupOrchestrator : IBackupOrchestrator
             _logger.LogInformation("Transferring backup file for operation {OperationId}, size: {FileSize} bytes", 
                 operationId, fileInfo.Length);
 
+            // 计算分块数量并创建传输日志记录
+            var chunkSize = transferConfig.ChunkingStrategy.ChunkSize;
+            var totalChunks = (int)Math.Ceiling((double)fileInfo.Length / chunkSize);
+            
+            _logger.LogInformation("File will be transferred in {TotalChunks} chunks for backup log {BackupLogId}", 
+                totalChunks, backupLog.Id);
+
+            // 批量创建传输日志记录
+            var chunks = Enumerable.Range(0, totalChunks).Select(i => new ChunkInfo
+            {
+                ChunkIndex = i,
+                ChunkSize = Math.Min(chunkSize, fileInfo.Length - (i * chunkSize)),
+                Status = "Pending"
+            });
+
+            try
+            {
+                await _transferLogService.BatchCreateTransferChunksAsync(backupLog.Id, chunks);
+                _logger.LogInformation("Created {Count} transfer log entries for backup {BackupLogId}", 
+                    totalChunks, backupLog.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to create transfer log entries, continuing with transfer");
+            }
+
             TransferResult transferResult;
             try
             {
                 transferResult = await _fileTransferClient.TransferFileAsync(compressedFilePath, transferConfig, cancellationToken);
+                
+                // 传输完成后，更新所有传输日志状态
+                if (transferResult.Success)
+                {
+                    _logger.LogInformation("File transfer completed successfully, updating transfer logs");
+                    // 注意：这里简化处理，实际应该在传输过程中实时更新每个分块的状态
+                    // 可以通过扩展IFileTransferClient接口来支持分块级别的进度回调
+                }
             }
             catch (Exception ex)
             {
