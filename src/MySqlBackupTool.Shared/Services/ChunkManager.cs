@@ -183,9 +183,10 @@ public class ChunkManager : IChunkManager
     /// 通过重新组装所有块来完成文件传输 / Finalizes a file transfer by reassembling all chunks
     /// </summary>
     /// <param name="transferId">传输ID / Transfer ID</param>
+    /// <param name="targetPath">最终文件的目标路径（可选，如果未提供则使用临时目录） / Target path for the final file (optional, uses temp directory if not provided)</param>
     /// <returns>最终文件路径 / Final file path</returns>
     /// <exception cref="InvalidOperationException">当传输会话不存在或文件验证失败时抛出 / Thrown when transfer session doesn't exist or file validation fails</exception>
-    public async Task<string> FinalizeTransferAsync(string transferId)
+    public async Task<string> FinalizeTransferAsync(string transferId, string? targetPath = null)
     {
         try
         {
@@ -202,9 +203,24 @@ public class ChunkManager : IChunkManager
                 transferId, session.Metadata.FileName);
 
             // 创建最终文件路径 / Create final file path
-            var finalPath = Path.Combine(
-                Path.GetDirectoryName(session.TempDirectory) ?? Path.GetTempPath(),
-                session.Metadata.FileName);
+            // 如果提供了目标路径则使用它，否则使用临时目录 / Use provided target path if available, otherwise use temp directory
+            var finalPath = !string.IsNullOrWhiteSpace(targetPath) 
+                ? targetPath 
+                : Path.Combine(
+                    Path.GetDirectoryName(session.TempDirectory) ?? Path.GetTempPath(),
+                    session.Metadata.FileName);
+            
+            _logger.LogInformation("Using {PathType} for final file: {FinalPath}", 
+                !string.IsNullOrWhiteSpace(targetPath) ? "provided target path" : "temp directory path",
+                finalPath);
+
+            // 确保目标目录存在 / Ensure target directory exists
+            var targetDir = Path.GetDirectoryName(finalPath);
+            if (!string.IsNullOrEmpty(targetDir) && !Directory.Exists(targetDir))
+            {
+                Directory.CreateDirectory(targetDir);
+                _logger.LogDebug("Created target directory: {Directory}", targetDir);
+            }
 
             // 重新组装块 / Reassemble chunks
             using (var outputStream = new FileStream(finalPath, FileMode.Create, FileAccess.Write))

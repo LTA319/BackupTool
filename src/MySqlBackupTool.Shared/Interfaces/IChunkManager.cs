@@ -30,8 +30,9 @@ public interface IChunkManager
     /// Finalizes a file transfer by reassembling all chunks
     /// </summary>
     /// <param name="transferId">传输会话ID / Transfer session ID</param>
+    /// <param name="targetPath">最终文件的目标路径（可选，如果未提供则使用临时目录） / Target path for the final file (optional, uses temp directory if not provided)</param>
     /// <returns>最终文件的路径 / Path to the finalized file</returns>
-    Task<string> FinalizeTransferAsync(string transferId);
+    Task<string> FinalizeTransferAsync(string transferId, string? targetPath = null);
 
     /// <summary>
     /// 获取恢复中断传输所需的信息
