@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MySqlBackupTool.Shared.DependencyInjection;
+using MySqlBackupTool.Shared.Interfaces;
 using MySqlBackupTool.Server.Configuration;
 
 namespace MySqlBackupTool.Server;
@@ -64,9 +65,19 @@ internal class Program
                 // 添加保留策略后台服务
                 var cleanupInterval = AppConfigHelper.GetTimeSpanValue("StorageConfig.CleanupInterval", TimeSpan.FromHours(24));
                 services.AddRetentionPolicyBackgroundService(cleanupInterval);
+
+
+                //services.AddHostedService<FileReceiverService>();
+                // 从配置读取监听端口
+                var listenPort = AppConfigHelper.GetIntValue("ServerConfig.ListenPort", 8080);
                 
-                // 添加文件接收服务作为托管服务
-                services.AddHostedService<FileReceiverService>();
+                // 添加文件接收服务作为托管服务，并传递配置的端口
+                services.AddHostedService(provider =>
+                {
+                    var logger = provider.GetRequiredService<ILogger<FileReceiverService>>();
+                    var fileReceiver = provider.GetRequiredService<IFileReceiver>();
+                    return new FileReceiverService(logger, fileReceiver, listenPort);
+                });
             });
 
         // 构建主机实例
