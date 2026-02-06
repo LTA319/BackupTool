@@ -795,6 +795,30 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
     /// </summary>
     private async Task<long> SendFileDataAsync(NetworkStream stream, string filePath, TransferRequest request, CancellationToken cancellationToken)
     {
+        var fileInfo = new FileInfo(filePath);
+        var fileSize = fileInfo.Length;
+        
+        // Determine if we should use chunking based on file size
+        var shouldChunk = fileSize > request.ChunkingStrategy.ChunkSize;
+        
+        _logger.LogInformation("CLIENT (Auth): Starting file data transfer. FileSize={FileSize}, ChunkSize={ChunkSize}, ShouldChunk={ShouldChunk}",
+            fileSize, request.ChunkingStrategy.ChunkSize, shouldChunk);
+        
+        if (shouldChunk)
+        {
+            return await SendFileDataChunkedAsync(stream, filePath, request, cancellationToken);
+        }
+        else
+        {
+            return await SendFileDataDirectAsync(stream, filePath, request, cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// Sends file data directly without chunking
+    /// </summary>
+    private async Task<long> SendFileDataDirectAsync(NetworkStream stream, string filePath, TransferRequest request, CancellationToken cancellationToken)
+    {
         long totalBytesSent = 0;
         var buffer = new byte[64 * 1024]; // 64KB缓冲区 / 64KB buffer
 
@@ -824,5 +848,137 @@ public class AuthenticatedFileTransferClient : IFileTransferClient
 
         await stream.FlushAsync(cancellationToken);
         return totalBytesSent;
+    }
+
+    /// <summary>
+    /// Sends file data using chunking protocol with JSON-wrapped chunks
+    /// </summary>
+    private async Task<long> SendFileDataChunkedAsync(NetworkStream stream, string filePath, TransferRequest request, CancellationToken cancellationToken)
+    {
+        using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+        var fileSize = fileStream.Length;
+        var chunkCount = request.ChunkingStrategy.CalculateChunkCount(fileSize);
+        long totalBytes = 0;
+        
+        _logger.LogInformation("CLIENT (Auth): Starting chunked transfer: {ChunkCount} chunks of {ChunkSize} bytes each", 
+            chunkCount, request.ChunkingStrategy.ChunkSize);
+
+        for (int chunkIndex = 0; chunkIndex < chunkCount; chunkIndex++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            
+            // Calculate chunk size for this chunk
+            var remainingBytes = fileSize - fileStream.Position;
+            var currentChunkSize = (int)Math.Min(request.ChunkingStrategy.ChunkSize, remainingBytes);
+            
+            // Read chunk data
+            var chunkData = new byte[currentChunkSize];
+            var bytesRead = await fileStream.ReadAsync(chunkData, 0, currentChunkSize, cancellationToken);
+            
+            if (bytesRead != currentChunkSize)
+            {
+                throw new InvalidOperationException($"Expected to read {currentChunkSize} bytes but read {bytesRead} bytes for chunk {chunkIndex}");
+            }
+            
+            // Calculate chunk checksum
+            var chunkChecksum = _checksumService.CalculateMD5(chunkData);
+            
+            // Create chunk object
+            var chunk = new ChunkData
+            {
+                TransferId = request.TransferId,
+                ChunkIndex = chunkIndex,
+                Data = chunkData,
+                ChunkChecksum = chunkChecksum,
+                IsLastChunk = chunkIndex == chunkCount - 1
+            };
+            
+            // Send chunk as JSON
+            await SendChunkAsync(stream, chunk, cancellationToken);
+            
+            totalBytes += bytesRead;
+            
+            // Log progress
+            if (chunkIndex % Math.Max(1, chunkCount / 10) == 0 || chunkIndex == chunkCount - 1)
+            {
+                var progress = (double)totalBytes / fileSize * 100;
+                _logger.LogDebug("CLIENT (Auth): Sent chunk {ChunkIndex}/{ChunkCount}: {Progress:F1}% ({Bytes}/{Total} bytes)", 
+                    chunkIndex + 1, chunkCount, progress, totalBytes, fileSize);
+            }
+        }
+        
+        _logger.LogInformation("CLIENT (Auth): Completed chunked file data transfer, total bytes: {TotalBytes}", totalBytes);
+        return totalBytes;
+    }
+
+    /// <summary>
+    /// Sends a single chunk to the server in JSON format
+    /// </summary>
+    private async Task SendChunkAsync(NetworkStream stream, ChunkData chunk, CancellationToken cancellationToken)
+    {
+        var chunkJson = JsonSerializer.Serialize(chunk);
+        var chunkBytes = Encoding.UTF8.GetBytes(chunkJson);
+        var headerBytes = BitConverter.GetBytes(chunkBytes.Length);
+        
+        _logger.LogDebug("CLIENT (Auth): Sending chunk {ChunkIndex}: JSON length={Length}, Data array length={DataLength}",
+            chunk.ChunkIndex, chunkBytes.Length, chunk.Data.Length);
+        
+        // Send chunk header length (4 bytes) followed by JSON data
+        await stream.WriteAsync(headerBytes, 0, 4, cancellationToken);
+        await stream.WriteAsync(chunkBytes, 0, chunkBytes.Length, cancellationToken);
+        await stream.FlushAsync(cancellationToken);
+        
+        // Wait for chunk acknowledgment
+        var ackResponse = await ReceiveChunkAcknowledgmentAsync(stream, cancellationToken);
+        if (!ackResponse.Success)
+        {
+            throw new InvalidOperationException($"Server rejected chunk {chunk.ChunkIndex}: {ackResponse.ErrorMessage}");
+        }
+    }
+
+    /// <summary>
+    /// Receives chunk acknowledgment from server
+    /// </summary>
+    private async Task<TransferResponse> ReceiveChunkAcknowledgmentAsync(NetworkStream stream, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var lengthBuffer = new byte[4];
+            await ReadExactlyAsync(stream, lengthBuffer, 4, cancellationToken);
+            
+            var responseLength = BitConverter.ToInt32(lengthBuffer, 0);
+            if (responseLength <= 0 || responseLength > 1024 * 1024)
+            {
+                throw new InvalidOperationException($"Invalid chunk ack length: {responseLength}");
+            }
+            
+            var responseBuffer = new byte[responseLength];
+            await ReadExactlyAsync(stream, responseBuffer, responseLength, cancellationToken);
+            
+            var responseJson = Encoding.UTF8.GetString(responseBuffer);
+            return JsonSerializer.Deserialize<TransferResponse>(responseJson) ?? new TransferResponse { Success = false };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error receiving chunk acknowledgment");
+            return new TransferResponse { Success = false, ErrorMessage = ex.Message };
+        }
+    }
+
+    /// <summary>
+    /// Reads exactly the specified number of bytes from the stream
+    /// </summary>
+    private async Task ReadExactlyAsync(NetworkStream stream, byte[] buffer, int count, CancellationToken cancellationToken)
+    {
+        int totalRead = 0;
+        while (totalRead < count)
+        {
+            int bytesRead = await stream.ReadAsync(buffer, totalRead, count - totalRead, cancellationToken);
+            if (bytesRead == 0)
+            {
+                throw new IOException("Connection closed before all data was read");
+            }
+            totalRead += bytesRead;
+        }
     }
 }

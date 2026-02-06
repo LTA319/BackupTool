@@ -675,8 +675,13 @@ public class FileReceiver : IFileReceiver, IDisposable
             
             await SendTransferResponseAsync(stream, true, "Ready to receive file", resumeInfo, cancellationToken);
             
+            _logger.LogDebug("SERVER: Response sent, now determining transfer mode. FileSize={FileSize}, ChunkSize={ChunkSize}",
+                request.Metadata.FileSize, request.ChunkingStrategy.ChunkSize);
+            
             // Determine if this is a chunked transfer
             var shouldChunk = request.Metadata.FileSize > request.ChunkingStrategy.ChunkSize;
+            
+            _logger.LogInformation("SERVER: Transfer mode determined - ShouldChunk={ShouldChunk}", shouldChunk);
             
             long totalBytesReceived;
             string finalPath;
@@ -846,6 +851,9 @@ public class FileReceiver : IFileReceiver, IDisposable
     /// </summary>
     private async Task<ChunkData?> ReceiveChunkAsync(NetworkStream stream, CancellationToken cancellationToken)
     {
+        byte[] chunkBuffer = Array.Empty<byte>();
+        int chunkLength = 0;
+        
         try
         {
             // Read chunk header length (4 bytes)
@@ -856,7 +864,12 @@ public class FileReceiver : IFileReceiver, IDisposable
                 return null;
             }
 
-            var chunkLength = BitConverter.ToInt32(lengthBuffer, 0);
+            chunkLength = BitConverter.ToInt32(lengthBuffer, 0);
+            
+            // Add diagnostic logging for the length bytes
+            _logger.LogDebug("Read chunk length header: {Hex} = {Length} bytes", 
+                BitConverter.ToString(lengthBuffer), chunkLength);
+            
             if (chunkLength <= 0 || chunkLength > 100 * 1024 * 1024) // Max 100MB for chunk metadata
             {
                 _logger.LogWarning("Invalid chunk length: {Length}", chunkLength);
@@ -864,7 +877,7 @@ public class FileReceiver : IFileReceiver, IDisposable
             }
 
             // Read chunk data
-            var chunkBuffer = new byte[chunkLength];
+            chunkBuffer = new byte[chunkLength];
             var totalBytesRead = 0;
             while (totalBytesRead < chunkLength)
             {
@@ -878,11 +891,20 @@ public class FileReceiver : IFileReceiver, IDisposable
             }
 
             var json = Encoding.UTF8.GetString(chunkBuffer);
+            
+            // Add diagnostic logging to see what we're receiving
+            _logger.LogDebug("Received chunk data length: {Length}, First 100 chars: {Preview}", 
+                chunkLength, json.Length > 100 ? json.Substring(0, 100) : json);
+            
             return JsonSerializer.Deserialize<ChunkData>(json);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error receiving chunk");
+            _logger.LogError(ex, "Error receiving chunk. Chunk length: {Length}, First 20 bytes (hex): {Hex}", 
+                chunkLength, 
+                chunkLength > 0 && chunkBuffer.Length >= 20 
+                    ? BitConverter.ToString(chunkBuffer, 0, Math.Min(20, chunkBuffer.Length)) 
+                    : "N/A");
             return null;
         }
     }
@@ -920,6 +942,10 @@ public class FileReceiver : IFileReceiver, IDisposable
             var messageBytes = Encoding.UTF8.GetBytes(json);
             var lengthBytes = BitConverter.GetBytes(messageBytes.Length);
 
+            _logger.LogDebug("SERVER: Sending response - Length header: {Hex} = {Length} bytes, JSON (first 200 chars): {Json}",
+                BitConverter.ToString(lengthBytes), messageBytes.Length,
+                json.Length > 200 ? json.Substring(0, 200) : json);
+
             // 使用超时发送响应 / Send response with timeout
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(TimeSpan.FromSeconds(10)); // 10秒超时
@@ -927,6 +953,8 @@ public class FileReceiver : IFileReceiver, IDisposable
             await stream.WriteAsync(lengthBytes, 0, lengthBytes.Length, timeoutCts.Token);
             await stream.WriteAsync(messageBytes, 0, messageBytes.Length, timeoutCts.Token);
             await stream.FlushAsync(timeoutCts.Token);
+            
+            _logger.LogDebug("SERVER: Response sent and flushed successfully");
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

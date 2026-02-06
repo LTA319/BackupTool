@@ -463,6 +463,8 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
             }
 
             // Send file data
+            _logger.LogInformation("CLIENT: Server acknowledged, starting file data transfer. FileSize={FileSize}, ChunkSize={ChunkSize}",
+                new FileInfo(filePath).Length, request.ChunkingStrategy.ChunkSize);
             _memoryProfiler?.RecordSnapshot(operationId, "SendData", "Starting file data transfer");
             var bytesTransferred = await SendFileDataAsync(networkStream, filePath, request, completedChunks, cancellationToken, operationId);
             
@@ -517,10 +519,14 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
     {
         try
         {
+            _logger.LogDebug("CLIENT: About to read 4-byte length header for server response");
             var lengthBuffer = new byte[4];
             await ReadExactlyAsync(stream, lengthBuffer, 4, cancellationToken);
             
             var responseLength = BitConverter.ToInt32(lengthBuffer, 0);
+            _logger.LogDebug("CLIENT: Read response length header: {Hex} = {Length} bytes", 
+                BitConverter.ToString(lengthBuffer), responseLength);
+            
             if (responseLength <= 0 || responseLength > 1024 * 1024) // Max 1MB for response
             {
                 throw new InvalidOperationException($"Invalid response length: {responseLength}");
@@ -530,6 +536,9 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
             await ReadExactlyAsync(stream, responseBuffer, responseLength, cancellationToken);
             
             var responseJson = Encoding.UTF8.GetString(responseBuffer);
+            _logger.LogDebug("CLIENT: Received response JSON (first 200 chars): {Json}", 
+                responseJson.Length > 200 ? responseJson.Substring(0, 200) : responseJson);
+            
             var response = JsonSerializer.Deserialize<TransferResponse>(responseJson) ?? new TransferResponse();
             
             _logger.LogDebug("Received acknowledgment: Success={Success}, Message={Message}", response.Success, response.ErrorMessage);
@@ -664,6 +673,7 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
         
         _logger.LogInformation("Starting chunked transfer for {TransferId}: {ChunkCount} chunks of {ChunkSize} bytes each", 
             request.TransferId, chunkCount, request.ChunkingStrategy.ChunkSize);
+        _logger.LogWarning("CLIENT DEBUG: About to send {ChunkCount} chunks for file size {FileSize}", chunkCount, fileSize);
         _memoryProfiler?.RecordSnapshot(operationId, "ChunkedStart", 
             $"Starting chunked transfer: {chunkCount} chunks of {request.ChunkingStrategy.ChunkSize} bytes");
 
@@ -778,6 +788,11 @@ public class FileTransferClient : IFileTransferClient, IFileTransferService
         var chunkJson = JsonSerializer.Serialize(chunk);
         var chunkBytes = Encoding.UTF8.GetBytes(chunkJson);
         var headerBytes = BitConverter.GetBytes(chunkBytes.Length);
+        
+        // Add diagnostic logging
+        _logger.LogDebug("Sending chunk {ChunkIndex}: JSON length={Length}, Data array length={DataLength}, First 100 chars: {Preview}",
+            chunk.ChunkIndex, chunkBytes.Length, chunk.Data.Length, 
+            chunkJson.Length > 100 ? chunkJson.Substring(0, 100) : chunkJson);
         
         // Send chunk header length (4 bytes) followed by JSON data
         await stream.WriteAsync(headerBytes, 0, 4, cancellationToken);
