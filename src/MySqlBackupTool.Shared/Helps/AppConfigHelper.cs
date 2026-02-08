@@ -2,7 +2,7 @@ using System.Configuration;
 using Microsoft.Extensions.Configuration;
 using ConfigManager = System.Configuration.ConfigurationManager;
 
-namespace MySqlBackupTool.Server.Configuration;
+namespace MySqlBackupTool.Shared.Tools;
 
 /// <summary>
 /// App.config配置文件助手类
