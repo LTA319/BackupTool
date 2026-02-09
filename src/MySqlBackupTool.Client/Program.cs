@@ -1,7 +1,10 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using MySqlBackupTool.Shared.DependencyInjection;
+using MySqlBackupTool.Shared.Models;
 using MySqlBackupTool.Shared.Tools;
 
 namespace MySqlBackupTool.Client;
@@ -47,12 +50,28 @@ internal static class Program
 
         // 创建主机构建器用于依赖注入和服务配置
         var hostBuilder = Host.CreateDefaultBuilder()
+            .ConfigureAppConfiguration((context, config) =>
+            {
+                // 清除默认配置源
+                config.Sources.Clear();
+                
+                // 添加App.config配置源
+                config.Add(new AppConfigConfigurationSource());
+                
+                // 添加环境变量支持
+                config.AddEnvironmentVariables();
+            })
             .ConfigureServices((context, services) =>
             {
+                // 从 App.config 加载数据库初始化配置
+                var initOptions = DatabaseInitializationConfigLoader.LoadFromAppConfig();
+                services.AddSingleton(Options.Create(initOptions));
+
                 // 添加共享服务
                 // 创建客户端数据库连接字符串并注册共享服务
-                var connectionString = ServiceCollectionExtensions.CreateDefaultConnectionString("client_backup_tool.db");
-                services.AddSharedServices(connectionString);
+                var connectionString = AppConfigHelper.GetConnectionString("DefaultConnection",
+                    ServiceCollectionExtensions.CreateDefaultConnectionString("client_backup_tool.db"));
+                services.AddSharedServices(connectionString, context.Configuration);
 
                 // 添加客户端特定的服务
                 // 包括窗体服务、UI相关服务等

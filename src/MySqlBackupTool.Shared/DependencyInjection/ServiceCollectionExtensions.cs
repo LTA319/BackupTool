@@ -857,7 +857,7 @@ public static class ServiceCollectionExtensions
 
         if (result.ValidServices.Any())
         {
-            sb.AppendLine($"✅ Successfully resolved services ({result.ValidServices.Count}): {string.Join(", ", result.ValidServices)}");
+            sb.AppendLine($" Successfully resolved services ({result.ValidServices.Count}): {string.Join(", ", result.ValidServices)}");
             sb.AppendLine();
         }
 
@@ -923,7 +923,7 @@ public static class ServiceCollectionExtensions
 
         if (result.ValidatedServices.Any())
         {
-            sb.AppendLine($"✅ Successfully validated services ({result.ValidatedServices.Count}):");
+            sb.AppendLine($" Successfully validated services ({result.ValidatedServices.Count}):");
             foreach (var validatedService in result.ValidatedServices.Take(5)) // Show first 5 to avoid clutter
             {
                 sb.AppendLine($"   • {validatedService.Key}");

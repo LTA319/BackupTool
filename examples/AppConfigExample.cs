@@ -1,134 +1,233 @@
-using MySqlBackupTool.Server.Configuration;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using MySqlBackupTool.Shared.Models;
 
 namespace MySqlBackupTool.Examples;
 
 /// <summary>
-/// App.config配置使用示例
-/// 演示如何从App.config文件读取各种类型的配置值
+/// 演示如何使用 appsettings.json 配置数据库初始化选项
 /// </summary>
 public class AppConfigExample
 {
     /// <summary>
-    /// 演示App.config配置读取的示例方法
+    /// 示例：从配置文件加载数据库初始化选项
     /// </summary>
-    public static void DemonstrateAppConfigUsage()
+    public static void LoadConfigurationExample()
     {
-        Console.WriteLine("=== App.config配置读取示例 ===");
-        Console.WriteLine();
+        // 创建配置构建器
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(AppContext.BaseDirectory)
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+            .Build();
 
-        // 读取字符串配置
-        var connectionString = AppConfigHelper.GetConfigValue("MySqlBackupTool.ConnectionString", "默认连接字符串");
-        Console.WriteLine($"数据库连接字符串: {connectionString}");
+        // 读取数据库初始化配置
+        var initOptions = configuration
+            .GetSection(DatabaseInitializationOptions.SectionName)
+            .Get<DatabaseInitializationOptions>();
 
-        // 读取布尔配置
-        var enableEncryption = AppConfigHelper.GetBoolValue("MySqlBackupTool.EnableEncryption", false);
-        Console.WriteLine($"启用加密: {enableEncryption}");
-
-        // 读取整数配置
-        var maxConcurrentBackups = AppConfigHelper.GetIntValue("MySqlBackupTool.MaxConcurrentBackups", 1);
-        Console.WriteLine($"最大并发备份数: {maxConcurrentBackups}");
-
-        var listenPort = AppConfigHelper.GetIntValue("ServerConfig.ListenPort", 8080);
-        Console.WriteLine($"监听端口: {listenPort}");
-
-        // 读取时间间隔配置
-        var cleanupInterval = AppConfigHelper.GetTimeSpanValue("StorageConfig.CleanupInterval", TimeSpan.FromHours(24));
-        Console.WriteLine($"清理间隔: {cleanupInterval}");
-
-        // 读取字符串数组配置
-        var allowedClients = AppConfigHelper.GetStringArrayValue("ServerConfig.AllowedClients");
-        Console.WriteLine($"允许的客户端: [{string.Join(", ", allowedClients)}]");
-
-        var emailRecipients = AppConfigHelper.GetStringArrayValue("Alerting.Email.Recipients");
-        Console.WriteLine($"邮件接收者: [{string.Join(", ", emailRecipients)}]");
-
-        // 读取连接字符串
-        var defaultConnection = AppConfigHelper.GetConnectionString("DefaultConnection", "默认连接");
-        Console.WriteLine($"默认连接字符串: {defaultConnection}");
-
-        Console.WriteLine();
-        Console.WriteLine("=== 开发环境配置覆盖示例 ===");
-        Console.WriteLine("设置环境变量 DOTNET_ENVIRONMENT=Development 来测试开发环境配置");
-        Console.WriteLine();
-
-        // 演示开发环境配置覆盖
-        var isDevelopment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") == "Development";
-        if (isDevelopment)
+        if (initOptions != null)
         {
-            Console.WriteLine("当前运行在开发环境，以下配置将使用开发环境的值:");
+            Console.WriteLine("=== 数据库初始化配置 ===");
             
-            var devEncryption = AppConfigHelper.GetBoolValue("MySqlBackupTool.EnableEncryption", false);
-            Console.WriteLine($"开发环境 - 启用加密: {devEncryption}");
-            
-            var devMaxBackups = AppConfigHelper.GetIntValue("MySqlBackupTool.MaxConcurrentBackups", 1);
-            Console.WriteLine($"开发环境 - 最大并发备份数: {devMaxBackups}");
-            
-            var devStoragePath = AppConfigHelper.GetConfigValue("StorageConfig.PrimaryStoragePath", "默认路径");
-            Console.WriteLine($"开发环境 - 存储路径: {devStoragePath}");
-        }
-        else
-        {
-            Console.WriteLine("当前运行在生产环境，使用默认配置值");
+            // 显示保留策略配置
+            if (initOptions.DefaultRetentionPolicy != null)
+            {
+                Console.WriteLine($"\n保留策略: {initOptions.DefaultRetentionPolicy.Name}");
+                Console.WriteLine($"  最大天数: {initOptions.DefaultRetentionPolicy.MaxAgeDays}");
+                Console.WriteLine($"  最大数量: {initOptions.DefaultRetentionPolicy.MaxCount}");
+                Console.WriteLine($"  是否启用: {initOptions.DefaultRetentionPolicy.IsEnabled}");
+            }
+
+            // 显示备份配置
+            if (initOptions.DefaultBackupConfiguration != null)
+            {
+                Console.WriteLine($"\n备份配置: {initOptions.DefaultBackupConfiguration.Name}");
+                Console.WriteLine($"  目标目录: {initOptions.DefaultBackupConfiguration.TargetDirectory}");
+                
+                if (initOptions.DefaultBackupConfiguration.MySQLConnection != null)
+                {
+                    Console.WriteLine($"  MySQL主机: {initOptions.DefaultBackupConfiguration.MySQLConnection.Host}");
+                    Console.WriteLine($"  MySQL端口: {initOptions.DefaultBackupConfiguration.MySQLConnection.Port}");
+                }
+            }
+
+            // 显示调度配置
+            if (initOptions.DefaultScheduleConfiguration != null)
+            {
+                Console.WriteLine($"\n调度配置: {initOptions.DefaultScheduleConfiguration.Name}");
+                Console.WriteLine($"  调度类型: {initOptions.DefaultScheduleConfiguration.ScheduleType}");
+                Console.WriteLine($"  执行时间: {initOptions.DefaultScheduleConfiguration.DailyTime}");
+                Console.WriteLine($"  是否启用: {initOptions.DefaultScheduleConfiguration.IsEnabled}");
+            }
+
+            // 显示客户端凭据配置
+            if (initOptions.DefaultClientCredentials != null)
+            {
+                Console.WriteLine($"\n客户端凭据: {initOptions.DefaultClientCredentials.ClientName}");
+                Console.WriteLine($"  客户端ID: {initOptions.DefaultClientCredentials.ClientId}");
+                Console.WriteLine($"  权限数量: {initOptions.DefaultClientCredentials.Permissions.Count}");
+            }
         }
     }
 
     /// <summary>
-    /// 演示如何在服务中使用App.config配置
+    /// 示例：在依赖注入中注册配置选项
     /// </summary>
-    public static void DemonstrateServiceConfiguration()
+    public static void RegisterConfigurationExample()
     {
-        Console.WriteLine();
-        Console.WriteLine("=== 服务配置示例 ===");
+        var host = Host.CreateDefaultBuilder()
+            .ConfigureAppConfiguration((context, config) =>
+            {
+                // 添加配置文件
+                config.SetBasePath(AppContext.BaseDirectory)
+                      .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+            })
+            .ConfigureServices((context, services) =>
+            {
+                // 注册数据库初始化选项
+                services.Configure<DatabaseInitializationOptions>(
+                    context.Configuration.GetSection(DatabaseInitializationOptions.SectionName));
 
-        // 服务器配置
-        var serverConfig = new
+                // 现在可以在任何服务中注入 IOptions<DatabaseInitializationOptions>
+            })
+            .Build();
+
+        Console.WriteLine("配置选项已注册到依赖注入容器");
+    }
+
+    /// <summary>
+    /// 示例：修改配置值
+    /// </summary>
+    public static void ModifyConfigurationExample()
+    {
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(AppContext.BaseDirectory)
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+            .Build();
+
+        var initOptions = configuration
+            .GetSection(DatabaseInitializationOptions.SectionName)
+            .Get<DatabaseInitializationOptions>();
+
+        if (initOptions?.DefaultRetentionPolicy != null)
         {
-            ListenPort = AppConfigHelper.GetIntValue("ServerConfig.ListenPort", 8080),
-            MaxConnections = AppConfigHelper.GetIntValue("ServerConfig.MaxConcurrentConnections", 10),
-            EnableSsl = AppConfigHelper.GetBoolValue("ServerConfig.EnableSsl", false),
-            AuthRequired = AppConfigHelper.GetBoolValue("ServerConfig.AuthenticationRequired", true),
-            AllowedClients = AppConfigHelper.GetStringArrayValue("ServerConfig.AllowedClients")
-        };
+            // 修改保留策略
+            initOptions.DefaultRetentionPolicy.MaxAgeDays = 60;
+            initOptions.DefaultRetentionPolicy.MaxCount = 20;
 
-        Console.WriteLine($"服务器配置:");
-        Console.WriteLine($"  监听端口: {serverConfig.ListenPort}");
-        Console.WriteLine($"  最大连接数: {serverConfig.MaxConnections}");
-        Console.WriteLine($"  启用SSL: {serverConfig.EnableSsl}");
-        Console.WriteLine($"  需要认证: {serverConfig.AuthRequired}");
-        Console.WriteLine($"  允许的客户端: [{string.Join(", ", serverConfig.AllowedClients)}]");
+            Console.WriteLine("保留策略已更新:");
+            Console.WriteLine($"  新的最大天数: {initOptions.DefaultRetentionPolicy.MaxAgeDays}");
+            Console.WriteLine($"  新的最大数量: {initOptions.DefaultRetentionPolicy.MaxCount}");
+        }
+    }
 
-        // 存储配置
-        var storageConfig = new
+    /// <summary>
+    /// 示例：验证配置
+    /// </summary>
+    public static bool ValidateConfigurationExample()
+    {
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(AppContext.BaseDirectory)
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+            .Build();
+
+        var initOptions = configuration
+            .GetSection(DatabaseInitializationOptions.SectionName)
+            .Get<DatabaseInitializationOptions>();
+
+        if (initOptions == null)
         {
-            PrimaryPath = AppConfigHelper.GetConfigValue("StorageConfig.PrimaryStoragePath", "backups"),
-            EnableCompression = AppConfigHelper.GetBoolValue("StorageConfig.EnableCompression", true),
-            EnableEncryption = AppConfigHelper.GetBoolValue("StorageConfig.EnableEncryption", false),
-            MaxSize = AppConfigHelper.GetConfigValue("StorageConfig.MaxStorageSize", "10GB"),
-            CleanupInterval = AppConfigHelper.GetTimeSpanValue("StorageConfig.CleanupInterval", TimeSpan.FromHours(24))
-        };
+            Console.WriteLine("错误: 无法加载数据库初始化配置");
+            return false;
+        }
 
-        Console.WriteLine($"存储配置:");
-        Console.WriteLine($"  主存储路径: {storageConfig.PrimaryPath}");
-        Console.WriteLine($"  启用压缩: {storageConfig.EnableCompression}");
-        Console.WriteLine($"  启用加密: {storageConfig.EnableEncryption}");
-        Console.WriteLine($"  最大存储大小: {storageConfig.MaxSize}");
-        Console.WriteLine($"  清理间隔: {storageConfig.CleanupInterval}");
+        var isValid = true;
 
-        // 警报配置
-        var alertingConfig = new
+        // 验证保留策略
+        if (initOptions.DefaultRetentionPolicy != null)
         {
-            Enabled = AppConfigHelper.GetBoolValue("Alerting.EnableAlerting", true),
-            TimeoutSeconds = AppConfigHelper.GetIntValue("Alerting.TimeoutSeconds", 30),
-            MaxRetries = AppConfigHelper.GetIntValue("Alerting.MaxRetryAttempts", 3),
-            EmailEnabled = AppConfigHelper.GetBoolValue("Alerting.Email.Enabled", false),
-            EmailRecipients = AppConfigHelper.GetStringArrayValue("Alerting.Email.Recipients")
-        };
+            if (initOptions.DefaultRetentionPolicy.MaxAgeDays <= 0)
+            {
+                Console.WriteLine("错误: MaxAgeDays 必须大于 0");
+                isValid = false;
+            }
 
-        Console.WriteLine($"警报配置:");
-        Console.WriteLine($"  启用警报: {alertingConfig.Enabled}");
-        Console.WriteLine($"  超时时间: {alertingConfig.TimeoutSeconds}秒");
-        Console.WriteLine($"  最大重试次数: {alertingConfig.MaxRetries}");
-        Console.WriteLine($"  启用邮件警报: {alertingConfig.EmailEnabled}");
-        Console.WriteLine($"  邮件接收者: [{string.Join(", ", alertingConfig.EmailRecipients)}]");
+            if (initOptions.DefaultRetentionPolicy.MaxCount <= 0)
+            {
+                Console.WriteLine("错误: MaxCount 必须大于 0");
+                isValid = false;
+            }
+        }
+
+        // 验证备份配置
+        if (initOptions.DefaultBackupConfiguration != null)
+        {
+            if (string.IsNullOrWhiteSpace(initOptions.DefaultBackupConfiguration.TargetDirectory))
+            {
+                Console.WriteLine("错误: TargetDirectory 不能为空");
+                isValid = false;
+            }
+
+            if (initOptions.DefaultBackupConfiguration.MySQLConnection != null)
+            {
+                if (initOptions.DefaultBackupConfiguration.MySQLConnection.Port <= 0 || 
+                    initOptions.DefaultBackupConfiguration.MySQLConnection.Port > 65535)
+                {
+                    Console.WriteLine("错误: MySQL 端口必须在 1-65535 之间");
+                    isValid = false;
+                }
+            }
+        }
+
+        // 验证客户端凭据
+        if (initOptions.DefaultClientCredentials != null)
+        {
+            if (string.IsNullOrWhiteSpace(initOptions.DefaultClientCredentials.ClientId))
+            {
+                Console.WriteLine("错误: ClientId 不能为空");
+                isValid = false;
+            }
+
+            if (string.IsNullOrWhiteSpace(initOptions.DefaultClientCredentials.ClientSecret))
+            {
+                Console.WriteLine("错误: ClientSecret 不能为空");
+                isValid = false;
+            }
+        }
+
+        if (isValid)
+        {
+            Console.WriteLine("配置验证通过");
+        }
+
+        return isValid;
+    }
+
+    /// <summary>
+    /// 示例：使用不同环境的配置
+    /// </summary>
+    public static void EnvironmentSpecificConfigurationExample()
+    {
+        var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(AppContext.BaseDirectory)
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+            .AddJsonFile($"appsettings.{environment}.json", optional: true, reloadOnChange: true)
+            .Build();
+
+        Console.WriteLine($"当前环境: {environment}");
+
+        var initOptions = configuration
+            .GetSection(DatabaseInitializationOptions.SectionName)
+            .Get<DatabaseInitializationOptions>();
+
+        if (initOptions?.DefaultRetentionPolicy != null)
+        {
+            Console.WriteLine($"保留策略 (来自 {environment} 配置):");
+            Console.WriteLine($"  最大天数: {initOptions.DefaultRetentionPolicy.MaxAgeDays}");
+            Console.WriteLine($"  最大数量: {initOptions.DefaultRetentionPolicy.MaxCount}");
+        }
     }
 }

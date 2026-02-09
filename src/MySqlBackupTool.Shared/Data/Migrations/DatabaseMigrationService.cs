@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using MySqlBackupTool.Shared.Interfaces;
 using MySqlBackupTool.Shared.Models;
 
@@ -38,6 +39,11 @@ public class DatabaseMigrationService
     /// </summary>
     private readonly ICredentialStorage _credentialStorage;
 
+    /// <summary>
+    /// 数据库初始化配置选项
+    /// </summary>
+    private readonly DatabaseInitializationOptions _initOptions;
+
     #endregion
 
     #region 构造函数
@@ -48,15 +54,18 @@ public class DatabaseMigrationService
     /// <param name="context">数据库上下文实例</param>
     /// <param name="logger">日志记录器实例</param>
     /// <param name="credentialStorage">凭据存储服务实例</param>
+    /// <param name="initOptions">数据库初始化配置选项</param>
     /// <exception cref="ArgumentNullException">当任何参数为null时抛出</exception>
     public DatabaseMigrationService(
         BackupDbContext context, 
         ILogger<DatabaseMigrationService> logger,
-        ICredentialStorage credentialStorage)
+        ICredentialStorage credentialStorage,
+        IOptions<DatabaseInitializationOptions> initOptions)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _credentialStorage = credentialStorage ?? throw new ArgumentNullException(nameof(credentialStorage));
+        _initOptions = initOptions?.Value ?? new DatabaseInitializationOptions();
     }
 
     #endregion
@@ -131,6 +140,7 @@ public class DatabaseMigrationService
     /// 1. 默认客户端认证凭据（用于测试和初始设置）
     /// 2. 默认备份保留策略
     /// 3. 默认备份配置（如果需要）
+    /// 4. 默认调度配置（关联到默认备份配置）
     /// 
     /// 只有在相应数据不存在时才会创建，避免重复数据
     /// </remarks>
@@ -147,24 +157,41 @@ public class DatabaseMigrationService
             // 添加默认保留策略（如果不存在）
             if (!await _context.RetentionPolicies.AnyAsync())
             {
-                var defaultPolicy = new Models.RetentionPolicy
+                var policyOptions = _initOptions.DefaultRetentionPolicy;
+                if (policyOptions != null)
                 {
-                    Name = "Default Policy",
-                    Description = "Keep backups for 30 days or maximum 10 backups",
-                    MaxAgeDays = 30,        // 保留30天
-                    MaxCount = 10,          // 最多保留10个备份
-                    IsEnabled = true,       // 默认启用
-                    CreatedAt = DateTime.Now
-                };
+                    // 直接使用配置的 RetentionPolicy 对象
+                    policyOptions.CreatedAt = DateTime.Now;
 
-                _context.RetentionPolicies.Add(defaultPolicy);
-                await _context.SaveChangesAsync();
-                
-                _logger.LogInformation("默认保留策略创建成功");
+                    _context.RetentionPolicies.Add(policyOptions);
+                    await _context.SaveChangesAsync();
+
+                    _logger.LogInformation("默认保留策略创建成功: {PolicyName}", policyOptions.Name);
+                }
+                else 
+                {
+                    var defaultPolicy = new Models.RetentionPolicy
+                    {
+                        Name = "Default Policy",
+                        Description = "Keep backups for 30 days or maximum 10 backups",
+                        MaxAgeDays = 30,        // 保留30天
+                        MaxCount = 10,          // 最多保留10个备份
+                        IsEnabled = true,       // 默认启用
+                        CreatedAt = DateTime.Now
+                    };
+
+                    _context.RetentionPolicies.Add(defaultPolicy);
+                    await _context.SaveChangesAsync();
+
+                    _logger.LogInformation("默认保留策略创建成功");
+                }
             }
 
-            // 添加默认备份配置（如果不存在）
-            await SeedDefaultBackupConfigurationAsync();
+            // 添加默认备份配置（如果不存在），并返回创建的配置
+            var defaultBackupConfig = await SeedDefaultBackupConfigurationAsync();
+
+            // 添加默认调度配置（如果不存在），关联到默认备份配置
+            await SeedDefaultScheduleConfigurationAsync(defaultBackupConfig);
 
             _logger.LogInformation("默认种子数据填充完成");
         }
@@ -184,14 +211,21 @@ public class DatabaseMigrationService
     {
         try
         {
+            var credOptions = _initOptions.DefaultClientCredentials;
+            if (credOptions == null)
+            {
+                _logger.LogDebug("No default client credentials configured, skipping creation");
+                return;
+            }
+
             // Check if any client credentials exist
             var existingClients = await _credentialStorage.ListClientIdsAsync();
             
             // Check if default client exists and has correct permissions
-            var defaultClientExists = existingClients.Contains("default-client");
+            var defaultClientExists = existingClients.Contains(credOptions.ClientId);
             if (defaultClientExists)
             {
-                var existingClient = await _credentialStorage.GetCredentialsAsync("default-client");
+                var existingClient = await _credentialStorage.GetCredentialsAsync(credOptions.ClientId);
                 if (existingClient != null)
                 {
                     // Check if permissions are correct (using new format)
@@ -200,14 +234,16 @@ public class DatabaseMigrationService
                     {
                         _logger.LogInformation("Updating default client credentials with correct permissions");
                         
-                        // Update with correct permissions
-                        existingClient.Permissions = new List<string>
-                        {
-                            BackupPermissions.UploadBackup,
-                            BackupPermissions.DownloadBackup,
-                            BackupPermissions.ListBackups,
-                            BackupPermissions.DeleteBackup
-                        };
+                        // Update with correct permissions from config
+                        existingClient.Permissions = credOptions.Permissions.Any() 
+                            ? credOptions.Permissions 
+                            : new List<string>
+                            {
+                                BackupPermissions.UploadBackup,
+                                BackupPermissions.DownloadBackup,
+                                BackupPermissions.ListBackups,
+                                BackupPermissions.DeleteBackup
+                            };
                         
                         await _credentialStorage.UpdateCredentialsAsync(existingClient);
                         _logger.LogInformation("Default client credentials updated with correct permissions");
@@ -227,28 +263,26 @@ public class DatabaseMigrationService
                 return;
             }
 
-            // Create default client credentials
-            var defaultClient = new ClientCredentials
+            // 直接使用配置的 ClientCredentials 对象
+            credOptions.CreatedAt = DateTime.Now;
+            credOptions.ExpiresAt = null; // No expiration for default client
+
+            // Ensure permissions are set
+            if (!credOptions.Permissions.Any())
             {
-                ClientId = "default-client",
-                ClientSecret = "default-secret-2024", // In production, this should be randomly generated
-                ClientName = "Default Backup Client",
-                Permissions = new List<string>
+                credOptions.Permissions = new List<string>
                 {
                     BackupPermissions.UploadBackup,
                     BackupPermissions.DownloadBackup,
                     BackupPermissions.ListBackups,
                     BackupPermissions.DeleteBackup
-                },
-                IsActive = true,
-                CreatedAt = DateTime.Now,
-                ExpiresAt = null // No expiration for default client
-            };
+                };
+            }
 
-            var success = await _credentialStorage.StoreCredentialsAsync(defaultClient);
+            var success = await _credentialStorage.StoreCredentialsAsync(credOptions);
             if (success)
             {
-                _logger.LogInformation("Default client credentials created successfully for client '{ClientId}'", defaultClient.ClientId);
+                _logger.LogInformation("Default client credentials created successfully for client '{ClientId}'", credOptions.ClientId);
                 _logger.LogWarning("SECURITY WARNING: Default client credentials are being used. Please change them in production!");
             }
             else
@@ -266,66 +300,91 @@ public class DatabaseMigrationService
     /// <summary>
     /// Seeds default backup configuration for testing and initial setup
     /// </summary>
-    private async Task SeedDefaultBackupConfigurationAsync()
+    /// <returns>创建的默认备份配置，如果已存在或未配置则返回 null</returns>
+    private async Task<BackupConfiguration?> SeedDefaultBackupConfigurationAsync()
     {
         try
         {
+            var configOptions = _initOptions.DefaultBackupConfiguration;
+            if (configOptions == null)
+            {
+                _logger.LogDebug("No default backup configuration configured, skipping creation");
+                return null;
+            }
+
             // Check if any backup configurations exist
             if (await _context.BackupConfigurations.AnyAsync())
             {
                 _logger.LogDebug("Backup configurations already exist, skipping default configuration creation");
-                return;
+                return null;
             }
 
-            // Create default backup configuration
-            var defaultConfig = new BackupConfiguration
-            {
-                Name = "Default Configuration",
-                MySQLConnection = new MySQLConnectionInfo
-                {
-                    Host = "localhost",
-                    Port = 3306,
-                    Username = "root",
-                    Password = "", // Empty password for default setup
-                    ServiceName = "MySQL80",
-                    DataDirectoryPath = @"C:\ProgramData\MySQL\MySQL Server 8.0\Data"
-                },
-                DataDirectoryPath = @"C:\ProgramData\MySQL\MySQL Server 8.0\Data",
-                ServiceName = "MySQL",
-                TargetServer = new ServerEndpoint
-                {
-                    IPAddress = "127.0.0.1",
-                    Port = 8080,
-                    UseSSL = false,
-                    RequireAuthentication = true,
-                    ClientCredentials = new ClientCredentials
-                    {
-                        ClientId = "default-client",
-                        ClientSecret = "default-secret-2024",
-                        ClientName = "Default Backup Client"
-                    }
-                },
-                TargetDirectory = @"D:\Backup",
-                NamingStrategy = new FileNamingStrategy
-                {
-                    Pattern = "{server}_{database}_{timestamp}.zip",
-                    DateFormat = "yyyyMMdd_HHmmss",
-                    IncludeServerName = true,
-                    IncludeDatabaseName = true
-                },
-                IsActive = true,
-                CreatedAt = DateTime.Now
-            };
+            // 直接使用配置的 BackupConfiguration 对象
+            configOptions.CreatedAt = DateTime.Now;
 
-            _context.BackupConfigurations.Add(defaultConfig);
+            _context.BackupConfigurations.Add(configOptions);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Default backup configuration created successfully");
+            _logger.LogInformation("Default backup configuration created successfully: {ConfigName} (ID: {ConfigId})", 
+                configOptions.Name, configOptions.Id);
             _logger.LogWarning("SECURITY WARNING: Default backup configuration is being used. Please review and update the settings!");
+            
+            return configOptions;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating default backup configuration");
+            // Don't throw here as this is not critical for database initialization
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Seeds default schedule configuration for testing and initial setup
+    /// </summary>
+    /// <param name="defaultBackupConfig">默认备份配置，如果为 null 则查找第一个可用的备份配置</param>
+    private async Task SeedDefaultScheduleConfigurationAsync(BackupConfiguration? defaultBackupConfig)
+    {
+        try
+        {
+            var scheduleOptions = _initOptions.DefaultScheduleConfiguration;
+            if (scheduleOptions == null)
+            {
+                _logger.LogDebug("No default schedule configuration configured, skipping creation");
+                return;
+            }
+
+            // Check if any schedule configurations exist
+            if (await _context.ScheduleConfigurations.AnyAsync())
+            {
+                _logger.LogDebug("Schedule configurations already exist, skipping default schedule creation");
+                return;
+            }
+
+            // 优先使用传入的默认备份配置，否则查找第一个可用的备份配置
+            var backupConfig = defaultBackupConfig ?? await _context.BackupConfigurations.FirstOrDefaultAsync();
+            if (backupConfig == null)
+            {
+                _logger.LogDebug("No backup configuration exists, skipping default schedule creation");
+                return;
+            }
+
+            // 直接使用配置的 ScheduleConfiguration 对象，设置关联的 BackupConfigId
+            scheduleOptions.BackupConfigId = backupConfig.Id;
+            scheduleOptions.CreatedAt = DateTime.Now;
+            
+            // Calculate next execution time
+            scheduleOptions.NextExecution = scheduleOptions.CalculateNextExecution();
+
+            _context.ScheduleConfigurations.Add(scheduleOptions);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Default schedule configuration created successfully: {ScheduleType} at {ScheduleTime}, linked to backup config '{BackupConfigName}' (ID: {BackupConfigId})", 
+                scheduleOptions.ScheduleType, scheduleOptions.ScheduleTime, backupConfig.Name, backupConfig.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating default schedule configuration");
             // Don't throw here as this is not critical for database initialization
         }
     }
