@@ -16,7 +16,7 @@
     <AssemblyDescription>MySQL备份工具的服务器端应用程序，负责接收和管理备份文件</AssemblyDescription>
     <AssemblyCompany>MySQL Backup Tool</AssemblyCompany>
     <AssemblyProduct>MySQL Backup Tool Server</AssemblyProduct>
-    <AssemblyCopyright>Copyright © 2024</AssemblyCopyright>
+    <AssemblyCopyright>Copyright © 2026</AssemblyCopyright>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <FileVersion>1.0.0.0</FileVersion>
   </PropertyGroup>

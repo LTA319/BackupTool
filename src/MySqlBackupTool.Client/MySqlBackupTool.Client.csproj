@@ -6,6 +6,15 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
+
+        <!-- 程序集信息 -->
+    <AssemblyTitle>MySQL备份工具客户端</AssemblyTitle>
+    <AssemblyDescription>MySQL备份工具的客户端端应用程序，负责压缩和发送备份文件</AssemblyDescription>
+    <AssemblyCompany>MySQL Backup Tool</AssemblyCompany>
+    <AssemblyProduct>MySQL Backup Tool Client</AssemblyProduct>
+    <AssemblyCopyright>Copyright © 2026</AssemblyCopyright>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
