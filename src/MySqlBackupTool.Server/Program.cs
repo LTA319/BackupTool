@@ -4,7 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MySqlBackupTool.Shared.DependencyInjection;
 using MySqlBackupTool.Shared.Interfaces;
-using MySqlBackupTool.Server.Configuration;
+using MySqlBackupTool.Shared.Tools;
 
 namespace MySqlBackupTool.Server;
 

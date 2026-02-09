@@ -689,7 +689,7 @@ public class FileReceiver : IFileReceiver, IDisposable
             if (shouldChunk)
             {
                 totalBytesReceived = await ReceiveFileChunkedAsync(stream, transferId, request, cancellationToken);
-                finalPath = await _chunkManager.FinalizeTransferAsync(transferId);
+                finalPath = await _chunkManager.FinalizeTransferAsync(transferId, targetPath);
             }
             else
             {
