@@ -396,6 +396,10 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             ((System.ComponentModel.ISupportInitialize)(this._transferLogGrid)).EndInit();
             this.progressPanel.ResumeLayout(false);
             this.ResumeLayout(false);
+
+            // Apply standard styling and optimize layout performance
+            EmbeddedFormStyleManager.ApplyStandardStyling(this);
+            EmbeddedFormStyleManager.OptimizeLayoutPerformance(this);
         }
 
         #endregion

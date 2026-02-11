@@ -178,12 +178,6 @@ public partial class BackupMonitorControl : UserControl, IEmbeddedForm
 
         InitializeComponent();
         InitializeControl();
-        
-        // Apply standard styling
-        EmbeddedFormStyleManager.ApplyStandardStyling(this);
-        
-        // Optimize layout performance
-        EmbeddedFormStyleManager.OptimizeLayoutPerformance(this);
     }
 
     #endregion

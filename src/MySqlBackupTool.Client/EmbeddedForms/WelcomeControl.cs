@@ -14,12 +14,6 @@ namespace MySqlBackupTool.Client.EmbeddedForms
         public WelcomeControl()
         {
             InitializeComponent();
-            
-            // Apply standard styling
-            EmbeddedFormStyleManager.ApplyStandardStyling(this);
-            
-            // Optimize layout performance
-            EmbeddedFormStyleManager.OptimizeLayoutPerformance(this);
         }
 
         #region IEmbeddedForm Implementation

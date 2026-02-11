@@ -238,6 +238,10 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             this.panelBottom.ResumeLayout(false);
             this.panelBottom.PerformLayout();
             this.ResumeLayout(false);
+
+            // Apply standard styling and optimize layout performance
+            EmbeddedFormStyleManager.ApplyStandardStyling(this);
+            EmbeddedFormStyleManager.OptimizeLayoutPerformance(this);
         }
 
         #endregion
