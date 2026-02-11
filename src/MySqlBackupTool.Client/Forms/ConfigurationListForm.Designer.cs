@@ -44,12 +44,18 @@ namespace MySqlBackupTool.Client.Forms
             // 
             // dgvConfigurations
             // 
+            dgvConfigurations.AllowUserToAddRows = false;
+            dgvConfigurations.AllowUserToDeleteRows = false;
             dgvConfigurations.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             dgvConfigurations.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             dgvConfigurations.Location = new Point(19, 19);
             dgvConfigurations.Margin = new Padding(5, 5, 5, 5);
+            dgvConfigurations.MultiSelect = false;
             dgvConfigurations.Name = "dgvConfigurations";
+            dgvConfigurations.ReadOnly = true;
             dgvConfigurations.RowHeadersWidth = 62;
+            dgvConfigurations.RowTemplate.Height = 25;
+            dgvConfigurations.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dgvConfigurations.Size = new Size(1419, 521);
             dgvConfigurations.TabIndex = 0;
             // 

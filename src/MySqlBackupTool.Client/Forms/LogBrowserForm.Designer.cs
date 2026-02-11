@@ -91,12 +91,18 @@ namespace MySqlBackupTool.Client.Forms
             // 
             // dgvLogs
             // 
+            dgvLogs.AllowUserToAddRows = false;
+            dgvLogs.AllowUserToDeleteRows = false;
             dgvLogs.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             dgvLogs.Dock = DockStyle.Fill;
             dgvLogs.Location = new Point(0, 160);
             dgvLogs.Margin = new Padding(4);
+            dgvLogs.MultiSelect = true;
             dgvLogs.Name = "dgvLogs";
+            dgvLogs.ReadOnly = true;
             dgvLogs.RowHeadersWidth = 62;
+            dgvLogs.RowTemplate.Height = 25;
+            dgvLogs.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dgvLogs.Size = new Size(1265, 272);
             dgvLogs.TabIndex = 1;
             // 

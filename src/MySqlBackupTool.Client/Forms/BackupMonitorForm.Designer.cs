@@ -88,10 +88,16 @@ namespace MySqlBackupTool.Client.Forms
             // 
             // dgvConfigurations
             // 
+            this.dgvConfigurations.AllowUserToAddRows = false;
+            this.dgvConfigurations.AllowUserToDeleteRows = false;
             this.dgvConfigurations.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.dgvConfigurations.Dock = System.Windows.Forms.DockStyle.Fill;
             this.dgvConfigurations.Location = new System.Drawing.Point(3, 19);
+            this.dgvConfigurations.MultiSelect = false;
             this.dgvConfigurations.Name = "dgvConfigurations";
+            this.dgvConfigurations.ReadOnly = true;
+            this.dgvConfigurations.RowTemplate.Height = 25;
+            this.dgvConfigurations.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
             this.dgvConfigurations.Size = new System.Drawing.Size(878, 178);
             this.dgvConfigurations.TabIndex = 0;
 
@@ -133,10 +139,16 @@ namespace MySqlBackupTool.Client.Forms
             // 
             // dgvRunningBackups
             // 
+            this.dgvRunningBackups.AllowUserToAddRows = false;
+            this.dgvRunningBackups.AllowUserToDeleteRows = false;
             this.dgvRunningBackups.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.dgvRunningBackups.Dock = System.Windows.Forms.DockStyle.Fill;
             this.dgvRunningBackups.Location = new System.Drawing.Point(3, 19);
+            this.dgvRunningBackups.MultiSelect = false;
             this.dgvRunningBackups.Name = "dgvRunningBackups";
+            this.dgvRunningBackups.ReadOnly = true;
+            this.dgvRunningBackups.RowTemplate.Height = 25;
+            this.dgvRunningBackups.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
             this.dgvRunningBackups.Size = new System.Drawing.Size(878, 194);
             this.dgvRunningBackups.TabIndex = 0;
 
