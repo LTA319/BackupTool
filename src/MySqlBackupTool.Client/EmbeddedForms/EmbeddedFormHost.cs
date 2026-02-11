@@ -8,7 +8,7 @@ namespace MySqlBackupTool.Client.EmbeddedForms
     /// <summary>
     /// Manages the lifecycle and display of embedded forms within FormMain
     /// </summary>
-    public class EmbeddedFormHost
+    public class EmbeddedFormHost : IDisposable
     {
         private readonly Panel _contentPanel;
         private Control? _currentControl;
@@ -17,6 +17,7 @@ namespace MySqlBackupTool.Client.EmbeddedForms
         private readonly ILogger<EmbeddedFormHost> _logger;
         private readonly EmbeddedFormErrorHandler _errorHandler;
         private readonly Stack<NavigationState> _navigationHistory;
+        private bool _disposed = false;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EmbeddedFormHost"/> class
@@ -76,6 +77,8 @@ namespace MySqlBackupTool.Client.EmbeddedForms
         /// <typeparam name="T">The type of embedded form to show</typeparam>
         public void ShowForm<T>() where T : UserControl, IEmbeddedForm
         {
+            ThrowIfDisposed();
+
             try
             {
                 _logger.LogInformation("Showing embedded form of type {FormType}", typeof(T).Name);
@@ -149,6 +152,8 @@ namespace MySqlBackupTool.Client.EmbeddedForms
         /// </summary>
         public void ShowWelcome()
         {
+            ThrowIfDisposed();
+
             try
             {
                 _logger.LogInformation("Showing welcome screen");
@@ -190,23 +195,99 @@ namespace MySqlBackupTool.Client.EmbeddedForms
 
             try
             {
-                // Unwire events
+                _logger.LogDebug("Deactivating current form: {FormType}", _currentForm.GetType().Name);
+
+                // Unwire events to prevent memory leaks
                 _currentForm.CloseRequested -= OnFormCloseRequested;
                 _currentForm.TitleChanged -= OnFormTitleChanged;
                 _currentForm.StatusChanged -= OnFormStatusChanged;
 
-                // Deactivate
+                // Call deactivation lifecycle method
                 _currentForm.OnDeactivated();
 
-                // Dispose if the control is disposable
+                // Dispose the control to free resources
                 if (_currentControl is IDisposable disposable)
                 {
+                    _logger.LogDebug("Disposing control: {ControlType}", _currentControl.GetType().Name);
                     disposable.Dispose();
                 }
+
+                // Clear references to allow garbage collection
+                _currentControl = null;
+                _currentForm = null;
+
+                // Notify GC about memory pressure relief if form was large
+                GC.Collect(0, GCCollectionMode.Optimized);
+
+                _logger.LogDebug("Form deactivation completed successfully");
             }
             catch (Exception ex)
             {
                 _errorHandler.HandleDeactivationError(ex, _currentForm);
+                
+                // Even if deactivation fails, clear references to prevent memory leaks
+                _currentControl = null;
+                _currentForm = null;
+            }
+        }
+
+        /// <summary>
+        /// Disposes the EmbeddedFormHost and releases all resources
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Protected implementation of Dispose pattern
+        /// </summary>
+        /// <param name="disposing">True if disposing managed resources</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                try
+                {
+                    _logger.LogInformation("Disposing EmbeddedFormHost");
+
+                    // Deactivate and dispose current form
+                    if (_currentForm != null)
+                    {
+                        DeactivateCurrentForm();
+                    }
+
+                    // Clear navigation history
+                    _navigationHistory.Clear();
+
+                    // Clear content panel
+                    _contentPanel.Controls.Clear();
+
+                    _logger.LogInformation("EmbeddedFormHost disposed successfully");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error during EmbeddedFormHost disposal");
+                }
+            }
+
+            _disposed = true;
+        }
+
+        /// <summary>
+        /// Throws ObjectDisposedException if the host has been disposed
+        /// </summary>
+        private void ThrowIfDisposed()
+        {
+            if (_disposed)
+            {
+                throw new ObjectDisposedException(nameof(EmbeddedFormHost));
             }
         }
 

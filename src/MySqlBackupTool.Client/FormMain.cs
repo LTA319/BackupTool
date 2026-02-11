@@ -704,13 +704,14 @@ public partial class FormMain : Form
 
             _logger.LogInformation("应用程序正在关闭");
 
-            // Properly dispose embedded forms when closing from tray
+            // Properly dispose embedded form host and all forms
             if (_embeddedFormHost != null)
             {
                 try
                 {
-                    // Show welcome screen to properly deactivate and dispose current form
-                    _embeddedFormHost.ShowWelcome();
+                    _logger.LogInformation("正在清理嵌入式窗体资源");
+                    _embeddedFormHost.Dispose();
+                    _embeddedFormHost = null;
                     _logger.LogInformation("已清理嵌入式窗体资源");
                 }
                 catch (Exception ex)
