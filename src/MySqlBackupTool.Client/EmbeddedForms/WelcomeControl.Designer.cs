@@ -67,8 +67,8 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             this.labelRecentActivity.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.labelRecentActivity.ForeColor = System.Drawing.SystemColors.ControlDarkDark;
             this.labelRecentActivity.Location = new System.Drawing.Point(20, 250);
+            this.labelRecentActivity.MaximumSize = new System.Drawing.Size(460, 0);
             this.labelRecentActivity.Name = "labelRecentActivity";
-            this.labelRecentActivity.Size = new System.Drawing.Size(460, 60);
             this.labelRecentActivity.TabIndex = 3;
             this.labelRecentActivity.Text = "Recent Activity:\r\n• No recent backups\r\n• Use the Tools menu to get started";
             // 
@@ -77,8 +77,8 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             this.labelQuickActions.AutoSize = true;
             this.labelQuickActions.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.labelQuickActions.Location = new System.Drawing.Point(20, 150);
+            this.labelQuickActions.MaximumSize = new System.Drawing.Size(460, 0);
             this.labelQuickActions.Name = "labelQuickActions";
-            this.labelQuickActions.Size = new System.Drawing.Size(460, 80);
             this.labelQuickActions.TabIndex = 2;
             this.labelQuickActions.Text = "Quick Actions:\r\n• Tools → Configuration Management - Manage backup configurations\r\n• Tools → Schedule Management - Set up automated backups\r\n• Tools → Backup Monitor - Monitor backup progress";
             // 
@@ -87,8 +87,8 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             this.labelWelcomeMessage.AutoSize = true;
             this.labelWelcomeMessage.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.labelWelcomeMessage.Location = new System.Drawing.Point(20, 80);
+            this.labelWelcomeMessage.MaximumSize = new System.Drawing.Size(460, 0);
             this.labelWelcomeMessage.Name = "labelWelcomeMessage";
-            this.labelWelcomeMessage.Size = new System.Drawing.Size(460, 38);
             this.labelWelcomeMessage.TabIndex = 1;
             this.labelWelcomeMessage.Text = "Welcome to MySQL Backup Tool!\r\nSelect a tool from the menu to get started.";
             // 
@@ -97,8 +97,8 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             this.labelTitle.AutoSize = true;
             this.labelTitle.Font = new System.Drawing.Font("Segoe UI", 18F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.labelTitle.Location = new System.Drawing.Point(20, 20);
+            this.labelTitle.MaximumSize = new System.Drawing.Size(460, 0);
             this.labelTitle.Name = "labelTitle";
-            this.labelTitle.Size = new System.Drawing.Size(310, 32);
             this.labelTitle.TabIndex = 0;
             this.labelTitle.Text = "MySQL Backup Tool";
             // 
