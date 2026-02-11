@@ -51,7 +51,12 @@
   - Test Title and NavigationPath properties
   - _Requirements: 1.1, 2.3_
 
-- [ ] 3. Update FormMain to support embedded forms
+- [x] 3. Update FormMain to support embedded forms
+
+
+
+
+
   - Add ContentPanel to FormMain for hosting embedded controls
   - Add NavigationPanel for breadcrumb display
   - Initialize EmbeddedFormHost in FormMain constructor

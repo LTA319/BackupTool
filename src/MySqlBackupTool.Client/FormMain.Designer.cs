@@ -53,6 +53,8 @@ namespace MySqlBackupTool.Client
             toolStripSeparator2 = new ToolStripSeparator();
             exitTrayToolStripMenuItem = new ToolStripMenuItem();
             transferLogViewToolStripMenuItem = new ToolStripMenuItem();
+            contentPanel = new Panel();
+            navigationPanel = new Panel();
             menuStrip.SuspendLayout();
             statusStrip.SuspendLayout();
             trayContextMenu.SuspendLayout();
@@ -225,12 +227,33 @@ namespace MySqlBackupTool.Client
             transferLogViewToolStripMenuItem.Text = "Transfer Log";
             transferLogViewToolStripMenuItem.Click += transferLogViewToolStripMenuItem_Click;
             // 
+            // navigationPanel
+            // 
+            navigationPanel.BackColor = System.Drawing.SystemColors.Control;
+            navigationPanel.BorderStyle = BorderStyle.FixedSingle;
+            navigationPanel.Dock = DockStyle.Top;
+            navigationPanel.Location = new Point(0, 32);
+            navigationPanel.Name = "navigationPanel";
+            navigationPanel.Padding = new Padding(10, 5, 10, 5);
+            navigationPanel.Size = new Size(1340, 40);
+            navigationPanel.TabIndex = 3;
+            // 
+            // contentPanel
+            // 
+            contentPanel.BackColor = System.Drawing.SystemColors.Window;
+            contentPanel.Dock = DockStyle.Fill;
+            contentPanel.Location = new Point(0, 72);
+            contentPanel.Name = "contentPanel";
+            contentPanel.Size = new Size(1340, 633);
+            contentPanel.TabIndex = 4;
+            // 
             // FormMain
             // 
             AutoScaleDimensions = new SizeF(11F, 24F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1340, 736);
-            Controls.Add(lblWelcome);
+            Controls.Add(contentPanel);
+            Controls.Add(navigationPanel);
             Controls.Add(statusStrip);
             Controls.Add(menuStrip);
             MainMenuStrip = menuStrip;
@@ -271,5 +294,7 @@ namespace MySqlBackupTool.Client
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator3;
         private System.Windows.Forms.ToolStripMenuItem systemTrayHelpToolStripMenuItem;
         private ToolStripMenuItem transferLogViewToolStripMenuItem;
+        private System.Windows.Forms.Panel contentPanel;
+        private System.Windows.Forms.Panel navigationPanel;
     }
 }

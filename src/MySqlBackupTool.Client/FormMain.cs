@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MySqlBackupTool.Client.Forms;
 using MySqlBackupTool.Client.Tools;
+using MySqlBackupTool.Client.EmbeddedForms;
 
 namespace MySqlBackupTool.Client;
 
@@ -27,6 +28,11 @@ public partial class FormMain : Form
     /// 标记是否真正退出应用程序，用于区分隐藏到托盘和真正退出
     /// </summary>
     private bool _isReallyClosing = false;
+
+    /// <summary>
+    /// 嵌入式窗体主机，用于管理嵌入式窗体的生命周期
+    /// </summary>
+    private EmbeddedForms.EmbeddedFormHost? _embeddedFormHost;
 
     #endregion
 
@@ -67,6 +73,9 @@ public partial class FormMain : Form
             // 初始化系统托盘
             InitializeSystemTray();
 
+            // 初始化嵌入式窗体主机
+            InitializeEmbeddedFormHost();
+
             _logger.LogInformation("主窗体初始化成功");
         }
         catch (Exception ex)
@@ -106,6 +115,38 @@ public partial class FormMain : Form
         catch (Exception ex)
         {
             _logger.LogError(ex, "初始化系统托盘时发生错误");
+        }
+    }
+
+    /// <summary>
+    /// 初始化嵌入式窗体主机
+    /// 创建EmbeddedFormHost实例并连接事件处理程序
+    /// </summary>
+    private void InitializeEmbeddedFormHost()
+    {
+        try
+        {
+            _logger.LogInformation("正在初始化嵌入式窗体主机");
+
+            // 创建EmbeddedFormHost实例
+            var embeddedFormLogger = _serviceProvider.GetRequiredService<ILogger<EmbeddedForms.EmbeddedFormHost>>();
+            _embeddedFormHost = new EmbeddedForms.EmbeddedFormHost(
+                contentPanel,
+                _serviceProvider,
+                embeddedFormLogger);
+
+            // 连接事件处理程序
+            _embeddedFormHost.ActiveFormChanged += OnActiveFormChanged;
+
+            // 显示欢迎屏幕
+            ShowWelcomeScreen();
+
+            _logger.LogInformation("嵌入式窗体主机初始化成功");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "初始化嵌入式窗体主机时发生错误");
+            throw;
         }
     }
 
@@ -175,6 +216,87 @@ public partial class FormMain : Form
         {
             this.Cursor = Cursors.Default;
             this.Text = "MySQL Backup Tool - Client";
+        }
+    }
+
+    /// <summary>
+    /// 显示欢迎屏幕
+    /// </summary>
+    private void ShowWelcomeScreen()
+    {
+        try
+        {
+            _embeddedFormHost?.ShowForm<EmbeddedForms.WelcomeControl>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "显示欢迎屏幕时发生错误");
+        }
+    }
+
+    /// <summary>
+    /// 处理活动窗体更改事件
+    /// 更新标题栏和导航面板
+    /// </summary>
+    private void OnActiveFormChanged(object? sender, EmbeddedForms.IEmbeddedForm? form)
+    {
+        try
+        {
+            if (form != null)
+            {
+                // 更新标题栏
+                this.Text = $"MySQL Backup Tool - {form.Title}";
+
+                // 更新导航面板
+                UpdateNavigationPanel(form.NavigationPath);
+
+                // 更新状态栏
+                toolStripStatusLabel.Text = $"当前视图: {form.Title}";
+            }
+            else
+            {
+                // 显示默认标题
+                this.Text = "MySQL Backup Tool - Client";
+
+                // 清除导航面板
+                UpdateNavigationPanel("Home");
+
+                // 更新状态栏
+                toolStripStatusLabel.Text = "就绪";
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "处理活动窗体更改时发生错误");
+        }
+    }
+
+    /// <summary>
+    /// 更新导航面板显示
+    /// </summary>
+    /// <param name="navigationPath">导航路径</param>
+    private void UpdateNavigationPanel(string navigationPath)
+    {
+        try
+        {
+            // 清除现有控件
+            navigationPanel.Controls.Clear();
+
+            // 创建导航标签
+            var navigationLabel = new Label
+            {
+                Text = navigationPath,
+                AutoSize = true,
+                Font = new Font(this.Font.FontFamily, 10, FontStyle.Regular),
+                ForeColor = System.Drawing.SystemColors.ControlText,
+                Location = new Point(10, 8)
+            };
+
+            navigationPanel.Controls.Add(navigationLabel);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "更新导航面板时发生错误");
         }
     }
 
