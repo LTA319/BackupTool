@@ -30,6 +30,13 @@ namespace MySqlBackupTool.Client.EmbeddedForms
         {
             splitContainer = new SplitContainer();
             dgvLogs = new DataGridView();
+            dataGridViewTextBoxColumn1 = new DataGridViewTextBoxColumn();
+            dataGridViewTextBoxColumn2 = new DataGridViewTextBoxColumn();
+            dataGridViewTextBoxColumn3 = new DataGridViewTextBoxColumn();
+            dataGridViewTextBoxColumn4 = new DataGridViewTextBoxColumn();
+            dataGridViewTextBoxColumn5 = new DataGridViewTextBoxColumn();
+            dataGridViewTextBoxColumn6 = new DataGridViewTextBoxColumn();
+            dataGridViewTextBoxColumn7 = new DataGridViewTextBoxColumn();
             lblFilteredCount = new Label();
             panelFilters = new Panel();
             grpFilters = new GroupBox();
@@ -91,56 +98,10 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             // 
             // dgvLogs
             // 
-            dgvLogs.AutoGenerateColumns = false;
+            dgvLogs.AllowUserToAddRows = false;
+            dgvLogs.AllowUserToDeleteRows = false;
             dgvLogs.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dgvLogs.Columns.AddRange(new DataGridViewColumn[] {
-            new DataGridViewTextBoxColumn
-            {
-                Name = "ConfigName",
-                HeaderText = "配置名称",
-                Width = 120
-            },
-            new DataGridViewTextBoxColumn
-            {
-                Name = "Status",
-                HeaderText = "状态",
-                DataPropertyName = "Status",
-                Width = 100
-            },
-            new DataGridViewTextBoxColumn
-            {
-                Name = "StartTime",
-                HeaderText = "开始时间",
-                DataPropertyName = "StartTime",
-                Width = 130,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "yyyy-MM-dd HH:mm:ss" }
-            },
-            new DataGridViewTextBoxColumn
-            {
-                Name = "Duration",
-                HeaderText = "持续时间",
-                Width = 80
-            },
-            new DataGridViewTextBoxColumn
-            {
-                Name = "FileSize",
-                HeaderText = "文件大小",
-                Width = 80
-            },
-            new DataGridViewTextBoxColumn
-            {
-                Name = "FilePath",
-                HeaderText = "文件路径",
-                DataPropertyName = "FilePath",
-                Width = 200
-            },
-            new DataGridViewTextBoxColumn
-            {
-                Name = "ErrorMessage",
-                HeaderText = "错误信息",
-                DataPropertyName = "ErrorMessage",
-                Width = 150
-            }});
+            dgvLogs.Columns.AddRange(new DataGridViewColumn[] { dataGridViewTextBoxColumn1, dataGridViewTextBoxColumn2, dataGridViewTextBoxColumn3, dataGridViewTextBoxColumn4, dataGridViewTextBoxColumn5, dataGridViewTextBoxColumn6, dataGridViewTextBoxColumn7 });
             dgvLogs.Dock = DockStyle.Fill;
             dgvLogs.Location = new Point(0, 160);
             dgvLogs.Margin = new Padding(4);
@@ -151,11 +112,58 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             dgvLogs.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dgvLogs.Size = new Size(1265, 272);
             dgvLogs.TabIndex = 1;
-            dgvLogs.AllowUserToAddRows = false;
-            dgvLogs.AllowUserToDeleteRows = false;
-            dgvLogs.CellFormatting += new DataGridViewCellFormattingEventHandler(this.DgvLogs_CellFormatting);
-            dgvLogs.SelectionChanged += new EventHandler(this.DgvLogs_SelectionChanged);
-            dgvLogs.RowPrePaint += new DataGridViewRowPrePaintEventHandler(this.DgvLogs_RowPrePaint);
+            dgvLogs.CellFormatting += DgvLogs_CellFormatting;
+            dgvLogs.RowPrePaint += DgvLogs_RowPrePaint;
+            dgvLogs.SelectionChanged += DgvLogs_SelectionChanged;
+            // 
+            // dataGridViewTextBoxColumn1
+            // 
+            dataGridViewTextBoxColumn1.MinimumWidth = 6;
+            dataGridViewTextBoxColumn1.Name = "dataGridViewTextBoxColumn1";
+            dataGridViewTextBoxColumn1.ReadOnly = true;
+            dataGridViewTextBoxColumn1.Width = 125;
+            // 
+            // dataGridViewTextBoxColumn2
+            // 
+            dataGridViewTextBoxColumn2.MinimumWidth = 6;
+            dataGridViewTextBoxColumn2.Name = "dataGridViewTextBoxColumn2";
+            dataGridViewTextBoxColumn2.ReadOnly = true;
+            dataGridViewTextBoxColumn2.Width = 125;
+            // 
+            // dataGridViewTextBoxColumn3
+            // 
+            dataGridViewTextBoxColumn3.MinimumWidth = 6;
+            dataGridViewTextBoxColumn3.Name = "dataGridViewTextBoxColumn3";
+            dataGridViewTextBoxColumn3.ReadOnly = true;
+            dataGridViewTextBoxColumn3.Width = 125;
+            // 
+            // dataGridViewTextBoxColumn4
+            // 
+            dataGridViewTextBoxColumn4.MinimumWidth = 6;
+            dataGridViewTextBoxColumn4.Name = "dataGridViewTextBoxColumn4";
+            dataGridViewTextBoxColumn4.ReadOnly = true;
+            dataGridViewTextBoxColumn4.Width = 125;
+            // 
+            // dataGridViewTextBoxColumn5
+            // 
+            dataGridViewTextBoxColumn5.MinimumWidth = 6;
+            dataGridViewTextBoxColumn5.Name = "dataGridViewTextBoxColumn5";
+            dataGridViewTextBoxColumn5.ReadOnly = true;
+            dataGridViewTextBoxColumn5.Width = 125;
+            // 
+            // dataGridViewTextBoxColumn6
+            // 
+            dataGridViewTextBoxColumn6.MinimumWidth = 6;
+            dataGridViewTextBoxColumn6.Name = "dataGridViewTextBoxColumn6";
+            dataGridViewTextBoxColumn6.ReadOnly = true;
+            dataGridViewTextBoxColumn6.Width = 125;
+            // 
+            // dataGridViewTextBoxColumn7
+            // 
+            dataGridViewTextBoxColumn7.MinimumWidth = 6;
+            dataGridViewTextBoxColumn7.Name = "dataGridViewTextBoxColumn7";
+            dataGridViewTextBoxColumn7.ReadOnly = true;
+            dataGridViewTextBoxColumn7.Width = 125;
             // 
             // lblFilteredCount
             // 
@@ -466,10 +474,6 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             panelBottom.PerformLayout();
             ResumeLayout(false);
 
-            // Apply standard styling and optimize layout performance
-            EmbeddedFormStyleManager.ApplyStandardStyling(this);
-            EmbeddedFormStyleManager.OptimizeLayoutPerformance(this);
-            
             // Apply DataGridView styling
             //EmbeddedFormStyleManager.ApplyDataGridViewStyling(dgvLogs);
         }
@@ -503,5 +507,12 @@ namespace MySqlBackupTool.Client.EmbeddedForms
         private System.Windows.Forms.Button btnRefresh;
         private System.Windows.Forms.Button btnClose;
         private System.Windows.Forms.Label lblStatus;
+        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn1;
+        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn2;
+        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn3;
+        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn4;
+        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn5;
+        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn6;
+        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn7;
     }
 }

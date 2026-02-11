@@ -44,147 +44,101 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             // 
             // dgvSchedules
             // 
+            dgvSchedules.AllowUserToAddRows = false;
+            dgvSchedules.AllowUserToDeleteRows = false;
             dgvSchedules.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-            dgvSchedules.AutoGenerateColumns = false;
             dgvSchedules.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dgvSchedules.Columns.AddRange(new DataGridViewColumn[] {
-            new DataGridViewTextBoxColumn
-            {
-                Name = "BackupConfigName",
-                HeaderText = "备份配置",
-                DataPropertyName = "BackupConfiguration.Name",
-                Width = 200
-            },
-            new DataGridViewTextBoxColumn
-            {
-                Name = "ScheduleType",
-                HeaderText = "调度类型",
-                DataPropertyName = "ScheduleType",
-                Width = 100
-            },
-            new DataGridViewTextBoxColumn
-            {
-                Name = "ScheduleTime",
-                HeaderText = "调度时间",
-                DataPropertyName = "ScheduleTime",
-                Width = 150
-            },
-            new DataGridViewCheckBoxColumn
-            {
-                Name = "IsEnabled",
-                HeaderText = "启用",
-                DataPropertyName = "IsEnabled",
-                Width = 60
-            },
-            new DataGridViewTextBoxColumn
-            {
-                Name = "LastExecuted",
-                HeaderText = "最后执行",
-                DataPropertyName = "LastExecuted",
-                Width = 120,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "yyyy-MM-dd HH:mm" }
-            },
-            new DataGridViewTextBoxColumn
-            {
-                Name = "NextExecution",
-                HeaderText = "下次执行",
-                DataPropertyName = "NextExecution",
-                Width = 120,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "yyyy-MM-dd HH:mm" }
-            }});
-            dgvSchedules.Location = new Point(19, 19);
-            dgvSchedules.Margin = new Padding(5, 5, 5, 5);
+            dgvSchedules.Location = new Point(16, 16);
+            dgvSchedules.Margin = new Padding(4, 4, 4, 4);
             dgvSchedules.MultiSelect = false;
             dgvSchedules.Name = "dgvSchedules";
             dgvSchedules.ReadOnly = true;
             dgvSchedules.RowHeadersWidth = 62;
             dgvSchedules.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dgvSchedules.Size = new Size(1519, 521);
+            dgvSchedules.Size = new Size(1243, 434);
             dgvSchedules.TabIndex = 0;
-            dgvSchedules.AllowUserToAddRows = false;
-            dgvSchedules.AllowUserToDeleteRows = false;
-            dgvSchedules.CellFormatting += new DataGridViewCellFormattingEventHandler(this.DgvSchedules_CellFormatting);
-            dgvSchedules.SelectionChanged += new EventHandler(this.DgvSchedules_SelectionChanged);
+            dgvSchedules.CellFormatting += DgvSchedules_CellFormatting;
+            dgvSchedules.SelectionChanged += DgvSchedules_SelectionChanged;
             // 
             // btnNew
             // 
-            btnNew.Location = new Point(0, 16);
-            btnNew.Margin = new Padding(5, 5, 5, 5);
+            btnNew.Location = new Point(0, 13);
+            btnNew.Margin = new Padding(4, 4, 4, 4);
             btnNew.Name = "btnNew";
-            btnNew.Size = new Size(126, 48);
+            btnNew.Size = new Size(103, 40);
             btnNew.TabIndex = 0;
-            btnNew.Text = "新建";
+            btnNew.Text = "New";
             btnNew.UseVisualStyleBackColor = true;
             btnNew.Click += btnNew_Click;
             // 
             // btnEdit
             // 
             btnEdit.Enabled = false;
-            btnEdit.Location = new Point(141, 16);
-            btnEdit.Margin = new Padding(5, 5, 5, 5);
+            btnEdit.Location = new Point(115, 13);
+            btnEdit.Margin = new Padding(4, 4, 4, 4);
             btnEdit.Name = "btnEdit";
-            btnEdit.Size = new Size(126, 48);
+            btnEdit.Size = new Size(103, 40);
             btnEdit.TabIndex = 1;
-            btnEdit.Text = "编辑";
+            btnEdit.Text = "Edit";
             btnEdit.UseVisualStyleBackColor = true;
             btnEdit.Click += btnEdit_Click;
             // 
             // btnDelete
             // 
             btnDelete.Enabled = false;
-            btnDelete.Location = new Point(283, 16);
-            btnDelete.Margin = new Padding(5, 5, 5, 5);
+            btnDelete.Location = new Point(232, 13);
+            btnDelete.Margin = new Padding(4, 4, 4, 4);
             btnDelete.Name = "btnDelete";
-            btnDelete.Size = new Size(126, 48);
+            btnDelete.Size = new Size(103, 40);
             btnDelete.TabIndex = 2;
-            btnDelete.Text = "删除";
+            btnDelete.Text = "Delete";
             btnDelete.UseVisualStyleBackColor = true;
             btnDelete.Click += btnDelete_Click;
             // 
             // btnEnable
             // 
             btnEnable.Enabled = false;
-            btnEnable.Location = new Point(440, 16);
-            btnEnable.Margin = new Padding(5, 5, 5, 5);
+            btnEnable.Location = new Point(360, 13);
+            btnEnable.Margin = new Padding(4, 4, 4, 4);
             btnEnable.Name = "btnEnable";
-            btnEnable.Size = new Size(126, 48);
+            btnEnable.Size = new Size(103, 40);
             btnEnable.TabIndex = 3;
-            btnEnable.Text = "启用";
+            btnEnable.Text = "Activate";
             btnEnable.UseVisualStyleBackColor = true;
             btnEnable.Click += btnEnable_Click;
             // 
             // btnDisable
             // 
             btnDisable.Enabled = false;
-            btnDisable.Location = new Point(581, 16);
-            btnDisable.Margin = new Padding(5, 5, 5, 5);
+            btnDisable.Location = new Point(475, 13);
+            btnDisable.Margin = new Padding(4, 4, 4, 4);
             btnDisable.Name = "btnDisable";
-            btnDisable.Size = new Size(126, 48);
+            btnDisable.Size = new Size(103, 40);
             btnDisable.TabIndex = 4;
-            btnDisable.Text = "禁用";
+            btnDisable.Text = "Deactivate";
             btnDisable.UseVisualStyleBackColor = true;
             btnDisable.Click += btnDisable_Click;
             // 
             // btnRefresh
             // 
-            btnRefresh.Location = new Point(754, 16);
-            btnRefresh.Margin = new Padding(5, 5, 5, 5);
+            btnRefresh.Location = new Point(617, 13);
+            btnRefresh.Margin = new Padding(4, 4, 4, 4);
             btnRefresh.Name = "btnRefresh";
-            btnRefresh.Size = new Size(126, 48);
+            btnRefresh.Size = new Size(103, 40);
             btnRefresh.TabIndex = 5;
-            btnRefresh.Text = "刷新";
+            btnRefresh.Text = "Refresh";
             btnRefresh.UseVisualStyleBackColor = true;
             btnRefresh.Click += btnRefresh_Click;
             // 
             // btnClose
             // 
             btnClose.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            btnClose.Location = new Point(1394, 16);
-            btnClose.Margin = new Padding(5, 5, 5, 5);
+            btnClose.Location = new Point(1141, 13);
+            btnClose.Margin = new Padding(4, 4, 4, 4);
             btnClose.Name = "btnClose";
-            btnClose.Size = new Size(126, 48);
+            btnClose.Size = new Size(103, 40);
             btnClose.TabIndex = 6;
-            btnClose.Text = "关闭";
+            btnClose.Text = "Close";
             btnClose.UseVisualStyleBackColor = true;
             btnClose.Click += btnClose_Click;
             // 
@@ -192,10 +146,10 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             // 
             lblStatus.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             lblStatus.AutoSize = true;
-            lblStatus.Location = new Point(19, 673);
-            lblStatus.Margin = new Padding(5, 0, 5, 0);
+            lblStatus.Location = new Point(16, 561);
+            lblStatus.Margin = new Padding(4, 0, 4, 0);
             lblStatus.Name = "lblStatus";
-            lblStatus.Size = new Size(0, 24);
+            lblStatus.Size = new Size(0, 20);
             lblStatus.TabIndex = 2;
             // 
             // panelButtons
@@ -208,31 +162,27 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             panelButtons.Controls.Add(btnDisable);
             panelButtons.Controls.Add(btnRefresh);
             panelButtons.Controls.Add(btnClose);
-            panelButtons.Location = new Point(19, 569);
-            panelButtons.Margin = new Padding(5, 5, 5, 5);
+            panelButtons.Location = new Point(16, 474);
+            panelButtons.Margin = new Padding(4, 4, 4, 4);
             panelButtons.Name = "panelButtons";
-            panelButtons.Size = new Size(1519, 80);
+            panelButtons.Size = new Size(1243, 67);
             panelButtons.TabIndex = 1;
             // 
             // ScheduleListControl
             // 
-            AutoScaleDimensions = new SizeF(11F, 24F);
+            AutoScaleDimensions = new SizeF(9F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             Controls.Add(dgvSchedules);
             Controls.Add(panelButtons);
             Controls.Add(lblStatus);
-            Margin = new Padding(5, 5, 5, 5);
+            Margin = new Padding(4, 4, 4, 4);
             Name = "ScheduleListControl";
-            Size = new Size(1557, 715);
+            Size = new Size(1274, 596);
             ((System.ComponentModel.ISupportInitialize)dgvSchedules).EndInit();
             panelButtons.ResumeLayout(false);
             ResumeLayout(false);
             PerformLayout();
 
-            // Apply standard styling and optimize layout performance
-            EmbeddedFormStyleManager.ApplyStandardStyling(this);
-            EmbeddedFormStyleManager.OptimizeLayoutPerformance(this);
-            
             // Apply DataGridView styling
             //EmbeddedFormStyleManager.ApplyDataGridViewStyling(dgvSchedules);
         }

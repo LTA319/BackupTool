@@ -15,309 +15,326 @@ namespace MySqlBackupTool.Client.EmbeddedForms
         /// </summary>
         private void InitializeComponent()
         {
-            this.splitContainer = new System.Windows.Forms.SplitContainer();
-            this.grpConfigurations = new System.Windows.Forms.GroupBox();
-            this.dgvConfigurations = new System.Windows.Forms.DataGridView();
-            this.panelConfigButtons = new System.Windows.Forms.Panel();
-            this.btnStartBackup = new System.Windows.Forms.Button();
-            this.grpRunningBackups = new System.Windows.Forms.GroupBox();
-            this.dgvRunningBackups = new System.Windows.Forms.DataGridView();
-            this.panelBackupButtons = new System.Windows.Forms.Panel();
-            this.btnCancelBackup = new System.Windows.Forms.Button();
-            this.grpProgress = new System.Windows.Forms.GroupBox();
-            this.progressBar = new System.Windows.Forms.ProgressBar();
-            this.lblProgressDetails = new System.Windows.Forms.Label();
-            this.panelBottom = new System.Windows.Forms.Panel();
-            this.btnRefresh = new System.Windows.Forms.Button();
-            this.lblStatus = new System.Windows.Forms.Label();
-
-            ((System.ComponentModel.ISupportInitialize)(this.splitContainer)).BeginInit();
-            this.splitContainer.Panel1.SuspendLayout();
-            this.splitContainer.Panel2.SuspendLayout();
-            this.splitContainer.SuspendLayout();
-            this.grpConfigurations.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.dgvConfigurations)).BeginInit();
-            this.panelConfigButtons.SuspendLayout();
-            this.grpRunningBackups.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.dgvRunningBackups)).BeginInit();
-            this.panelBackupButtons.SuspendLayout();
-            this.grpProgress.SuspendLayout();
-            this.panelBottom.SuspendLayout();
-            this.SuspendLayout();
-
+            splitContainer = new SplitContainer();
+            grpConfigurations = new GroupBox();
+            dgvConfigurations = new DataGridView();
+            panelConfigButtons = new Panel();
+            btnStartBackup = new Button();
+            dataGridViewTextBoxColumn1 = new DataGridViewTextBoxColumn();
+            dataGridViewCheckBoxColumn1 = new DataGridViewCheckBoxColumn();
+            dataGridViewTextBoxColumn2 = new DataGridViewTextBoxColumn();
+            dataGridViewTextBoxColumn3 = new DataGridViewTextBoxColumn();
+            grpRunningBackups = new GroupBox();
+            dgvRunningBackups = new DataGridView();
+            panelBackupButtons = new Panel();
+            btnCancelBackup = new Button();
+            grpProgress = new GroupBox();
+            progressBar = new ProgressBar();
+            lblProgressDetails = new Label();
+            panelBottom = new Panel();
+            btnRefresh = new Button();
+            lblStatus = new Label();
+            dataGridViewTextBoxColumn4 = new DataGridViewTextBoxColumn();
+            dataGridViewTextBoxColumn5 = new DataGridViewTextBoxColumn();
+            dataGridViewTextBoxColumn6 = new DataGridViewTextBoxColumn();
+            dataGridViewTextBoxColumn7 = new DataGridViewTextBoxColumn();
+            dataGridViewTextBoxColumn8 = new DataGridViewTextBoxColumn();
+            ((System.ComponentModel.ISupportInitialize)splitContainer).BeginInit();
+            splitContainer.Panel1.SuspendLayout();
+            splitContainer.Panel2.SuspendLayout();
+            splitContainer.SuspendLayout();
+            grpConfigurations.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)dgvConfigurations).BeginInit();
+            panelConfigButtons.SuspendLayout();
+            grpRunningBackups.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)dgvRunningBackups).BeginInit();
+            panelBackupButtons.SuspendLayout();
+            grpProgress.SuspendLayout();
+            panelBottom.SuspendLayout();
+            SuspendLayout();
             // 
             // splitContainer
             // 
-            this.splitContainer.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.splitContainer.Location = new System.Drawing.Point(0, 0);
-            this.splitContainer.Name = "splitContainer";
-            this.splitContainer.Orientation = System.Windows.Forms.Orientation.Horizontal;
-            this.splitContainer.Panel1.Controls.Add(this.grpConfigurations);
-            this.splitContainer.Panel2.Controls.Add(this.grpRunningBackups);
-            this.splitContainer.Size = new System.Drawing.Size(884, 500);
-            this.splitContainer.SplitterDistance = 240;
-            this.splitContainer.TabIndex = 0;
-
+            splitContainer.Dock = DockStyle.Fill;
+            splitContainer.Location = new Point(0, 0);
+            splitContainer.Margin = new Padding(4, 4, 4, 4);
+            splitContainer.Name = "splitContainer";
+            splitContainer.Orientation = Orientation.Horizontal;
+            // 
+            // splitContainer.Panel1
+            // 
+            splitContainer.Panel1.Controls.Add(grpConfigurations);
+            // 
+            // splitContainer.Panel2
+            // 
+            splitContainer.Panel2.Controls.Add(grpRunningBackups);
+            splitContainer.Size = new Size(1137, 666);
+            splitContainer.SplitterDistance = 319;
+            splitContainer.SplitterWidth = 5;
+            splitContainer.TabIndex = 0;
             // 
             // grpConfigurations
             // 
-            this.grpConfigurations.Controls.Add(this.dgvConfigurations);
-            this.grpConfigurations.Controls.Add(this.panelConfigButtons);
-            this.grpConfigurations.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.grpConfigurations.Location = new System.Drawing.Point(0, 0);
-            this.grpConfigurations.Name = "grpConfigurations";
-            this.grpConfigurations.Size = new System.Drawing.Size(884, 240);
-            this.grpConfigurations.TabIndex = 0;
-            this.grpConfigurations.TabStop = false;
-            this.grpConfigurations.Text = "Backup Configurations";
-
+            grpConfigurations.Controls.Add(dgvConfigurations);
+            grpConfigurations.Controls.Add(panelConfigButtons);
+            grpConfigurations.Dock = DockStyle.Fill;
+            grpConfigurations.Location = new Point(0, 0);
+            grpConfigurations.Margin = new Padding(4, 4, 4, 4);
+            grpConfigurations.Name = "grpConfigurations";
+            grpConfigurations.Padding = new Padding(4, 4, 4, 4);
+            grpConfigurations.Size = new Size(1137, 319);
+            grpConfigurations.TabIndex = 0;
+            grpConfigurations.TabStop = false;
+            grpConfigurations.Text = "Backup Configurations";
             // 
             // dgvConfigurations
             // 
-            this.dgvConfigurations.AutoGenerateColumns = false;
-            this.dgvConfigurations.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dgvConfigurations.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
-            new System.Windows.Forms.DataGridViewTextBoxColumn
-            {
-                Name = "Name",
-                HeaderText = "配置名称",
-                DataPropertyName = "Name",
-                Width = 150
-            },
-            new System.Windows.Forms.DataGridViewCheckBoxColumn
-            {
-                Name = "IsActive",
-                HeaderText = "激活",
-                DataPropertyName = "IsActive",
-                Width = 100
-            },
-            new System.Windows.Forms.DataGridViewTextBoxColumn
-            {
-                Name = "MySQLHost",
-                HeaderText = "MySQL主机",
-                Width = 120
-            },
-            new System.Windows.Forms.DataGridViewTextBoxColumn
-            {
-                Name = "TargetServer",
-                HeaderText = "目标服务器",
-                Width = 120
-            }});
-            this.dgvConfigurations.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.dgvConfigurations.Location = new System.Drawing.Point(3, 19);
-            this.dgvConfigurations.MultiSelect = false;
-            this.dgvConfigurations.Name = "dgvConfigurations";
-            this.dgvConfigurations.ReadOnly = true;
-            this.dgvConfigurations.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
-            this.dgvConfigurations.Size = new System.Drawing.Size(878, 178);
-            this.dgvConfigurations.TabIndex = 0;
-            this.dgvConfigurations.AllowUserToAddRows = false;
-            this.dgvConfigurations.CellFormatting += new System.Windows.Forms.DataGridViewCellFormattingEventHandler(this.DgvConfigurations_CellFormatting);
-            this.dgvConfigurations.SelectionChanged += new System.EventHandler(this.DgvConfigurations_SelectionChanged);
-
+            dgvConfigurations.AllowUserToAddRows = false;
+            dgvConfigurations.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dgvConfigurations.Columns.AddRange(new DataGridViewColumn[] { dataGridViewTextBoxColumn1, dataGridViewCheckBoxColumn1, dataGridViewTextBoxColumn2, dataGridViewTextBoxColumn3 });
+            dgvConfigurations.Dock = DockStyle.Fill;
+            dgvConfigurations.Location = new Point(4, 24);
+            dgvConfigurations.Margin = new Padding(4, 4, 4, 4);
+            dgvConfigurations.MultiSelect = false;
+            dgvConfigurations.Name = "dgvConfigurations";
+            dgvConfigurations.ReadOnly = true;
+            dgvConfigurations.RowHeadersWidth = 51;
+            dgvConfigurations.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dgvConfigurations.Size = new Size(1129, 238);
+            dgvConfigurations.TabIndex = 0;
+            dgvConfigurations.CellFormatting += DgvConfigurations_CellFormatting;
+            dgvConfigurations.SelectionChanged += DgvConfigurations_SelectionChanged;
             // 
             // panelConfigButtons
             // 
-            this.panelConfigButtons.Controls.Add(this.btnStartBackup);
-            this.panelConfigButtons.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.panelConfigButtons.Location = new System.Drawing.Point(3, 197);
-            this.panelConfigButtons.Name = "panelConfigButtons";
-            this.panelConfigButtons.Size = new System.Drawing.Size(878, 40);
-            this.panelConfigButtons.TabIndex = 1;
-
+            panelConfigButtons.Controls.Add(btnStartBackup);
+            panelConfigButtons.Dock = DockStyle.Bottom;
+            panelConfigButtons.Location = new Point(4, 262);
+            panelConfigButtons.Margin = new Padding(4, 4, 4, 4);
+            panelConfigButtons.Name = "panelConfigButtons";
+            panelConfigButtons.Size = new Size(1129, 53);
+            panelConfigButtons.TabIndex = 1;
             // 
             // btnStartBackup
             // 
-            this.btnStartBackup.Enabled = false;
-            this.btnStartBackup.Location = new System.Drawing.Point(10, 5);
-            this.btnStartBackup.Name = "btnStartBackup";
-            this.btnStartBackup.Size = new System.Drawing.Size(100, 30);
-            this.btnStartBackup.TabIndex = 0;
-            this.btnStartBackup.Text = "Start Backup";
-            this.btnStartBackup.UseVisualStyleBackColor = true;
-            this.btnStartBackup.Click += new System.EventHandler(this.btnStartBackup_Click);
-
+            btnStartBackup.Enabled = false;
+            btnStartBackup.Location = new Point(13, 7);
+            btnStartBackup.Margin = new Padding(4, 4, 4, 4);
+            btnStartBackup.Name = "btnStartBackup";
+            btnStartBackup.Size = new Size(129, 40);
+            btnStartBackup.TabIndex = 0;
+            btnStartBackup.Text = "Start Backup";
+            btnStartBackup.UseVisualStyleBackColor = true;
+            btnStartBackup.Click += btnStartBackup_Click;
+            // 
+            // dataGridViewTextBoxColumn1
+            // 
+            dataGridViewTextBoxColumn1.MinimumWidth = 6;
+            dataGridViewTextBoxColumn1.Name = "dataGridViewTextBoxColumn1";
+            dataGridViewTextBoxColumn1.ReadOnly = true;
+            dataGridViewTextBoxColumn1.Width = 125;
+            // 
+            // dataGridViewCheckBoxColumn1
+            // 
+            dataGridViewCheckBoxColumn1.MinimumWidth = 6;
+            dataGridViewCheckBoxColumn1.Name = "dataGridViewCheckBoxColumn1";
+            dataGridViewCheckBoxColumn1.ReadOnly = true;
+            dataGridViewCheckBoxColumn1.Width = 125;
+            // 
+            // dataGridViewTextBoxColumn2
+            // 
+            dataGridViewTextBoxColumn2.MinimumWidth = 6;
+            dataGridViewTextBoxColumn2.Name = "dataGridViewTextBoxColumn2";
+            dataGridViewTextBoxColumn2.ReadOnly = true;
+            dataGridViewTextBoxColumn2.Width = 125;
+            // 
+            // dataGridViewTextBoxColumn3
+            // 
+            dataGridViewTextBoxColumn3.MinimumWidth = 6;
+            dataGridViewTextBoxColumn3.Name = "dataGridViewTextBoxColumn3";
+            dataGridViewTextBoxColumn3.ReadOnly = true;
+            dataGridViewTextBoxColumn3.Width = 125;
             // 
             // grpRunningBackups
             // 
-            this.grpRunningBackups.Controls.Add(this.dgvRunningBackups);
-            this.grpRunningBackups.Controls.Add(this.panelBackupButtons);
-            this.grpRunningBackups.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.grpRunningBackups.Location = new System.Drawing.Point(0, 0);
-            this.grpRunningBackups.Name = "grpRunningBackups";
-            this.grpRunningBackups.Size = new System.Drawing.Size(884, 256);
-            this.grpRunningBackups.TabIndex = 0;
-            this.grpRunningBackups.TabStop = false;
-            this.grpRunningBackups.Text = "Running Backups";
-
+            grpRunningBackups.Controls.Add(dgvRunningBackups);
+            grpRunningBackups.Controls.Add(panelBackupButtons);
+            grpRunningBackups.Dock = DockStyle.Fill;
+            grpRunningBackups.Location = new Point(0, 0);
+            grpRunningBackups.Margin = new Padding(4, 4, 4, 4);
+            grpRunningBackups.Name = "grpRunningBackups";
+            grpRunningBackups.Padding = new Padding(4, 4, 4, 4);
+            grpRunningBackups.Size = new Size(1137, 342);
+            grpRunningBackups.TabIndex = 0;
+            grpRunningBackups.TabStop = false;
+            grpRunningBackups.Text = "Running Backups";
             // 
             // dgvRunningBackups
             // 
-            this.dgvRunningBackups.AutoGenerateColumns = false;
-            this.dgvRunningBackups.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dgvRunningBackups.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
-            new System.Windows.Forms.DataGridViewTextBoxColumn
-            {
-                Name = "ConfigName",
-                HeaderText = "配置名称",
-                Width = 120
-            },
-            new System.Windows.Forms.DataGridViewTextBoxColumn
-            {
-                Name = "Status",
-                HeaderText = "状态",
-                DataPropertyName = "Status",
-                Width = 100
-            },
-            new System.Windows.Forms.DataGridViewTextBoxColumn
-            {
-                Name = "StartTime",
-                HeaderText = "开始时间",
-                DataPropertyName = "StartTime",
-                Width = 120,
-                DefaultCellStyle = new System.Windows.Forms.DataGridViewCellStyle { Format = "HH:mm:ss" }
-            },
-            new System.Windows.Forms.DataGridViewTextBoxColumn
-            {
-                Name = "Duration",
-                HeaderText = "持续时间",
-                Width = 100
-            },
-            new System.Windows.Forms.DataGridViewTextBoxColumn
-            {
-                Name = "Progress",
-                HeaderText = "进度",
-                Width = 100
-            }});
-            this.dgvRunningBackups.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.dgvRunningBackups.Location = new System.Drawing.Point(3, 19);
-            this.dgvRunningBackups.MultiSelect = false;
-            this.dgvRunningBackups.Name = "dgvRunningBackups";
-            this.dgvRunningBackups.ReadOnly = true;
-            this.dgvRunningBackups.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
-            this.dgvRunningBackups.Size = new System.Drawing.Size(878, 194);
-            this.dgvRunningBackups.TabIndex = 0;
-            this.dgvRunningBackups.AllowUserToAddRows = false;
-            this.dgvRunningBackups.CellFormatting += new System.Windows.Forms.DataGridViewCellFormattingEventHandler(this.DgvRunningBackups_CellFormatting);
-            this.dgvRunningBackups.SelectionChanged += new System.EventHandler(this.DgvRunningBackups_SelectionChanged);
-
+            dgvRunningBackups.AllowUserToAddRows = false;
+            dgvRunningBackups.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dgvRunningBackups.Columns.AddRange(new DataGridViewColumn[] { dataGridViewTextBoxColumn4, dataGridViewTextBoxColumn5, dataGridViewTextBoxColumn6, dataGridViewTextBoxColumn7, dataGridViewTextBoxColumn8 });
+            dgvRunningBackups.Dock = DockStyle.Fill;
+            dgvRunningBackups.Location = new Point(4, 24);
+            dgvRunningBackups.Margin = new Padding(4, 4, 4, 4);
+            dgvRunningBackups.MultiSelect = false;
+            dgvRunningBackups.Name = "dgvRunningBackups";
+            dgvRunningBackups.ReadOnly = true;
+            dgvRunningBackups.RowHeadersWidth = 51;
+            dgvRunningBackups.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dgvRunningBackups.Size = new Size(1129, 261);
+            dgvRunningBackups.TabIndex = 0;
+            dgvRunningBackups.CellFormatting += DgvRunningBackups_CellFormatting;
+            dgvRunningBackups.SelectionChanged += DgvRunningBackups_SelectionChanged;
             // 
             // panelBackupButtons
             // 
-            this.panelBackupButtons.Controls.Add(this.btnCancelBackup);
-            this.panelBackupButtons.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.panelBackupButtons.Location = new System.Drawing.Point(3, 213);
-            this.panelBackupButtons.Name = "panelBackupButtons";
-            this.panelBackupButtons.Size = new System.Drawing.Size(878, 40);
-            this.panelBackupButtons.TabIndex = 1;
-
+            panelBackupButtons.Controls.Add(btnCancelBackup);
+            panelBackupButtons.Dock = DockStyle.Bottom;
+            panelBackupButtons.Location = new Point(4, 285);
+            panelBackupButtons.Margin = new Padding(4, 4, 4, 4);
+            panelBackupButtons.Name = "panelBackupButtons";
+            panelBackupButtons.Size = new Size(1129, 53);
+            panelBackupButtons.TabIndex = 1;
             // 
             // btnCancelBackup
             // 
-            this.btnCancelBackup.Enabled = false;
-            this.btnCancelBackup.Location = new System.Drawing.Point(10, 5);
-            this.btnCancelBackup.Name = "btnCancelBackup";
-            this.btnCancelBackup.Size = new System.Drawing.Size(100, 30);
-            this.btnCancelBackup.TabIndex = 0;
-            this.btnCancelBackup.Text = "Cancel Backup";
-            this.btnCancelBackup.UseVisualStyleBackColor = true;
-            this.btnCancelBackup.Click += new System.EventHandler(this.btnCancelBackup_Click);
-
+            btnCancelBackup.Enabled = false;
+            btnCancelBackup.Location = new Point(13, 7);
+            btnCancelBackup.Margin = new Padding(4, 4, 4, 4);
+            btnCancelBackup.Name = "btnCancelBackup";
+            btnCancelBackup.Size = new Size(129, 40);
+            btnCancelBackup.TabIndex = 0;
+            btnCancelBackup.Text = "Cancel Backup";
+            btnCancelBackup.UseVisualStyleBackColor = true;
+            btnCancelBackup.Click += btnCancelBackup_Click;
             // 
             // grpProgress
             // 
-            this.grpProgress.Controls.Add(this.progressBar);
-            this.grpProgress.Controls.Add(this.lblProgressDetails);
-            this.grpProgress.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.grpProgress.Location = new System.Drawing.Point(0, 500);
-            this.grpProgress.Name = "grpProgress";
-            this.grpProgress.Size = new System.Drawing.Size(884, 80);
-            this.grpProgress.TabIndex = 1;
-            this.grpProgress.TabStop = false;
-            this.grpProgress.Text = "Backup Progress";
-
+            grpProgress.Controls.Add(progressBar);
+            grpProgress.Controls.Add(lblProgressDetails);
+            grpProgress.Dock = DockStyle.Bottom;
+            grpProgress.Location = new Point(0, 666);
+            grpProgress.Margin = new Padding(4, 4, 4, 4);
+            grpProgress.Name = "grpProgress";
+            grpProgress.Padding = new Padding(4, 4, 4, 4);
+            grpProgress.Size = new Size(1137, 107);
+            grpProgress.TabIndex = 1;
+            grpProgress.TabStop = false;
+            grpProgress.Text = "Backup Progress";
             // 
             // progressBar
             // 
-            this.progressBar.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.progressBar.Location = new System.Drawing.Point(15, 25);
-            this.progressBar.Name = "progressBar";
-            this.progressBar.Size = new System.Drawing.Size(854, 23);
-            this.progressBar.TabIndex = 0;
-
+            progressBar.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            progressBar.Location = new Point(19, 33);
+            progressBar.Margin = new Padding(4, 4, 4, 4);
+            progressBar.Name = "progressBar";
+            progressBar.Size = new Size(1098, 31);
+            progressBar.TabIndex = 0;
             // 
             // lblProgressDetails
             // 
-            this.lblProgressDetails.AutoSize = true;
-            this.lblProgressDetails.Location = new System.Drawing.Point(15, 55);
-            this.lblProgressDetails.Name = "lblProgressDetails";
-            this.lblProgressDetails.Size = new System.Drawing.Size(0, 15);
-            this.lblProgressDetails.TabIndex = 1;
-
+            lblProgressDetails.AutoSize = true;
+            lblProgressDetails.Location = new Point(19, 73);
+            lblProgressDetails.Margin = new Padding(4, 0, 4, 0);
+            lblProgressDetails.Name = "lblProgressDetails";
+            lblProgressDetails.Size = new Size(0, 20);
+            lblProgressDetails.TabIndex = 1;
             // 
             // panelBottom
             // 
-            this.panelBottom.Controls.Add(this.btnRefresh);
-            this.panelBottom.Controls.Add(this.lblStatus);
-            this.panelBottom.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.panelBottom.Location = new System.Drawing.Point(0, 580);
-            this.panelBottom.Name = "panelBottom";
-            this.panelBottom.Size = new System.Drawing.Size(884, 50);
-            this.panelBottom.TabIndex = 2;
-
+            panelBottom.Controls.Add(btnRefresh);
+            panelBottom.Controls.Add(lblStatus);
+            panelBottom.Dock = DockStyle.Bottom;
+            panelBottom.Location = new Point(0, 773);
+            panelBottom.Margin = new Padding(4, 4, 4, 4);
+            panelBottom.Name = "panelBottom";
+            panelBottom.Size = new Size(1137, 67);
+            panelBottom.TabIndex = 2;
             // 
             // btnRefresh
             // 
-            this.btnRefresh.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnRefresh.Location = new System.Drawing.Point(789, 10);
-            this.btnRefresh.Name = "btnRefresh";
-            this.btnRefresh.Size = new System.Drawing.Size(80, 30);
-            this.btnRefresh.TabIndex = 0;
-            this.btnRefresh.Text = "Refresh";
-            this.btnRefresh.UseVisualStyleBackColor = true;
-            this.btnRefresh.Click += new System.EventHandler(this.btnRefresh_Click);
-
+            btnRefresh.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            btnRefresh.Location = new Point(1014, 13);
+            btnRefresh.Margin = new Padding(4, 4, 4, 4);
+            btnRefresh.Name = "btnRefresh";
+            btnRefresh.Size = new Size(103, 40);
+            btnRefresh.TabIndex = 0;
+            btnRefresh.Text = "Refresh";
+            btnRefresh.UseVisualStyleBackColor = true;
+            btnRefresh.Click += btnRefresh_Click;
             // 
             // lblStatus
             // 
-            this.lblStatus.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.lblStatus.AutoSize = true;
-            this.lblStatus.Location = new System.Drawing.Point(15, 18);
-            this.lblStatus.Name = "lblStatus";
-            this.lblStatus.Size = new System.Drawing.Size(0, 15);
-            this.lblStatus.TabIndex = 1;
-
+            lblStatus.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            lblStatus.AutoSize = true;
+            lblStatus.Location = new Point(19, 24);
+            lblStatus.Margin = new Padding(4, 0, 4, 0);
+            lblStatus.Name = "lblStatus";
+            lblStatus.Size = new Size(0, 20);
+            lblStatus.TabIndex = 1;
+            // 
+            // dataGridViewTextBoxColumn4
+            // 
+            dataGridViewTextBoxColumn4.MinimumWidth = 6;
+            dataGridViewTextBoxColumn4.Name = "dataGridViewTextBoxColumn4";
+            dataGridViewTextBoxColumn4.ReadOnly = true;
+            dataGridViewTextBoxColumn4.Width = 125;
+            // 
+            // dataGridViewTextBoxColumn5
+            // 
+            dataGridViewTextBoxColumn5.MinimumWidth = 6;
+            dataGridViewTextBoxColumn5.Name = "dataGridViewTextBoxColumn5";
+            dataGridViewTextBoxColumn5.ReadOnly = true;
+            dataGridViewTextBoxColumn5.Width = 125;
+            // 
+            // dataGridViewTextBoxColumn6
+            // 
+            dataGridViewTextBoxColumn6.MinimumWidth = 6;
+            dataGridViewTextBoxColumn6.Name = "dataGridViewTextBoxColumn6";
+            dataGridViewTextBoxColumn6.ReadOnly = true;
+            dataGridViewTextBoxColumn6.Width = 125;
+            // 
+            // dataGridViewTextBoxColumn7
+            // 
+            dataGridViewTextBoxColumn7.MinimumWidth = 6;
+            dataGridViewTextBoxColumn7.Name = "dataGridViewTextBoxColumn7";
+            dataGridViewTextBoxColumn7.ReadOnly = true;
+            dataGridViewTextBoxColumn7.Width = 125;
+            // 
+            // dataGridViewTextBoxColumn8
+            // 
+            dataGridViewTextBoxColumn8.MinimumWidth = 6;
+            dataGridViewTextBoxColumn8.Name = "dataGridViewTextBoxColumn8";
+            dataGridViewTextBoxColumn8.ReadOnly = true;
+            dataGridViewTextBoxColumn8.Width = 125;
             // 
             // BackupMonitorControl
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.Controls.Add(this.splitContainer);
-            this.Controls.Add(this.grpProgress);
-            this.Controls.Add(this.panelBottom);
-            this.Name = "BackupMonitorControl";
-            this.Size = new System.Drawing.Size(884, 630);
-            this.splitContainer.Panel1.ResumeLayout(false);
-            this.splitContainer.Panel2.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.splitContainer)).EndInit();
-            this.splitContainer.ResumeLayout(false);
-            this.grpConfigurations.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.dgvConfigurations)).EndInit();
-            this.panelConfigButtons.ResumeLayout(false);
-            this.grpRunningBackups.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.dgvRunningBackups)).EndInit();
-            this.panelBackupButtons.ResumeLayout(false);
-            this.grpProgress.ResumeLayout(false);
-            this.grpProgress.PerformLayout();
-            this.panelBottom.ResumeLayout(false);
-            this.panelBottom.PerformLayout();
-            this.ResumeLayout(false);
+            AutoScaleDimensions = new SizeF(9F, 20F);
+            AutoScaleMode = AutoScaleMode.Font;
+            Controls.Add(splitContainer);
+            Controls.Add(grpProgress);
+            Controls.Add(panelBottom);
+            Margin = new Padding(4, 4, 4, 4);
+            Name = "BackupMonitorControl";
+            Size = new Size(1137, 840);
+            splitContainer.Panel1.ResumeLayout(false);
+            splitContainer.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)splitContainer).EndInit();
+            splitContainer.ResumeLayout(false);
+            grpConfigurations.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)dgvConfigurations).EndInit();
+            panelConfigButtons.ResumeLayout(false);
+            grpRunningBackups.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)dgvRunningBackups).EndInit();
+            panelBackupButtons.ResumeLayout(false);
+            grpProgress.ResumeLayout(false);
+            grpProgress.PerformLayout();
+            panelBottom.ResumeLayout(false);
+            panelBottom.PerformLayout();
+            ResumeLayout(false);
 
-            // Apply standard styling and optimize layout performance
-            EmbeddedFormStyleManager.ApplyStandardStyling(this);
-            EmbeddedFormStyleManager.OptimizeLayoutPerformance(this);
-            
             // Apply DataGridView styling
             //EmbeddedFormStyleManager.ApplyDataGridViewStyling(this.dgvConfigurations);
             //EmbeddedFormStyleManager.ApplyDataGridViewStyling(this.dgvRunningBackups);
@@ -340,5 +357,14 @@ namespace MySqlBackupTool.Client.EmbeddedForms
         private System.Windows.Forms.Panel panelBottom;
         private System.Windows.Forms.Button btnRefresh;
         private System.Windows.Forms.Label lblStatus;
+        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn1;
+        private DataGridViewCheckBoxColumn dataGridViewCheckBoxColumn1;
+        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn2;
+        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn3;
+        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn4;
+        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn5;
+        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn6;
+        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn7;
+        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn8;
     }
 }
