@@ -63,3 +63,7 @@ var transferConfig = new TransferConfig();
 2. **高内聚** - 相关的模型类组织在一起
 3. **易于导航** - 清晰的分类便于快速定位所需模型
 4. **向后兼容** - 命名空间不变，不影响现有代码
+
+## 相关文档
+
+- [Interfaces 组织结构](../Interfaces/README.md) - 查看接口的分类组织
