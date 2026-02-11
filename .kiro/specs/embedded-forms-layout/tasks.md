@@ -100,7 +100,12 @@
   - Test CloseRequested event firing
   - _Requirements: 3.1, 3.2, 3.3, 3.4_
 
-- [ ] 5. Convert ScheduleListForm to ScheduleListControl
+- [x] 5. Convert ScheduleListForm to ScheduleListControl
+
+
+
+
+
   - Create ScheduleListControl UserControl
   - Copy all fields, methods, and event handlers from ScheduleListForm
   - Implement IEmbeddedForm interface
