@@ -267,7 +267,11 @@
   - Test form-specific shortcuts only work when form is active
   - _Requirements: 8.1, 8.2, 8.3, 8.4_
 
-- [ ] 13. Implement system tray integration with embedded forms
+- [x] 13. Implement system tray integration with embedded forms
+
+
+
+
   - Update HideToSystemTray to preserve current embedded form state
   - Update ShowMainWindow to restore previous embedded form
   - Store navigation state before hiding to tray

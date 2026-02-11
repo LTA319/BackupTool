@@ -39,6 +39,11 @@ public partial class FormMain : Form
     /// </summary>
     private EmbeddedForms.NavigationPanel? _navigationPanelControl;
 
+    /// <summary>
+    /// 保存的导航状态，用于从系统托盘恢复时使用
+    /// </summary>
+    private EmbeddedForms.NavigationState? _savedNavigationState;
+
     #endregion
 
     #region 构造函数
@@ -699,6 +704,21 @@ public partial class FormMain : Form
 
             _logger.LogInformation("应用程序正在关闭");
 
+            // Properly dispose embedded forms when closing from tray
+            if (_embeddedFormHost != null)
+            {
+                try
+                {
+                    // Show welcome screen to properly deactivate and dispose current form
+                    _embeddedFormHost.ShowWelcome();
+                    _logger.LogInformation("已清理嵌入式窗体资源");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "清理嵌入式窗体资源时发生错误");
+                }
+            }
+
             // 隐藏托盘图标
             if (notifyIcon != null)
             {
@@ -811,11 +831,24 @@ public partial class FormMain : Form
 
     /// <summary>
     /// 隐藏窗体到系统托盘
+    /// 保存当前嵌入式窗体的导航状态，以便恢复时使用
     /// </summary>
     private void HideToSystemTray()
     {
         try
         {
+            // Store navigation state before hiding to tray
+            _savedNavigationState = _embeddedFormHost?.GetCurrentStateForPreservation();
+            
+            if (_savedNavigationState != null)
+            {
+                _logger.LogInformation("保存导航状态: {FormType}", _savedNavigationState.FormType);
+            }
+            else
+            {
+                _logger.LogInformation("当前在欢迎屏幕，无需保存导航状态");
+            }
+
             this.Hide();
             notifyIcon.Visible = true;
 
@@ -835,6 +868,7 @@ public partial class FormMain : Form
 
     /// <summary>
     /// 从系统托盘显示主窗体
+    /// 恢复之前保存的嵌入式窗体导航状态
     /// </summary>
     private void ShowMainWindow()
     {
@@ -845,6 +879,30 @@ public partial class FormMain : Form
             this.BringToFront();
             this.Activate();
             notifyIcon.Visible = false;
+
+            // Restore navigation state when showing from tray
+            if (_savedNavigationState != null)
+            {
+                _logger.LogInformation("恢复导航状态: {FormType}", _savedNavigationState.FormType);
+                
+                var restored = _embeddedFormHost?.RestoreNavigationState(_savedNavigationState);
+                
+                if (restored == true)
+                {
+                    _logger.LogInformation("成功恢复导航状态");
+                }
+                else
+                {
+                    _logger.LogWarning("无法恢复导航状态，显示欢迎屏幕");
+                }
+                
+                // Clear the saved state after restoration attempt
+                _savedNavigationState = null;
+            }
+            else
+            {
+                _logger.LogInformation("无保存的导航状态，保持当前状态");
+            }
 
             _logger.LogInformation("主窗体已从系统托盘恢复显示");
         }

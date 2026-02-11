@@ -242,5 +242,93 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             // Propagate the status change event
             FormStatusChanged?.Invoke(this, e);
         }
+
+        /// <summary>
+        /// Gets the current navigation state for preservation (e.g., when minimizing to tray)
+        /// </summary>
+        /// <returns>The current navigation state, or null if on welcome screen</returns>
+        public NavigationState? GetCurrentStateForPreservation()
+        {
+            if (_currentForm == null || CurrentNavigationState == null)
+            {
+                _logger.LogDebug("No active form to preserve");
+                return null;
+            }
+
+            _logger.LogInformation("Preserving navigation state for form: {FormType}", CurrentNavigationState.FormType);
+            return CurrentNavigationState;
+        }
+
+        /// <summary>
+        /// Restores a previously saved navigation state
+        /// </summary>
+        /// <param name="state">The navigation state to restore</param>
+        /// <returns>True if restoration was successful, false otherwise</returns>
+        public bool RestoreNavigationState(NavigationState? state)
+        {
+            if (state == null)
+            {
+                _logger.LogDebug("No state to restore, showing welcome screen");
+                ShowWelcome();
+                return true;
+            }
+
+            try
+            {
+                _logger.LogInformation("Restoring navigation state for form: {FormType}", state.FormType);
+
+                // Map form type name to actual type and show the form
+                var formType = GetFormTypeByName(state.FormType);
+                if (formType == null)
+                {
+                    _logger.LogWarning("Could not find form type: {FormType}, showing welcome screen", state.FormType);
+                    ShowWelcome();
+                    return false;
+                }
+
+                // Use reflection to call ShowForm<T>() with the correct type
+                var showFormMethod = typeof(EmbeddedFormHost)
+                    .GetMethod(nameof(ShowForm))
+                    ?.MakeGenericMethod(formType);
+
+                if (showFormMethod == null)
+                {
+                    _logger.LogError("Could not find ShowForm method");
+                    ShowWelcome();
+                    return false;
+                }
+
+                showFormMethod.Invoke(this, null);
+                _logger.LogInformation("Successfully restored navigation state");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error restoring navigation state for form: {FormType}", state.FormType);
+                ShowWelcome();
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Gets the form type by its name
+        /// </summary>
+        /// <param name="formTypeName">The name of the form type</param>
+        /// <returns>The Type object, or null if not found</returns>
+        private Type? GetFormTypeByName(string formTypeName)
+        {
+            // Map of known form type names to their actual types
+            var formTypeMap = new Dictionary<string, Type>
+            {
+                { nameof(WelcomeControl), typeof(WelcomeControl) },
+                { nameof(ConfigurationListControl), typeof(ConfigurationListControl) },
+                { nameof(ScheduleListControl), typeof(ScheduleListControl) },
+                { nameof(BackupMonitorControl), typeof(BackupMonitorControl) },
+                { nameof(LogBrowserControl), typeof(LogBrowserControl) },
+                { nameof(TransferLogViewerControl), typeof(TransferLogViewerControl) }
+            };
+
+            return formTypeMap.TryGetValue(formTypeName, out var type) ? type : null;
+        }
     }
 }
