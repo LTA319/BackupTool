@@ -75,6 +75,9 @@ public partial class FormMain : Form
             this.Size = new Size(800, 600);
             this.StartPosition = FormStartPosition.CenterScreen;
 
+            // Enable keyboard preview for global shortcuts
+            this.KeyPreview = true;
+
             // 初始化系统托盘
             InitializeSystemTray();
 
@@ -707,6 +710,98 @@ public partial class FormMain : Form
         catch (Exception ex)
         {
             _logger.LogError(ex, "应用程序关闭过程中发生错误");
+        }
+    }
+
+    /// <summary>
+    /// 处理键盘快捷键
+    /// 实现全局快捷键处理，包括Escape键返回欢迎屏幕
+    /// </summary>
+    /// <param name="msg">Windows消息</param>
+    /// <param name="keyData">按键数据</param>
+    /// <returns>如果键已处理则返回true，否则返回false</returns>
+    protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+    {
+        try
+        {
+            // Handle Escape key - return to welcome screen
+            if (keyData == Keys.Escape)
+            {
+                _logger.LogDebug("Escape key pressed, returning to welcome screen");
+                
+                // Check if current form can be closed
+                if (_embeddedFormHost?.CurrentForm != null)
+                {
+                    if (_embeddedFormHost.CurrentForm.CanClose())
+                    {
+                        ShowWelcomeScreen();
+                        return true;
+                    }
+                    else
+                    {
+                        _logger.LogDebug("Current form cannot be closed, Escape key ignored");
+                        return true; // Still consume the key to prevent default behavior
+                    }
+                }
+                
+                return true;
+            }
+
+            // Handle menu shortcuts - these should work regardless of active form
+            // Alt+F for File menu
+            if (keyData == (Keys.Alt | Keys.F))
+            {
+                fileToolStripMenuItem.ShowDropDown();
+                return true;
+            }
+
+            // Alt+T for Tools menu
+            if (keyData == (Keys.Alt | Keys.T))
+            {
+                toolsToolStripMenuItem.ShowDropDown();
+                return true;
+            }
+
+            // Alt+H for Help menu
+            if (keyData == (Keys.Alt | Keys.H))
+            {
+                helpToolStripMenuItem.ShowDropDown();
+                return true;
+            }
+
+            // Forward other keyboard events to the active embedded form
+            // The embedded form's controls will handle their own shortcuts naturally
+            // through the standard Windows Forms event chain
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "处理键盘快捷键时发生错误");
+        }
+
+        // Let the base class handle the key if we didn't process it
+        return base.ProcessCmdKey(ref msg, keyData);
+    }
+
+    /// <summary>
+    /// 处理按键事件
+    /// 提供额外的键盘事件处理，用于调试和日志记录
+    /// </summary>
+    /// <param name="e">按键事件参数</param>
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        try
+        {
+            // Log keyboard events for debugging (only in debug builds)
+            #if DEBUG
+            _logger.LogTrace("Key pressed: {Key}, Modifiers: {Modifiers}", e.KeyCode, e.Modifiers);
+            #endif
+
+            // Allow the event to propagate to child controls
+            base.OnKeyDown(e);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "处理按键事件时发生错误");
         }
     }
 
