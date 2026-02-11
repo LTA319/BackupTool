@@ -121,7 +121,13 @@
   - Test CloseRequested event firing
   - _Requirements: 3.1, 3.2, 3.3, 3.4_
 
-- [ ] 6. Convert BackupMonitorForm to BackupMonitorControl
+- [x] 6. Convert BackupMonitorForm to BackupMonitorControl
+
+
+
+
+
+
   - Create BackupMonitorControl UserControl
   - Copy all fields, methods, and event handlers from BackupMonitorForm
   - Implement IEmbeddedForm interface
