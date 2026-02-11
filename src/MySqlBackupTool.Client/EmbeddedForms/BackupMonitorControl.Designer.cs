@@ -74,12 +74,46 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             // 
             // dgvConfigurations
             // 
+            this.dgvConfigurations.AutoGenerateColumns = false;
             this.dgvConfigurations.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dgvConfigurations.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            new System.Windows.Forms.DataGridViewTextBoxColumn
+            {
+                Name = "Name",
+                HeaderText = "配置名称",
+                DataPropertyName = "Name",
+                Width = 150
+            },
+            new System.Windows.Forms.DataGridViewCheckBoxColumn
+            {
+                Name = "IsActive",
+                HeaderText = "激活",
+                DataPropertyName = "IsActive",
+                Width = 100
+            },
+            new System.Windows.Forms.DataGridViewTextBoxColumn
+            {
+                Name = "MySQLHost",
+                HeaderText = "MySQL主机",
+                Width = 120
+            },
+            new System.Windows.Forms.DataGridViewTextBoxColumn
+            {
+                Name = "TargetServer",
+                HeaderText = "目标服务器",
+                Width = 120
+            }});
             this.dgvConfigurations.Dock = System.Windows.Forms.DockStyle.Fill;
             this.dgvConfigurations.Location = new System.Drawing.Point(3, 19);
+            this.dgvConfigurations.MultiSelect = false;
             this.dgvConfigurations.Name = "dgvConfigurations";
+            this.dgvConfigurations.ReadOnly = true;
+            this.dgvConfigurations.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
             this.dgvConfigurations.Size = new System.Drawing.Size(878, 178);
             this.dgvConfigurations.TabIndex = 0;
+            this.dgvConfigurations.AllowUserToAddRows = false;
+            this.dgvConfigurations.CellFormatting += new System.Windows.Forms.DataGridViewCellFormattingEventHandler(this.DgvConfigurations_CellFormatting);
+            this.dgvConfigurations.SelectionChanged += new System.EventHandler(this.DgvConfigurations_SelectionChanged);
 
             // 
             // panelConfigButtons
@@ -119,12 +153,53 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             // 
             // dgvRunningBackups
             // 
+            this.dgvRunningBackups.AutoGenerateColumns = false;
             this.dgvRunningBackups.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dgvRunningBackups.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            new System.Windows.Forms.DataGridViewTextBoxColumn
+            {
+                Name = "ConfigName",
+                HeaderText = "配置名称",
+                Width = 120
+            },
+            new System.Windows.Forms.DataGridViewTextBoxColumn
+            {
+                Name = "Status",
+                HeaderText = "状态",
+                DataPropertyName = "Status",
+                Width = 100
+            },
+            new System.Windows.Forms.DataGridViewTextBoxColumn
+            {
+                Name = "StartTime",
+                HeaderText = "开始时间",
+                DataPropertyName = "StartTime",
+                Width = 120,
+                DefaultCellStyle = new System.Windows.Forms.DataGridViewCellStyle { Format = "HH:mm:ss" }
+            },
+            new System.Windows.Forms.DataGridViewTextBoxColumn
+            {
+                Name = "Duration",
+                HeaderText = "持续时间",
+                Width = 100
+            },
+            new System.Windows.Forms.DataGridViewTextBoxColumn
+            {
+                Name = "Progress",
+                HeaderText = "进度",
+                Width = 100
+            }});
             this.dgvRunningBackups.Dock = System.Windows.Forms.DockStyle.Fill;
             this.dgvRunningBackups.Location = new System.Drawing.Point(3, 19);
+            this.dgvRunningBackups.MultiSelect = false;
             this.dgvRunningBackups.Name = "dgvRunningBackups";
+            this.dgvRunningBackups.ReadOnly = true;
+            this.dgvRunningBackups.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
             this.dgvRunningBackups.Size = new System.Drawing.Size(878, 194);
             this.dgvRunningBackups.TabIndex = 0;
+            this.dgvRunningBackups.AllowUserToAddRows = false;
+            this.dgvRunningBackups.CellFormatting += new System.Windows.Forms.DataGridViewCellFormattingEventHandler(this.DgvRunningBackups_CellFormatting);
+            this.dgvRunningBackups.SelectionChanged += new System.EventHandler(this.DgvRunningBackups_SelectionChanged);
 
             // 
             // panelBackupButtons

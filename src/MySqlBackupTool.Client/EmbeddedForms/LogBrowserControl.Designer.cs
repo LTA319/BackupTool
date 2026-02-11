@@ -91,14 +91,71 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             // 
             // dgvLogs
             // 
+            dgvLogs.AutoGenerateColumns = false;
             dgvLogs.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dgvLogs.Columns.AddRange(new DataGridViewColumn[] {
+            new DataGridViewTextBoxColumn
+            {
+                Name = "ConfigName",
+                HeaderText = "配置名称",
+                Width = 120
+            },
+            new DataGridViewTextBoxColumn
+            {
+                Name = "Status",
+                HeaderText = "状态",
+                DataPropertyName = "Status",
+                Width = 100
+            },
+            new DataGridViewTextBoxColumn
+            {
+                Name = "StartTime",
+                HeaderText = "开始时间",
+                DataPropertyName = "StartTime",
+                Width = 130,
+                DefaultCellStyle = new DataGridViewCellStyle { Format = "yyyy-MM-dd HH:mm:ss" }
+            },
+            new DataGridViewTextBoxColumn
+            {
+                Name = "Duration",
+                HeaderText = "持续时间",
+                Width = 80
+            },
+            new DataGridViewTextBoxColumn
+            {
+                Name = "FileSize",
+                HeaderText = "文件大小",
+                Width = 80
+            },
+            new DataGridViewTextBoxColumn
+            {
+                Name = "FilePath",
+                HeaderText = "文件路径",
+                DataPropertyName = "FilePath",
+                Width = 200
+            },
+            new DataGridViewTextBoxColumn
+            {
+                Name = "ErrorMessage",
+                HeaderText = "错误信息",
+                DataPropertyName = "ErrorMessage",
+                Width = 150
+            }});
             dgvLogs.Dock = DockStyle.Fill;
             dgvLogs.Location = new Point(0, 160);
             dgvLogs.Margin = new Padding(4);
+            dgvLogs.MultiSelect = false;
             dgvLogs.Name = "dgvLogs";
+            dgvLogs.ReadOnly = true;
             dgvLogs.RowHeadersWidth = 62;
+            dgvLogs.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dgvLogs.Size = new Size(1265, 272);
             dgvLogs.TabIndex = 1;
+            dgvLogs.AllowUserToAddRows = false;
+            dgvLogs.AllowUserToDeleteRows = false;
+            dgvLogs.CellFormatting += new DataGridViewCellFormattingEventHandler(this.DgvLogs_CellFormatting);
+            dgvLogs.SelectionChanged += new EventHandler(this.DgvLogs_SelectionChanged);
+            dgvLogs.RowPrePaint += new DataGridViewRowPrePaintEventHandler(this.DgvLogs_RowPrePaint);
             // 
             // lblFilteredCount
             // 

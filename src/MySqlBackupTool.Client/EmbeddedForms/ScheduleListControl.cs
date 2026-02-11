@@ -133,14 +133,11 @@ public partial class ScheduleListControl : UserControl, IEmbeddedForm
 
     /// <summary>
     /// 初始化控件的基本设置和属性
-    /// 配置数据网格并加载调度配置数据
     /// </summary>
     private void InitializeControl()
     {
         try
         {
-            SetupDataGridView();
-            
             _logger.LogInformation("调度配置列表控件初始化成功");
         }
         catch (Exception ex)
@@ -148,75 +145,6 @@ public partial class ScheduleListControl : UserControl, IEmbeddedForm
             _logger.LogError(ex, "初始化调度配置列表控件时发生错误");
             MessageBox.Show($"初始化控件时发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
-    }
-
-    /// <summary>
-    /// 设置数据网格视图的列和属性
-    /// 配置调度配置列表网格的显示格式和事件处理
-    /// </summary>
-    private void SetupDataGridView()
-    {
-        dgvSchedules.AutoGenerateColumns = false;
-        dgvSchedules.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-        dgvSchedules.MultiSelect = false;
-        dgvSchedules.ReadOnly = true;
-        dgvSchedules.AllowUserToAddRows = false;
-        dgvSchedules.AllowUserToDeleteRows = false;
-
-        // 添加列
-        dgvSchedules.Columns.Add(new DataGridViewTextBoxColumn
-        {
-            Name = "BackupConfigName",
-            HeaderText = "备份配置",
-            DataPropertyName = "BackupConfiguration.Name",
-            Width = 200
-        });
-
-        dgvSchedules.Columns.Add(new DataGridViewTextBoxColumn
-        {
-            Name = "ScheduleType",
-            HeaderText = "调度类型",
-            DataPropertyName = "ScheduleType",
-            Width = 100
-        });
-
-        dgvSchedules.Columns.Add(new DataGridViewTextBoxColumn
-        {
-            Name = "ScheduleTime",
-            HeaderText = "调度时间",
-            DataPropertyName = "ScheduleTime",
-            Width = 150
-        });
-
-        dgvSchedules.Columns.Add(new DataGridViewCheckBoxColumn
-        {
-            Name = "IsEnabled",
-            HeaderText = "启用",
-            DataPropertyName = "IsEnabled",
-            Width = 60
-        });
-
-        dgvSchedules.Columns.Add(new DataGridViewTextBoxColumn
-        {
-            Name = "LastExecuted",
-            HeaderText = "最后执行",
-            DataPropertyName = "LastExecuted",
-            Width = 120,
-            DefaultCellStyle = new DataGridViewCellStyle { Format = "yyyy-MM-dd HH:mm" }
-        });
-
-        dgvSchedules.Columns.Add(new DataGridViewTextBoxColumn
-        {
-            Name = "NextExecution",
-            HeaderText = "下次执行",
-            DataPropertyName = "NextExecution",
-            Width = 120,
-            DefaultCellStyle = new DataGridViewCellStyle { Format = "yyyy-MM-dd HH:mm" }
-        });
-
-        // 处理嵌套属性的单元格格式化
-        dgvSchedules.CellFormatting += DgvSchedules_CellFormatting;
-        dgvSchedules.SelectionChanged += DgvSchedules_SelectionChanged;
     }
 
     /// <summary>

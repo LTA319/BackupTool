@@ -175,13 +175,11 @@ public partial class LogBrowserControl : UserControl, IEmbeddedForm
 
     /// <summary>
     /// 初始化控件的基本设置和属性
-    /// 设置控件大小、配置数据网格、过滤器并加载数据
     /// </summary>
     private void InitializeControl()
     {
         try
         {
-            SetupDataGridView();
             SetupFilters();
             
             _logger.LogInformation("日志浏览器控件初始化成功");
@@ -191,80 +189,6 @@ public partial class LogBrowserControl : UserControl, IEmbeddedForm
             _logger.LogError(ex, "初始化日志浏览器控件时发生错误");
             MessageBox.Show($"初始化控件时发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
-    }
-
-    /// <summary>
-    /// 设置数据网格视图的列和属性
-    /// 配置日志列表网格的显示格式和事件处理
-    /// </summary>
-    private void SetupDataGridView()
-    {
-        dgvLogs.AutoGenerateColumns = false;
-        dgvLogs.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-        dgvLogs.MultiSelect = false;
-        dgvLogs.ReadOnly = true;
-        dgvLogs.AllowUserToAddRows = false;
-        dgvLogs.AllowUserToDeleteRows = false;
-
-        // 添加列
-        dgvLogs.Columns.Add(new DataGridViewTextBoxColumn
-        {
-            Name = "ConfigName",
-            HeaderText = "配置名称",
-            Width = 120
-        });
-
-        dgvLogs.Columns.Add(new DataGridViewTextBoxColumn
-        {
-            Name = "Status",
-            HeaderText = "状态",
-            DataPropertyName = "Status",
-            Width = 100
-        });
-
-        dgvLogs.Columns.Add(new DataGridViewTextBoxColumn
-        {
-            Name = "StartTime",
-            HeaderText = "开始时间",
-            DataPropertyName = "StartTime",
-            Width = 130,
-            DefaultCellStyle = new DataGridViewCellStyle { Format = "yyyy-MM-dd HH:mm:ss" }
-        });
-
-        dgvLogs.Columns.Add(new DataGridViewTextBoxColumn
-        {
-            Name = "Duration",
-            HeaderText = "持续时间",
-            Width = 80
-        });
-
-        dgvLogs.Columns.Add(new DataGridViewTextBoxColumn
-        {
-            Name = "FileSize",
-            HeaderText = "文件大小",
-            Width = 80
-        });
-
-        dgvLogs.Columns.Add(new DataGridViewTextBoxColumn
-        {
-            Name = "FilePath",
-            HeaderText = "文件路径",
-            DataPropertyName = "FilePath",
-            Width = 200
-        });
-
-        dgvLogs.Columns.Add(new DataGridViewTextBoxColumn
-        {
-            Name = "ErrorMessage",
-            HeaderText = "错误信息",
-            DataPropertyName = "ErrorMessage",
-            Width = 150
-        });
-
-        // 处理单元格格式化和选择
-        dgvLogs.CellFormatting += DgvLogs_CellFormatting;
-        dgvLogs.SelectionChanged += DgvLogs_SelectionChanged;
-        dgvLogs.RowPrePaint += DgvLogs_RowPrePaint;
     }
 
     /// <summary>

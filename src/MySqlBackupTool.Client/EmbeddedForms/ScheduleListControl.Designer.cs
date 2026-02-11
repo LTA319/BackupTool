@@ -45,13 +45,66 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             // dgvSchedules
             // 
             dgvSchedules.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            dgvSchedules.AutoGenerateColumns = false;
             dgvSchedules.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dgvSchedules.Columns.AddRange(new DataGridViewColumn[] {
+            new DataGridViewTextBoxColumn
+            {
+                Name = "BackupConfigName",
+                HeaderText = "备份配置",
+                DataPropertyName = "BackupConfiguration.Name",
+                Width = 200
+            },
+            new DataGridViewTextBoxColumn
+            {
+                Name = "ScheduleType",
+                HeaderText = "调度类型",
+                DataPropertyName = "ScheduleType",
+                Width = 100
+            },
+            new DataGridViewTextBoxColumn
+            {
+                Name = "ScheduleTime",
+                HeaderText = "调度时间",
+                DataPropertyName = "ScheduleTime",
+                Width = 150
+            },
+            new DataGridViewCheckBoxColumn
+            {
+                Name = "IsEnabled",
+                HeaderText = "启用",
+                DataPropertyName = "IsEnabled",
+                Width = 60
+            },
+            new DataGridViewTextBoxColumn
+            {
+                Name = "LastExecuted",
+                HeaderText = "最后执行",
+                DataPropertyName = "LastExecuted",
+                Width = 120,
+                DefaultCellStyle = new DataGridViewCellStyle { Format = "yyyy-MM-dd HH:mm" }
+            },
+            new DataGridViewTextBoxColumn
+            {
+                Name = "NextExecution",
+                HeaderText = "下次执行",
+                DataPropertyName = "NextExecution",
+                Width = 120,
+                DefaultCellStyle = new DataGridViewCellStyle { Format = "yyyy-MM-dd HH:mm" }
+            }});
             dgvSchedules.Location = new Point(19, 19);
             dgvSchedules.Margin = new Padding(5, 5, 5, 5);
+            dgvSchedules.MultiSelect = false;
             dgvSchedules.Name = "dgvSchedules";
+            dgvSchedules.ReadOnly = true;
             dgvSchedules.RowHeadersWidth = 62;
+            dgvSchedules.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dgvSchedules.Size = new Size(1519, 521);
             dgvSchedules.TabIndex = 0;
+            dgvSchedules.AllowUserToAddRows = false;
+            dgvSchedules.AllowUserToDeleteRows = false;
+            dgvSchedules.CellFormatting += new DataGridViewCellFormattingEventHandler(this.DgvSchedules_CellFormatting);
+            dgvSchedules.SelectionChanged += new EventHandler(this.DgvSchedules_SelectionChanged);
             // 
             // btnNew
             // 

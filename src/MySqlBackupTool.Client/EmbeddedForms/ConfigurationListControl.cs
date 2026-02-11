@@ -127,14 +127,11 @@ public partial class ConfigurationListControl : UserControl, IEmbeddedForm
 
     /// <summary>
     /// 初始化控件的基本设置和属性
-    /// 配置数据网格并加载配置数据
     /// </summary>
     private void InitializeControl()
     {
         try
         {
-            SetupDataGridView();
-            
             _logger.LogInformation("配置列表控件初始化成功");
         }
         catch (Exception ex)
@@ -142,66 +139,6 @@ public partial class ConfigurationListControl : UserControl, IEmbeddedForm
             _logger.LogError(ex, "初始化配置列表控件时发生错误");
             MessageBox.Show($"初始化控件时发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
-    }
-
-    /// <summary>
-    /// 设置数据网格视图的列和属性
-    /// 配置配置列表网格的显示格式和事件处理
-    /// </summary>
-    private void SetupDataGridView()
-    {
-        dgvConfigurations.AutoGenerateColumns = false;
-        dgvConfigurations.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-        dgvConfigurations.MultiSelect = false;
-        dgvConfigurations.ReadOnly = true;
-        dgvConfigurations.AllowUserToAddRows = false;
-        dgvConfigurations.AllowUserToDeleteRows = false;
-
-        // 添加列
-        dgvConfigurations.Columns.Add(new DataGridViewTextBoxColumn
-        {
-            Name = "Name",
-            HeaderText = "配置名称",
-            DataPropertyName = "Name",
-            Width = 200
-        });
-
-        dgvConfigurations.Columns.Add(new DataGridViewTextBoxColumn
-        {
-            Name = "MySQLHost",
-            HeaderText = "MySQL主机",
-            DataPropertyName = "MySQLConnection.Host",
-            Width = 120
-        });
-
-        dgvConfigurations.Columns.Add(new DataGridViewTextBoxColumn
-        {
-            Name = "TargetServer",
-            HeaderText = "目标服务器",
-            DataPropertyName = "TargetServer.IPAddress",
-            Width = 120
-        });
-
-        dgvConfigurations.Columns.Add(new DataGridViewCheckBoxColumn
-        {
-            Name = "IsActive",
-            HeaderText = "激活",
-            DataPropertyName = "IsActive",
-            Width = 60
-        });
-
-        dgvConfigurations.Columns.Add(new DataGridViewTextBoxColumn
-        {
-            Name = "CreatedAt",
-            HeaderText = "创建时间",
-            DataPropertyName = "CreatedAt",
-            Width = 120,
-            DefaultCellStyle = new DataGridViewCellStyle { Format = "yyyy-MM-dd HH:mm" }
-        });
-
-        // 处理嵌套属性的单元格格式化
-        dgvConfigurations.CellFormatting += DgvConfigurations_CellFormatting;
-        dgvConfigurations.SelectionChanged += DgvConfigurations_SelectionChanged;
     }
 
     /// <summary>

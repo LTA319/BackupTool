@@ -186,15 +186,12 @@ public partial class BackupMonitorControl : UserControl, IEmbeddedForm
 
     /// <summary>
     /// 初始化控件的基本设置和属性
-    /// 设置控件大小，配置数据网格
     /// </summary>
     private void InitializeControl()
     {
         try
         {
             this.Dock = DockStyle.Fill;
-
-            SetupDataGridViews();
             
             _logger.LogInformation("备份监控控件初始化成功");
         }
@@ -203,103 +200,6 @@ public partial class BackupMonitorControl : UserControl, IEmbeddedForm
             _logger.LogError(ex, "初始化备份监控控件时发生错误");
             MessageBox.Show($"初始化控件时发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
-    }
-
-    /// <summary>
-    /// 设置数据网格视图的列和属性
-    /// 配置备份配置网格和正在运行的备份网格的显示格式
-    /// </summary>
-    private void SetupDataGridViews()
-    {
-        // 设置配置网格
-        dgvConfigurations.AutoGenerateColumns = false;
-        dgvConfigurations.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-        dgvConfigurations.MultiSelect = false;
-        dgvConfigurations.ReadOnly = true;
-        dgvConfigurations.AllowUserToAddRows = false;
-
-        dgvConfigurations.Columns.Add(new DataGridViewTextBoxColumn
-        {
-            Name = "Name",
-            HeaderText = "配置名称",
-            DataPropertyName = "Name",
-            Width = 150
-        });
-
-        dgvConfigurations.Columns.Add(new DataGridViewCheckBoxColumn
-        {
-            Name = "IsActive",
-            HeaderText = "激活",
-            DataPropertyName = "IsActive",
-            Width = 100
-        });
-
-        dgvConfigurations.Columns.Add(new DataGridViewTextBoxColumn
-        {
-            Name = "MySQLHost",
-            HeaderText = "MySQL主机",
-            Width = 120
-        });
-
-        dgvConfigurations.Columns.Add(new DataGridViewTextBoxColumn
-        {
-            Name = "TargetServer",
-            HeaderText = "目标服务器",
-            Width = 120
-        });
-
-        // 设置正在运行的备份网格
-        dgvRunningBackups.AutoGenerateColumns = false;
-        dgvRunningBackups.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-        dgvRunningBackups.MultiSelect = false;
-        dgvRunningBackups.ReadOnly = true;
-        dgvRunningBackups.AllowUserToAddRows = false;
-
-        dgvRunningBackups.Columns.Add(new DataGridViewTextBoxColumn
-        {
-            Name = "ConfigName",
-            HeaderText = "配置名称",
-            Width = 120
-        });
-
-        dgvRunningBackups.Columns.Add(new DataGridViewTextBoxColumn
-        {
-            Name = "Status",
-            HeaderText = "状态",
-            DataPropertyName = "Status",
-            Width = 100
-        });
-
-        dgvRunningBackups.Columns.Add(new DataGridViewTextBoxColumn
-        {
-            Name = "StartTime",
-            HeaderText = "开始时间",
-            DataPropertyName = "StartTime",
-            Width = 120,
-            DefaultCellStyle = new DataGridViewCellStyle { Format = "HH:mm:ss" }
-        });
-
-        dgvRunningBackups.Columns.Add(new DataGridViewTextBoxColumn
-        {
-            Name = "Duration",
-            HeaderText = "持续时间",
-            Width = 100
-        });
-
-        dgvRunningBackups.Columns.Add(new DataGridViewTextBoxColumn
-        {
-            Name = "Progress",
-            HeaderText = "进度",
-            Width = 100
-        });
-
-        // 处理单元格格式化
-        dgvConfigurations.CellFormatting += DgvConfigurations_CellFormatting;
-        dgvRunningBackups.CellFormatting += DgvRunningBackups_CellFormatting;
-        
-        // 处理选择变化
-        dgvConfigurations.SelectionChanged += DgvConfigurations_SelectionChanged;
-        dgvRunningBackups.SelectionChanged += DgvRunningBackups_SelectionChanged;
     }
 
     /// <summary>

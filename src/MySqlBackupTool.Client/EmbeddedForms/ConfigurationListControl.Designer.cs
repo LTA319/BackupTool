@@ -45,13 +45,58 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             // dgvConfigurations
             // 
             dgvConfigurations.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            dgvConfigurations.AutoGenerateColumns = false;
             dgvConfigurations.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dgvConfigurations.Columns.AddRange(new DataGridViewColumn[] {
+            new DataGridViewTextBoxColumn
+            {
+                Name = "Name",
+                HeaderText = "配置名称",
+                DataPropertyName = "Name",
+                Width = 200
+            },
+            new DataGridViewTextBoxColumn
+            {
+                Name = "MySQLHost",
+                HeaderText = "MySQL主机",
+                DataPropertyName = "MySQLConnection.Host",
+                Width = 120
+            },
+            new DataGridViewTextBoxColumn
+            {
+                Name = "TargetServer",
+                HeaderText = "目标服务器",
+                DataPropertyName = "TargetServer.IPAddress",
+                Width = 120
+            },
+            new DataGridViewCheckBoxColumn
+            {
+                Name = "IsActive",
+                HeaderText = "激活",
+                DataPropertyName = "IsActive",
+                Width = 60
+            },
+            new DataGridViewTextBoxColumn
+            {
+                Name = "CreatedAt",
+                HeaderText = "创建时间",
+                DataPropertyName = "CreatedAt",
+                Width = 120,
+                DefaultCellStyle = new DataGridViewCellStyle { Format = "yyyy-MM-dd HH:mm" }
+            }});
             dgvConfigurations.Location = new Point(19, 19);
             dgvConfigurations.Margin = new Padding(5);
+            dgvConfigurations.MultiSelect = false;
             dgvConfigurations.Name = "dgvConfigurations";
+            dgvConfigurations.ReadOnly = true;
             dgvConfigurations.RowHeadersWidth = 62;
+            dgvConfigurations.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dgvConfigurations.Size = new Size(1419, 521);
             dgvConfigurations.TabIndex = 0;
+            dgvConfigurations.AllowUserToAddRows = false;
+            dgvConfigurations.AllowUserToDeleteRows = false;
+            dgvConfigurations.CellFormatting += new DataGridViewCellFormattingEventHandler(this.DgvConfigurations_CellFormatting);
+            dgvConfigurations.SelectionChanged += new EventHandler(this.DgvConfigurations_SelectionChanged);
             // 
             // btnNew
             // 
