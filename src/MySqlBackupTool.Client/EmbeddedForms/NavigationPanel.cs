@@ -44,11 +44,10 @@ namespace MySqlBackupTool.Client.EmbeddedForms
         /// </summary>
         private void InitializePanel()
         {
-            this.BackColor = SystemColors.Control;
-            this.BorderStyle = BorderStyle.FixedSingle;
-            this.Dock = DockStyle.Top;
-            this.Height = 40;
-            this.Padding = new Padding(10, 5, 10, 5);
+            this.BackColor = Color.FromArgb(240, 240, 240);
+            this.BorderStyle = BorderStyle.None;
+            this.Dock = DockStyle.Fill;
+            this.Padding = new Padding(10, 8, 10, 8);
         }
 
         /// <summary>
@@ -79,7 +78,7 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             this.SuspendLayout();
 
             int xPosition = 10;
-            const int yPosition = 8;
+            const int yPosition = 10;
             const int separatorWidth = 30;
 
             for (int i = 0; i < segments.Length; i++)
@@ -115,8 +114,8 @@ namespace MySqlBackupTool.Client.EmbeddedForms
                 Text = text,
                 AutoSize = true,
                 Location = new Point(x, y),
-                Font = new Font(this.Font.FontFamily, 10, isLast ? FontStyle.Bold : FontStyle.Regular),
-                ForeColor = isLast ? SystemColors.ControlText : SystemColors.GrayText,
+                Font = new Font("Segoe UI", 10F, isLast ? FontStyle.Bold : FontStyle.Regular),
+                ForeColor = isLast ? Color.FromArgb(51, 51, 51) : Color.FromArgb(102, 102, 102),
                 Cursor = isLast ? Cursors.Default : Cursors.Hand
             };
 
@@ -125,14 +124,14 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             {
                 label.MouseEnter += (s, e) =>
                 {
-                    label.ForeColor = SystemColors.HotTrack;
+                    label.ForeColor = Color.FromArgb(0, 122, 204);
                     label.Font = new Font(label.Font, FontStyle.Underline);
                 };
 
                 label.MouseLeave += (s, e) =>
                 {
-                    label.ForeColor = SystemColors.GrayText;
-                    label.Font = new Font(label.Font, FontStyle.Regular);
+                    label.ForeColor = Color.FromArgb(102, 102, 102);
+                    label.Font = new Font("Segoe UI", 10F, FontStyle.Regular);
                 };
             }
 
@@ -149,8 +148,8 @@ namespace MySqlBackupTool.Client.EmbeddedForms
                 Text = ">",
                 AutoSize = true,
                 Location = new Point(x, y),
-                Font = new Font(this.Font.FontFamily, 10, FontStyle.Regular),
-                ForeColor = SystemColors.GrayText
+                Font = new Font("Segoe UI", 10F, FontStyle.Regular),
+                ForeColor = Color.FromArgb(153, 153, 153)
             };
 
             return label;
