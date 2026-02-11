@@ -2,7 +2,50 @@
 
 ## 概述
 
-将MySqlBackupTool.Client项目中EmbeddedForms文件夹下所有控件的DataGridView列和属性设置从代码文件(.cs)移动到设计文件(.Designer.cs)中，实现样式与业务逻辑的完全分离。
+将MySqlBackupTool.Client项目中EmbeddedForms文件夹下所有控件的DataGridView列和属性设置从代码文件(.cs)移动到设计文件(.Designer.cs)中，并应用统一的样式管理，实现样式与业务逻辑的完全分离。
+
+## 样式优化
+
+### DataGridView统一样式
+
+为了解决DataGridView在没有数据时显示灰白色背景，以及窗体大小变化时视觉效果不佳的问题，所有DataGridView都应用了`EmbeddedFormStyleManager.ApplyDataGridViewStyling()`方法，实现了：
+
+1. **背景色优化**
+   - 主背景：SystemColors.Control（与窗体背景一致）
+   - 单元格背景：白色
+   - 交替行背景：浅灰色 (250, 250, 250)
+
+2. **边框和网格线**
+   - 无外边框 (BorderStyle.None)
+   - 单一水平线分隔单元格
+   - 网格线颜色：浅灰色 (224, 224, 224)
+
+3. **列标题样式**
+   - 背景色：浅灰色 (240, 240, 240)
+   - 文字颜色：深灰色 (51, 51, 51)
+   - 字体：Segoe UI 9pt Bold
+   - 高度：35px
+
+4. **单元格样式**
+   - 字体：Segoe UI 9pt Regular
+   - 内边距：5px
+   - 选中背景：蓝色 (0, 122, 204)
+   - 选中文字：白色
+
+5. **性能优化**
+   - 隐藏行标题
+   - 禁用用户添加/删除行
+   - 禁用行大小调整
+   - 启用双缓冲渲染
+
+### 应用方式
+
+在每个控件的Designer文件的`InitializeComponent()`方法末尾添加：
+
+```csharp
+// Apply DataGridView styling
+EmbeddedFormStyleManager.ApplyDataGridViewStyling(dgvXxx);
+```
 
 ## 修改的文件
 

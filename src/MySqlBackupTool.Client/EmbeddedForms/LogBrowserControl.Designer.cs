@@ -469,6 +469,9 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             // Apply standard styling and optimize layout performance
             EmbeddedFormStyleManager.ApplyStandardStyling(this);
             EmbeddedFormStyleManager.OptimizeLayoutPerformance(this);
+            
+            // Apply DataGridView styling
+            //EmbeddedFormStyleManager.ApplyDataGridViewStyling(dgvLogs);
         }
 
         #endregion
