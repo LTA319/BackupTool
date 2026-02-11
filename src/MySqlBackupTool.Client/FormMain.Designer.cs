@@ -239,8 +239,8 @@ namespace MySqlBackupTool.Client
             // 
             // navigationPanel
             // 
-            navigationPanel.BackColor = SystemColors.Control;
-            navigationPanel.BorderStyle = BorderStyle.FixedSingle;
+            navigationPanel.BackColor = Color.FromArgb(240, 240, 240);
+            navigationPanel.BorderStyle = BorderStyle.None;
             navigationPanel.Dock = DockStyle.Top;
             navigationPanel.Location = new Point(0, 28);
             navigationPanel.Margin = new Padding(2);

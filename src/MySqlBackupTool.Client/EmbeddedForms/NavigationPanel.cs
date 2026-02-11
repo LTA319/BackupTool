@@ -21,6 +21,9 @@ namespace MySqlBackupTool.Client.EmbeddedForms
         public NavigationPanel()
         {
             InitializePanel();
+            
+            // Handle resize to reposition breadcrumbs
+            this.Resize += (s, e) => UpdateBreadcrumbs();
         }
 
         /// <summary>
@@ -78,7 +81,10 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             this.SuspendLayout();
 
             int xPosition = 10;
-            const int yPosition = 10;
+            // Calculate vertical center position based on panel height
+            // Font height is approximately 20 pixels for 10F font, so center it
+            int yPosition = (this.Height - 20) / 2;
+            if (yPosition < 5) yPosition = 5; // Minimum padding
             const int separatorWidth = 30;
 
             for (int i = 0; i < segments.Length; i++)
