@@ -147,16 +147,6 @@
 - [x] 7. Convert LogBrowserForm to LogBrowserControl
 
 
-
-
-
-
-
-
-
-
-
-
   - Create LogBrowserControl UserControl
   - Copy all fields, methods, and event handlers from LogBrowserForm
   - Implement IEmbeddedForm interface
@@ -171,7 +161,11 @@
   - Test CloseRequested event firing
   - _Requirements: 3.1, 3.2, 3.3, 3.4_
 
-- [ ] 8. Convert TransferLogViewerForm to TransferLogViewerControl
+- [x] 8. Convert TransferLogViewerForm to TransferLogViewerControl
+
+
+
+
   - Create TransferLogViewerControl UserControl
   - Copy all fields, methods, and event handlers from TransferLogViewerForm
   - Implement IEmbeddedForm interface
