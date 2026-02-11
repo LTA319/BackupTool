@@ -61,6 +61,16 @@ namespace MySqlBackupTool.Client.EmbeddedForms
         public event EventHandler<IEmbeddedForm?>? ActiveFormChanged;
 
         /// <summary>
+        /// Event raised when the active form's title changes
+        /// </summary>
+        public event EventHandler<string>? FormTitleChanged;
+
+        /// <summary>
+        /// Event raised when the active form's status changes
+        /// </summary>
+        public event EventHandler<string>? FormStatusChanged;
+
+        /// <summary>
         /// Shows an embedded form in the content panel
         /// </summary>
         /// <typeparam name="T">The type of embedded form to show</typeparam>
@@ -217,6 +227,9 @@ namespace MySqlBackupTool.Client.EmbeddedForms
         private void OnFormTitleChanged(object? sender, string e)
         {
             _logger.LogDebug("Form title changed to: {Title}", e);
+            
+            // Propagate the title change event
+            FormTitleChanged?.Invoke(this, e);
         }
 
         /// <summary>
@@ -225,6 +238,9 @@ namespace MySqlBackupTool.Client.EmbeddedForms
         private void OnFormStatusChanged(object? sender, string e)
         {
             _logger.LogDebug("Form status changed to: {Status}", e);
+            
+            // Propagate the status change event
+            FormStatusChanged?.Invoke(this, e);
         }
     }
 }

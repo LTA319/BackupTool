@@ -150,6 +150,8 @@ public partial class FormMain : Form
 
             // 连接事件处理程序
             _embeddedFormHost.ActiveFormChanged += OnActiveFormChanged;
+            _embeddedFormHost.FormTitleChanged += OnFormTitleChanged;
+            _embeddedFormHost.FormStatusChanged += OnFormStatusChanged;
 
             // 显示欢迎屏幕
             ShowWelcomeScreen();
@@ -287,6 +289,50 @@ public partial class FormMain : Form
         catch (Exception ex)
         {
             _logger.LogError(ex, "处理活动窗体更改时发生错误");
+        }
+    }
+
+    /// <summary>
+    /// 处理窗体标题更改事件
+    /// 更新主窗体标题栏以反映嵌入式窗体的标题变化
+    /// </summary>
+    private void OnFormTitleChanged(object? sender, string newTitle)
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(newTitle))
+            {
+                // 更新标题栏，使用标准格式
+                this.Text = $"MySQL Backup Tool - {newTitle}";
+                
+                _logger.LogDebug("主窗体标题已更新为: {Title}", this.Text);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "处理窗体标题更改时发生错误");
+        }
+    }
+
+    /// <summary>
+    /// 处理窗体状态更改事件
+    /// 更新主窗体状态栏以显示嵌入式窗体的状态消息
+    /// </summary>
+    private void OnFormStatusChanged(object? sender, string statusMessage)
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(statusMessage))
+            {
+                // 更新状态栏
+                toolStripStatusLabel.Text = statusMessage;
+                
+                _logger.LogDebug("状态栏已更新为: {Status}", statusMessage);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "处理窗体状态更改时发生错误");
         }
     }
 
