@@ -125,6 +125,12 @@ public partial class ScheduleListControl : UserControl, IEmbeddedForm
 
         InitializeComponent();
         InitializeControl();
+        
+        // Apply standard styling
+        EmbeddedFormStyleManager.ApplyStandardStyling(this);
+        
+        // Optimize layout performance
+        EmbeddedFormStyleManager.OptimizeLayoutPerformance(this);
     }
 
     #endregion

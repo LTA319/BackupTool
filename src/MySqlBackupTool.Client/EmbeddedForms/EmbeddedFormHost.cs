@@ -17,6 +17,7 @@ namespace MySqlBackupTool.Client.EmbeddedForms
         private readonly ILogger<EmbeddedFormHost> _logger;
         private readonly EmbeddedFormErrorHandler _errorHandler;
         private readonly Stack<NavigationState> _navigationHistory;
+        private readonly FormTransitionManager _transitionManager;
         private bool _disposed = false;
 
         /// <summary>
@@ -39,6 +40,11 @@ namespace MySqlBackupTool.Client.EmbeddedForms
                 serviceProvider.GetService(typeof(ILogger<EmbeddedFormErrorHandler>)) as ILogger<EmbeddedFormErrorHandler> 
                     ?? throw new InvalidOperationException("Failed to resolve logger for EmbeddedFormErrorHandler"),
                 ShowWelcome);
+
+            // Initialize transition manager
+            var transitionLogger = serviceProvider.GetService(typeof(ILogger<FormTransitionManager>)) as ILogger<FormTransitionManager>
+                ?? throw new InvalidOperationException("Failed to resolve logger for FormTransitionManager");
+            _transitionManager = new FormTransitionManager(contentPanel, transitionLogger);
         }
 
         /// <summary>
@@ -103,13 +109,8 @@ namespace MySqlBackupTool.Client.EmbeddedForms
                 newForm.TitleChanged += OnFormTitleChanged;
                 newForm.StatusChanged += OnFormStatusChanged;
 
-                // Clear content panel and add new control
-                _contentPanel.SuspendLayout();
-                _contentPanel.Controls.Clear();
-                
-                newControl.Dock = DockStyle.Fill;
-                _contentPanel.Controls.Add(newControl);
-                _contentPanel.ResumeLayout();
+                // Show control with transition
+                _transitionManager.ShowWithTransition(newControl, showLoadingIndicator: true);
 
                 // Update current references
                 _currentControl = newControl;
@@ -129,6 +130,9 @@ namespace MySqlBackupTool.Client.EmbeddedForms
                 try
                 {
                     _currentForm.OnActivated();
+                    
+                    // Apply visual feedback for activation
+                    EmbeddedFormStyleManager.ApplyActivationFeedback(newControl);
                 }
                 catch (Exception ex)
                 {
@@ -164,8 +168,9 @@ namespace MySqlBackupTool.Client.EmbeddedForms
                     DeactivateCurrentForm();
                 }
 
-                // Clear content panel
-                _contentPanel.Controls.Clear();
+                // Clear content panel with transition
+                _transitionManager.ClearWithTransition();
+                
                 _currentControl = null;
                 _currentForm = null;
 
@@ -262,6 +267,9 @@ namespace MySqlBackupTool.Client.EmbeddedForms
                     {
                         DeactivateCurrentForm();
                     }
+
+                    // Dispose transition manager
+                    _transitionManager?.Dispose();
 
                     // Clear navigation history
                     _navigationHistory.Clear();

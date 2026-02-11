@@ -132,6 +132,12 @@ public partial class TransferLogViewerControl : UserControl, IEmbeddedForm
         InitializeEventHandlers();
         InitializeFormSettings();
 
+        // Apply standard styling
+        EmbeddedFormStyleManager.ApplyStandardStyling(this);
+        
+        // Optimize layout performance
+        EmbeddedFormStyleManager.OptimizeLayoutPerformance(this);
+
         _ = LoadTransferLogsAsync();
     }
 
