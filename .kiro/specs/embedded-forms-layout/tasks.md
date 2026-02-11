@@ -34,7 +34,9 @@
   - Test factory handles creation errors gracefully
   - _Requirements: 6.1, 6.2_
 
-- [-] 2. Create WelcomeControl as default view
+- [x] 2. Create WelcomeControl as default view
+
+
 
 
   - Create WelcomeControl UserControl implementing IEmbeddedForm
