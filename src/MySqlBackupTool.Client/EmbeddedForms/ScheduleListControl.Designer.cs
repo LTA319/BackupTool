@@ -54,6 +54,7 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             dgvSchedules.Name = "dgvSchedules";
             dgvSchedules.ReadOnly = true;
             dgvSchedules.RowHeadersWidth = 62;
+            dgvSchedules.RowTemplate.Height = 25;
             dgvSchedules.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dgvSchedules.Size = new Size(1243, 434);
             dgvSchedules.TabIndex = 0;

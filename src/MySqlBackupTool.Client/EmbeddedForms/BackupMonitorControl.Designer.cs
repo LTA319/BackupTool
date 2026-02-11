@@ -90,6 +90,7 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             // dgvConfigurations
             // 
             dgvConfigurations.AllowUserToAddRows = false;
+            dgvConfigurations.AllowUserToDeleteRows = false;
             dgvConfigurations.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             dgvConfigurations.Columns.AddRange(new DataGridViewColumn[] { dataGridViewTextBoxColumn1, dataGridViewCheckBoxColumn1, dataGridViewTextBoxColumn2, dataGridViewTextBoxColumn3 });
             dgvConfigurations.Dock = DockStyle.Fill;
@@ -99,6 +100,7 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             dgvConfigurations.Name = "dgvConfigurations";
             dgvConfigurations.ReadOnly = true;
             dgvConfigurations.RowHeadersWidth = 51;
+            dgvConfigurations.RowTemplate.Height = 25;
             dgvConfigurations.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dgvConfigurations.Size = new Size(1129, 238);
             dgvConfigurations.TabIndex = 0;
@@ -129,31 +131,37 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             // 
             // dataGridViewTextBoxColumn1
             // 
+            dataGridViewTextBoxColumn1.DataPropertyName = "Name";
+            dataGridViewTextBoxColumn1.HeaderText = "配置名称";
             dataGridViewTextBoxColumn1.MinimumWidth = 6;
-            dataGridViewTextBoxColumn1.Name = "dataGridViewTextBoxColumn1";
+            dataGridViewTextBoxColumn1.Name = "Name";
             dataGridViewTextBoxColumn1.ReadOnly = true;
-            dataGridViewTextBoxColumn1.Width = 125;
+            dataGridViewTextBoxColumn1.Width = 200;
             // 
             // dataGridViewCheckBoxColumn1
             // 
+            dataGridViewCheckBoxColumn1.DataPropertyName = "IsActive";
+            dataGridViewCheckBoxColumn1.HeaderText = "激活";
             dataGridViewCheckBoxColumn1.MinimumWidth = 6;
-            dataGridViewCheckBoxColumn1.Name = "dataGridViewCheckBoxColumn1";
+            dataGridViewCheckBoxColumn1.Name = "IsActive";
             dataGridViewCheckBoxColumn1.ReadOnly = true;
-            dataGridViewCheckBoxColumn1.Width = 125;
+            dataGridViewCheckBoxColumn1.Width = 60;
             // 
             // dataGridViewTextBoxColumn2
             // 
+            dataGridViewTextBoxColumn2.HeaderText = "MySQL主机";
             dataGridViewTextBoxColumn2.MinimumWidth = 6;
-            dataGridViewTextBoxColumn2.Name = "dataGridViewTextBoxColumn2";
+            dataGridViewTextBoxColumn2.Name = "MySQLHost";
             dataGridViewTextBoxColumn2.ReadOnly = true;
-            dataGridViewTextBoxColumn2.Width = 125;
+            dataGridViewTextBoxColumn2.Width = 150;
             // 
             // dataGridViewTextBoxColumn3
             // 
+            dataGridViewTextBoxColumn3.HeaderText = "目标服务器";
             dataGridViewTextBoxColumn3.MinimumWidth = 6;
-            dataGridViewTextBoxColumn3.Name = "dataGridViewTextBoxColumn3";
+            dataGridViewTextBoxColumn3.Name = "TargetServer";
             dataGridViewTextBoxColumn3.ReadOnly = true;
-            dataGridViewTextBoxColumn3.Width = 125;
+            dataGridViewTextBoxColumn3.Width = 150;
             // 
             // grpRunningBackups
             // 
@@ -172,6 +180,7 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             // dgvRunningBackups
             // 
             dgvRunningBackups.AllowUserToAddRows = false;
+            dgvRunningBackups.AllowUserToDeleteRows = false;
             dgvRunningBackups.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             dgvRunningBackups.Columns.AddRange(new DataGridViewColumn[] { dataGridViewTextBoxColumn4, dataGridViewTextBoxColumn5, dataGridViewTextBoxColumn6, dataGridViewTextBoxColumn7, dataGridViewTextBoxColumn8 });
             dgvRunningBackups.Dock = DockStyle.Fill;
@@ -181,6 +190,7 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             dgvRunningBackups.Name = "dgvRunningBackups";
             dgvRunningBackups.ReadOnly = true;
             dgvRunningBackups.RowHeadersWidth = 51;
+            dgvRunningBackups.RowTemplate.Height = 25;
             dgvRunningBackups.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dgvRunningBackups.Size = new Size(1129, 261);
             dgvRunningBackups.TabIndex = 0;
@@ -276,38 +286,45 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             // 
             // dataGridViewTextBoxColumn4
             // 
+            dataGridViewTextBoxColumn4.HeaderText = "配置名称";
             dataGridViewTextBoxColumn4.MinimumWidth = 6;
-            dataGridViewTextBoxColumn4.Name = "dataGridViewTextBoxColumn4";
+            dataGridViewTextBoxColumn4.Name = "ConfigName";
             dataGridViewTextBoxColumn4.ReadOnly = true;
-            dataGridViewTextBoxColumn4.Width = 125;
+            dataGridViewTextBoxColumn4.Width = 200;
             // 
             // dataGridViewTextBoxColumn5
             // 
+            dataGridViewTextBoxColumn5.DataPropertyName = "Status";
+            dataGridViewTextBoxColumn5.HeaderText = "状态";
             dataGridViewTextBoxColumn5.MinimumWidth = 6;
-            dataGridViewTextBoxColumn5.Name = "dataGridViewTextBoxColumn5";
+            dataGridViewTextBoxColumn5.Name = "Status";
             dataGridViewTextBoxColumn5.ReadOnly = true;
-            dataGridViewTextBoxColumn5.Width = 125;
+            dataGridViewTextBoxColumn5.Width = 100;
             // 
             // dataGridViewTextBoxColumn6
             // 
+            dataGridViewTextBoxColumn6.DataPropertyName = "StartTime";
+            dataGridViewTextBoxColumn6.HeaderText = "开始时间";
             dataGridViewTextBoxColumn6.MinimumWidth = 6;
-            dataGridViewTextBoxColumn6.Name = "dataGridViewTextBoxColumn6";
+            dataGridViewTextBoxColumn6.Name = "StartTime";
             dataGridViewTextBoxColumn6.ReadOnly = true;
-            dataGridViewTextBoxColumn6.Width = 125;
+            dataGridViewTextBoxColumn6.Width = 150;
             // 
             // dataGridViewTextBoxColumn7
             // 
+            dataGridViewTextBoxColumn7.HeaderText = "持续时间";
             dataGridViewTextBoxColumn7.MinimumWidth = 6;
-            dataGridViewTextBoxColumn7.Name = "dataGridViewTextBoxColumn7";
+            dataGridViewTextBoxColumn7.Name = "Duration";
             dataGridViewTextBoxColumn7.ReadOnly = true;
-            dataGridViewTextBoxColumn7.Width = 125;
+            dataGridViewTextBoxColumn7.Width = 100;
             // 
             // dataGridViewTextBoxColumn8
             // 
+            dataGridViewTextBoxColumn8.HeaderText = "进度";
             dataGridViewTextBoxColumn8.MinimumWidth = 6;
-            dataGridViewTextBoxColumn8.Name = "dataGridViewTextBoxColumn8";
+            dataGridViewTextBoxColumn8.Name = "Progress";
             dataGridViewTextBoxColumn8.ReadOnly = true;
-            dataGridViewTextBoxColumn8.Width = 125;
+            dataGridViewTextBoxColumn8.Width = 100;
             // 
             // BackupMonitorControl
             // 

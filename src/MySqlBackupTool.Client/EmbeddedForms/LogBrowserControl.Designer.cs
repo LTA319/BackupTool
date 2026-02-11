@@ -105,10 +105,11 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             dgvLogs.Dock = DockStyle.Fill;
             dgvLogs.Location = new Point(0, 160);
             dgvLogs.Margin = new Padding(4);
-            dgvLogs.MultiSelect = false;
+            dgvLogs.MultiSelect = true;
             dgvLogs.Name = "dgvLogs";
             dgvLogs.ReadOnly = true;
             dgvLogs.RowHeadersWidth = 62;
+            dgvLogs.RowTemplate.Height = 25;
             dgvLogs.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dgvLogs.Size = new Size(1265, 272);
             dgvLogs.TabIndex = 1;
@@ -118,52 +119,63 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             // 
             // dataGridViewTextBoxColumn1
             // 
+            dataGridViewTextBoxColumn1.DataPropertyName = "Id";
+            dataGridViewTextBoxColumn1.HeaderText = "ID";
             dataGridViewTextBoxColumn1.MinimumWidth = 6;
-            dataGridViewTextBoxColumn1.Name = "dataGridViewTextBoxColumn1";
+            dataGridViewTextBoxColumn1.Name = "Id";
             dataGridViewTextBoxColumn1.ReadOnly = true;
-            dataGridViewTextBoxColumn1.Width = 125;
+            dataGridViewTextBoxColumn1.Width = 60;
             // 
             // dataGridViewTextBoxColumn2
             // 
+            dataGridViewTextBoxColumn2.HeaderText = "配置名称";
             dataGridViewTextBoxColumn2.MinimumWidth = 6;
-            dataGridViewTextBoxColumn2.Name = "dataGridViewTextBoxColumn2";
+            dataGridViewTextBoxColumn2.Name = "ConfigName";
             dataGridViewTextBoxColumn2.ReadOnly = true;
-            dataGridViewTextBoxColumn2.Width = 125;
+            dataGridViewTextBoxColumn2.Width = 200;
             // 
             // dataGridViewTextBoxColumn3
             // 
+            dataGridViewTextBoxColumn3.DataPropertyName = "Status";
+            dataGridViewTextBoxColumn3.HeaderText = "状态";
             dataGridViewTextBoxColumn3.MinimumWidth = 6;
-            dataGridViewTextBoxColumn3.Name = "dataGridViewTextBoxColumn3";
+            dataGridViewTextBoxColumn3.Name = "Status";
             dataGridViewTextBoxColumn3.ReadOnly = true;
-            dataGridViewTextBoxColumn3.Width = 125;
+            dataGridViewTextBoxColumn3.Width = 100;
             // 
             // dataGridViewTextBoxColumn4
             // 
+            dataGridViewTextBoxColumn4.DataPropertyName = "StartTime";
+            dataGridViewTextBoxColumn4.HeaderText = "开始时间";
             dataGridViewTextBoxColumn4.MinimumWidth = 6;
-            dataGridViewTextBoxColumn4.Name = "dataGridViewTextBoxColumn4";
+            dataGridViewTextBoxColumn4.Name = "StartTime";
             dataGridViewTextBoxColumn4.ReadOnly = true;
-            dataGridViewTextBoxColumn4.Width = 125;
+            dataGridViewTextBoxColumn4.Width = 150;
             // 
             // dataGridViewTextBoxColumn5
             // 
+            dataGridViewTextBoxColumn5.HeaderText = "持续时间";
             dataGridViewTextBoxColumn5.MinimumWidth = 6;
-            dataGridViewTextBoxColumn5.Name = "dataGridViewTextBoxColumn5";
+            dataGridViewTextBoxColumn5.Name = "Duration";
             dataGridViewTextBoxColumn5.ReadOnly = true;
-            dataGridViewTextBoxColumn5.Width = 125;
+            dataGridViewTextBoxColumn5.Width = 100;
             // 
             // dataGridViewTextBoxColumn6
             // 
+            dataGridViewTextBoxColumn6.HeaderText = "文件大小";
             dataGridViewTextBoxColumn6.MinimumWidth = 6;
-            dataGridViewTextBoxColumn6.Name = "dataGridViewTextBoxColumn6";
+            dataGridViewTextBoxColumn6.Name = "FileSize";
             dataGridViewTextBoxColumn6.ReadOnly = true;
-            dataGridViewTextBoxColumn6.Width = 125;
+            dataGridViewTextBoxColumn6.Width = 100;
             // 
             // dataGridViewTextBoxColumn7
             // 
+            dataGridViewTextBoxColumn7.DataPropertyName = "ErrorMessage";
+            dataGridViewTextBoxColumn7.HeaderText = "错误消息";
             dataGridViewTextBoxColumn7.MinimumWidth = 6;
-            dataGridViewTextBoxColumn7.Name = "dataGridViewTextBoxColumn7";
+            dataGridViewTextBoxColumn7.Name = "ErrorMessage";
             dataGridViewTextBoxColumn7.ReadOnly = true;
-            dataGridViewTextBoxColumn7.Width = 125;
+            dataGridViewTextBoxColumn7.Width = 300;
             // 
             // lblFilteredCount
             // 

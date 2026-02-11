@@ -29,6 +29,11 @@ namespace MySqlBackupTool.Client.EmbeddedForms
         private void InitializeComponent()
         {
             dgvConfigurations = new DataGridView();
+            colName = new DataGridViewTextBoxColumn();
+            colMySQLHost = new DataGridViewTextBoxColumn();
+            colTargetServer = new DataGridViewTextBoxColumn();
+            colIsActive = new DataGridViewCheckBoxColumn();
+            colCreatedAt = new DataGridViewTextBoxColumn();
             btnNew = new Button();
             btnEdit = new Button();
             btnDelete = new Button();
@@ -48,48 +53,18 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             dgvConfigurations.AutoGenerateColumns = false;
             dgvConfigurations.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             dgvConfigurations.Columns.AddRange(new DataGridViewColumn[] {
-            new DataGridViewTextBoxColumn
-            {
-                Name = "Name",
-                HeaderText = "配置名称",
-                DataPropertyName = "Name",
-                Width = 200
-            },
-            new DataGridViewTextBoxColumn
-            {
-                Name = "MySQLHost",
-                HeaderText = "MySQL主机",
-                DataPropertyName = "MySQLConnection.Host",
-                Width = 120
-            },
-            new DataGridViewTextBoxColumn
-            {
-                Name = "TargetServer",
-                HeaderText = "目标服务器",
-                DataPropertyName = "TargetServer.IPAddress",
-                Width = 120
-            },
-            new DataGridViewCheckBoxColumn
-            {
-                Name = "IsActive",
-                HeaderText = "激活",
-                DataPropertyName = "IsActive",
-                Width = 60
-            },
-            new DataGridViewTextBoxColumn
-            {
-                Name = "CreatedAt",
-                HeaderText = "创建时间",
-                DataPropertyName = "CreatedAt",
-                Width = 120,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "yyyy-MM-dd HH:mm" }
-            }});
+            colName,
+            colMySQLHost,
+            colTargetServer,
+            colIsActive,
+            colCreatedAt});
             dgvConfigurations.Location = new Point(19, 19);
             dgvConfigurations.Margin = new Padding(5);
             dgvConfigurations.MultiSelect = false;
             dgvConfigurations.Name = "dgvConfigurations";
             dgvConfigurations.ReadOnly = true;
             dgvConfigurations.RowHeadersWidth = 62;
+            dgvConfigurations.RowTemplate.Height = 25;
             dgvConfigurations.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dgvConfigurations.Size = new Size(1419, 521);
             dgvConfigurations.TabIndex = 0;
@@ -97,6 +72,47 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             dgvConfigurations.AllowUserToDeleteRows = false;
             dgvConfigurations.CellFormatting += new DataGridViewCellFormattingEventHandler(this.DgvConfigurations_CellFormatting);
             dgvConfigurations.SelectionChanged += new EventHandler(this.DgvConfigurations_SelectionChanged);
+            // 
+            // colName
+            // 
+            colName.Name = "Name";
+            colName.HeaderText = "配置名称";
+            colName.DataPropertyName = "Name";
+            colName.Width = 200;
+            colName.ReadOnly = true;
+            // 
+            // colMySQLHost
+            // 
+            colMySQLHost.Name = "MySQLHost";
+            colMySQLHost.HeaderText = "MySQL主机";
+            colMySQLHost.DataPropertyName = "MySQLConnection.Host";
+            colMySQLHost.Width = 120;
+            colMySQLHost.ReadOnly = true;
+            // 
+            // colTargetServer
+            // 
+            colTargetServer.Name = "TargetServer";
+            colTargetServer.HeaderText = "目标服务器";
+            colTargetServer.DataPropertyName = "TargetServer.IPAddress";
+            colTargetServer.Width = 120;
+            colTargetServer.ReadOnly = true;
+            // 
+            // colIsActive
+            // 
+            colIsActive.Name = "IsActive";
+            colIsActive.HeaderText = "激活";
+            colIsActive.DataPropertyName = "IsActive";
+            colIsActive.Width = 60;
+            colIsActive.ReadOnly = true;
+            // 
+            // colCreatedAt
+            // 
+            colCreatedAt.Name = "CreatedAt";
+            colCreatedAt.HeaderText = "创建时间";
+            colCreatedAt.DataPropertyName = "CreatedAt";
+            colCreatedAt.Width = 120;
+            colCreatedAt.DefaultCellStyle.Format = "yyyy-MM-dd HH:mm";
+            colCreatedAt.ReadOnly = true;
             // 
             // btnNew
             // 
@@ -232,6 +248,11 @@ namespace MySqlBackupTool.Client.EmbeddedForms
         #endregion
 
         private System.Windows.Forms.DataGridView dgvConfigurations;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colName;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colMySQLHost;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colTargetServer;
+        private System.Windows.Forms.DataGridViewCheckBoxColumn colIsActive;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colCreatedAt;
         private System.Windows.Forms.Button btnNew;
         private System.Windows.Forms.Button btnEdit;
         private System.Windows.Forms.Button btnDelete;
