@@ -149,75 +149,75 @@ public partial class FormMain : Form
             throw;
         }
     }
-
+    
     /// <summary>
     /// 测试数据库连接并打开备份监控窗体
     /// 在打开监控窗体前先测试数据库连接，如果连接失败则提供修复选项
     /// </summary>
     /// <returns>异步任务</returns>
-    private async Task TestDatabaseAndOpenMonitor()
-    {
-        try
-        {
-            // 显示加载状态
-            this.Cursor = Cursors.WaitCursor;
-            this.Text = "MySQL Backup Tool - Client (正在测试数据库连接...)";
+    // private async Task TestDatabaseAndOpenMonitor()
+    // {
+    //     try
+    //     {
+    //         // 显示加载状态
+    //         this.Cursor = Cursors.WaitCursor;
+    //         this.Text = "MySQL Backup Tool - Client (正在测试数据库连接...)";
 
-            // 测试数据库连接
-            var testResult = await DatabaseConnectionTest.TestDatabaseConnectionAsync();
+    //         // 测试数据库连接
+    //         var testResult = await DatabaseConnectionTest.TestDatabaseConnectionAsync();
 
-            if (!testResult.Success)
-            {
-                _logger.LogWarning("数据库连接测试失败: {Error}", testResult.Message);
+    //         if (!testResult.Success)
+    //         {
+    //             _logger.LogWarning("数据库连接测试失败: {Error}", testResult.Message);
 
-                var result = MessageBox.Show(
-                    $"数据库连接测试失败:\n\n{testResult.Message}\n\n" +
-                    "是否要尝试自动修复?",
-                    "数据库连接问题",
-                    MessageBoxButtons.YesNoCancel,
-                    MessageBoxIcon.Warning);
+    //             var result = MessageBox.Show(
+    //                 $"数据库连接测试失败:\n\n{testResult.Message}\n\n" +
+    //                 "是否要尝试自动修复?",
+    //                 "数据库连接问题",
+    //                 MessageBoxButtons.YesNoCancel,
+    //                 MessageBoxIcon.Warning);
 
-                if (result == DialogResult.Yes)
-                {
-                    this.Text = "MySQL Backup Tool - Client (正在修复数据库...)";
-                    var repairResult = await DatabaseConnectionTest.RepairDatabaseAsync();
+    //             if (result == DialogResult.Yes)
+    //             {
+    //                 this.Text = "MySQL Backup Tool - Client (正在修复数据库...)";
+    //                 var repairResult = await DatabaseConnectionTest.RepairDatabaseAsync();
 
-                    MessageBox.Show(repairResult.ToString(),
-                        repairResult.Success ? "数据库修复完成" : "数据库修复失败",
-                        MessageBoxButtons.OK,
-                        repairResult.Success ? MessageBoxIcon.Information : MessageBoxIcon.Error);
+    //                 MessageBox.Show(repairResult.ToString(),
+    //                     repairResult.Success ? "数据库修复完成" : "数据库修复失败",
+    //                     MessageBoxButtons.OK,
+    //                     repairResult.Success ? MessageBoxIcon.Information : MessageBoxIcon.Error);
 
-                    if (!repairResult.Success)
-                        return;
-                }
-                else if (result == DialogResult.Cancel)
-                {
-                    return;
-                }
-                // 如果选择"否"，则继续执行
-            }
-            else
-            {
-                _logger.LogInformation("数据库连接测试通过，耗时 {Time}ms",
-                    testResult.TotalTime.TotalMilliseconds);
-                this.Text = "MySQL Backup Tool - Client";
-            }
+    //                 if (!repairResult.Success)
+    //                     return;
+    //             }
+    //             else if (result == DialogResult.Cancel)
+    //             {
+    //                 return;
+    //             }
+    //             // 如果选择"否"，则继续执行
+    //         }
+    //         else
+    //         {
+    //             _logger.LogInformation("数据库连接测试通过，耗时 {Time}ms",
+    //                 testResult.TotalTime.TotalMilliseconds);
+    //             this.Text = "MySQL Backup Tool - Client";
+    //         }
 
-            // 打开监控窗体
-            using var monitorForm = new BackupMonitorForm(_serviceProvider);
-            monitorForm.ShowDialog();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "数据库测试或打开备份监控时发生错误");
-            MessageBox.Show($"错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
-        finally
-        {
-            this.Cursor = Cursors.Default;
-            this.Text = "MySQL Backup Tool - Client";
-        }
-    }
+    //         // 打开监控窗体
+    //         using var monitorForm = new BackupMonitorForm(_serviceProvider);
+    //         monitorForm.ShowDialog();
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         _logger.LogError(ex, "数据库测试或打开备份监控时发生错误");
+    //         MessageBox.Show($"错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+    //     }
+    //     finally
+    //     {
+    //         this.Cursor = Cursors.Default;
+    //         this.Text = "MySQL Backup Tool - Client";
+    //     }
+    // }
 
     /// <summary>
     /// 显示欢迎屏幕
@@ -306,7 +306,7 @@ public partial class FormMain : Form
 
     /// <summary>
     /// 配置管理菜单项点击事件处理程序
-    /// 打开配置列表窗体，允许用户管理备份配置
+    /// 显示配置列表嵌入式窗体，允许用户管理备份配置
     /// </summary>
     /// <param name="sender">事件发送者</param>
     /// <param name="e">事件参数</param>
@@ -314,8 +314,9 @@ public partial class FormMain : Form
     {
         try
         {
-            using var configListForm = new ConfigurationListForm(_serviceProvider);
-            configListForm.ShowDialog();
+            // using var configListForm = new ConfigurationListForm(_serviceProvider);
+            // configListForm.ShowDialog();
+            _embeddedFormHost?.ShowForm<ConfigurationListControl>();
         }
         catch (Exception ex)
         {
@@ -327,7 +328,7 @@ public partial class FormMain : Form
 
     /// <summary>
     /// 调度管理菜单项点击事件处理程序
-    /// 打开调度配置管理窗体
+    /// 显示调度配置管理嵌入式窗体
     /// </summary>
     /// <param name="sender">事件发送者</param>
     /// <param name="e">事件参数</param>
@@ -335,8 +336,9 @@ public partial class FormMain : Form
     {
         try
         {
-            using var scheduleListForm = new ScheduleListForm(_serviceProvider);
-            scheduleListForm.ShowDialog();
+            // using var scheduleListForm = new ScheduleListForm(_serviceProvider);
+            // scheduleListForm.ShowDialog();
+            _embeddedFormHost?.ShowForm<ScheduleListControl>();
         }
         catch (Exception ex)
         {
@@ -348,7 +350,7 @@ public partial class FormMain : Form
 
     /// <summary>
     /// 备份监控菜单项点击事件处理程序
-    /// 测试数据库连接后打开备份监控窗体
+    /// 显示备份监控嵌入式窗体
     /// </summary>
     /// <param name="sender">事件发送者</param>
     /// <param name="e">事件参数</param>
@@ -357,7 +359,8 @@ public partial class FormMain : Form
         try
         {
             // 测试数据库连接后打开监控窗体
-            _ = TestDatabaseAndOpenMonitor();
+            // _ = TestDatabaseAndOpenMonitor();
+            _embeddedFormHost?.ShowForm<BackupMonitorControl>();
         }
         catch (Exception ex)
         {
@@ -369,7 +372,7 @@ public partial class FormMain : Form
 
     /// <summary>
     /// 日志浏览器菜单项点击事件处理程序
-    /// 打开日志浏览器窗体，允许用户查看系统日志
+    /// 显示日志浏览器嵌入式窗体，允许用户查看系统日志
     /// </summary>
     /// <param name="sender">事件发送者</param>
     /// <param name="e">事件参数</param>
@@ -377,8 +380,9 @@ public partial class FormMain : Form
     {
         try
         {
-            using var logBrowserForm = new LogBrowserForm(_serviceProvider);
-            logBrowserForm.ShowDialog();
+            // using var logBrowserForm = new LogBrowserForm(_serviceProvider);
+            // logBrowserForm.ShowDialog();
+            _embeddedFormHost?.ShowForm<LogBrowserControl>();
         }
         catch (Exception ex)
         {
@@ -620,8 +624,9 @@ public partial class FormMain : Form
     {
         try
         {
-            using var transferLogViewerForm = new TransferLogViewerForm(_serviceProvider);
-            transferLogViewerForm.ShowDialog();
+            // using var transferLogViewerForm = new TransferLogViewerForm(_serviceProvider);
+            // transferLogViewerForm.ShowDialog();
+            _embeddedFormHost?.ShowForm<TransferLogViewerControl>();
         }
         catch (Exception ex)
         {

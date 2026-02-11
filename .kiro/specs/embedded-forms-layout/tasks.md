@@ -180,7 +180,11 @@
   - Test CloseRequested event firing
   - _Requirements: 3.1, 3.2, 3.3, 3.4_
 
-- [ ] 9. Wire menu items to embedded form navigation
+- [x] 9. Wire menu items to embedded form navigation
+
+
+
+
   - Update configurationToolStripMenuItem_Click to show ConfigurationListControl
   - Update scheduleManagementToolStripMenuItem_Click to show ScheduleListControl
   - Update backupMonitorToolStripMenuItem_Click to show BackupMonitorControl
