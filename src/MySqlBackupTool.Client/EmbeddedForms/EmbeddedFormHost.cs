@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Windows.Forms;
 using Microsoft.Extensions.Logging;
 
@@ -15,6 +16,7 @@ namespace MySqlBackupTool.Client.EmbeddedForms
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<EmbeddedFormHost> _logger;
         private readonly EmbeddedFormErrorHandler _errorHandler;
+        private readonly Stack<NavigationState> _navigationHistory;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EmbeddedFormHost"/> class
@@ -30,6 +32,7 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             _contentPanel = contentPanel ?? throw new ArgumentNullException(nameof(contentPanel));
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _navigationHistory = new Stack<NavigationState>();
             
             _errorHandler = new EmbeddedFormErrorHandler(
                 serviceProvider.GetService(typeof(ILogger<EmbeddedFormErrorHandler>)) as ILogger<EmbeddedFormErrorHandler> 
@@ -41,6 +44,16 @@ namespace MySqlBackupTool.Client.EmbeddedForms
         /// Gets the currently active embedded form
         /// </summary>
         public IEmbeddedForm? CurrentForm => _currentForm;
+
+        /// <summary>
+        /// Gets the navigation history stack
+        /// </summary>
+        public IReadOnlyCollection<NavigationState> NavigationHistory => _navigationHistory.ToArray();
+
+        /// <summary>
+        /// Gets the current navigation state
+        /// </summary>
+        public NavigationState? CurrentNavigationState => _navigationHistory.Count > 0 ? _navigationHistory.Peek() : null;
 
         /// <summary>
         /// Event raised when the active form changes
@@ -89,6 +102,16 @@ namespace MySqlBackupTool.Client.EmbeddedForms
                 _currentControl = newControl;
                 _currentForm = newForm;
 
+                // Add to navigation history
+                var navigationState = new NavigationState
+                {
+                    FormType = typeof(T).Name,
+                    Title = newForm.Title,
+                    NavigationPath = newForm.NavigationPath,
+                    ActivatedAt = DateTime.Now
+                };
+                _navigationHistory.Push(navigationState);
+
                 // Activate the form
                 try
                 {
@@ -130,6 +153,9 @@ namespace MySqlBackupTool.Client.EmbeddedForms
                 _contentPanel.Controls.Clear();
                 _currentControl = null;
                 _currentForm = null;
+
+                // Clear navigation history
+                _navigationHistory.Clear();
 
                 // Raise event
                 ActiveFormChanged?.Invoke(this, null);

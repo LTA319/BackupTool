@@ -34,6 +34,11 @@ public partial class FormMain : Form
     /// </summary>
     private EmbeddedForms.EmbeddedFormHost? _embeddedFormHost;
 
+    /// <summary>
+    /// 导航面板控件，用于显示面包屑导航
+    /// </summary>
+    private EmbeddedForms.NavigationPanel? _navigationPanelControl;
+
     #endregion
 
     #region 构造函数
@@ -127,6 +132,14 @@ public partial class FormMain : Form
         try
         {
             _logger.LogInformation("正在初始化嵌入式窗体主机");
+
+            // Initialize NavigationPanel control
+            _navigationPanelControl = new EmbeddedForms.NavigationPanel();
+            
+            // Clear existing controls in navigationPanel and add the NavigationPanel control
+            navigationPanel.Controls.Clear();
+            _navigationPanelControl.Dock = DockStyle.Fill;
+            navigationPanel.Controls.Add(_navigationPanelControl);
 
             // 创建EmbeddedFormHost实例
             var embeddedFormLogger = _serviceProvider.GetRequiredService<ILogger<EmbeddedForms.EmbeddedFormHost>>();
@@ -248,7 +261,10 @@ public partial class FormMain : Form
                 this.Text = $"MySQL Backup Tool - {form.Title}";
 
                 // 更新导航面板
-                UpdateNavigationPanel(form.NavigationPath);
+                if (_navigationPanelControl != null)
+                {
+                    _navigationPanelControl.NavigationPath = form.NavigationPath;
+                }
 
                 // 更新状态栏
                 toolStripStatusLabel.Text = $"当前视图: {form.Title}";
@@ -259,7 +275,10 @@ public partial class FormMain : Form
                 this.Text = "MySQL Backup Tool - Client";
 
                 // 清除导航面板
-                UpdateNavigationPanel("Home");
+                if (_navigationPanelControl != null)
+                {
+                    _navigationPanelControl.NavigationPath = "Home";
+                }
 
                 // 更新状态栏
                 toolStripStatusLabel.Text = "就绪";
@@ -268,35 +287,6 @@ public partial class FormMain : Form
         catch (Exception ex)
         {
             _logger.LogError(ex, "处理活动窗体更改时发生错误");
-        }
-    }
-
-    /// <summary>
-    /// 更新导航面板显示
-    /// </summary>
-    /// <param name="navigationPath">导航路径</param>
-    private void UpdateNavigationPanel(string navigationPath)
-    {
-        try
-        {
-            // 清除现有控件
-            navigationPanel.Controls.Clear();
-
-            // 创建导航标签
-            var navigationLabel = new Label
-            {
-                Text = navigationPath,
-                AutoSize = true,
-                Font = new Font(this.Font.FontFamily, 10, FontStyle.Regular),
-                ForeColor = System.Drawing.SystemColors.ControlText,
-                Location = new Point(10, 8)
-            };
-
-            navigationPanel.Controls.Add(navigationLabel);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "更新导航面板时发生错误");
         }
     }
 
