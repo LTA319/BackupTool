@@ -212,7 +212,7 @@ public partial class BackupMonitorControl : UserControl, IEmbeddedForm
             return;
 
         _refreshTimer = new System.Windows.Forms.Timer();
-        _refreshTimer.Interval = 2000; // 每2秒刷新一次
+        _refreshTimer.Interval = 10000; // 每2秒刷新一次
         _refreshTimer.Tick += RefreshTimer_Tick;
         _refreshTimer.Start();
     }

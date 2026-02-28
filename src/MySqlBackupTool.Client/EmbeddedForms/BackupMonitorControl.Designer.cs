@@ -91,6 +91,7 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             // 
             dgvConfigurations.AllowUserToAddRows = false;
             dgvConfigurations.AllowUserToDeleteRows = false;
+            dgvConfigurations.AutoGenerateColumns = false;
             dgvConfigurations.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             dgvConfigurations.Columns.AddRange(new DataGridViewColumn[] { dataGridViewTextBoxColumn1, dataGridViewCheckBoxColumn1, dataGridViewTextBoxColumn2, dataGridViewTextBoxColumn3 });
             dgvConfigurations.Dock = DockStyle.Fill;
@@ -149,6 +150,7 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             // 
             // dataGridViewTextBoxColumn2
             // 
+            dataGridViewTextBoxColumn2.DataPropertyName = "MySQLHost";
             dataGridViewTextBoxColumn2.HeaderText = "MySQL主机";
             dataGridViewTextBoxColumn2.MinimumWidth = 6;
             dataGridViewTextBoxColumn2.Name = "MySQLHost";
@@ -157,6 +159,7 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             // 
             // dataGridViewTextBoxColumn3
             // 
+            dataGridViewTextBoxColumn3.DataPropertyName = "TargetServer";
             dataGridViewTextBoxColumn3.HeaderText = "目标服务器";
             dataGridViewTextBoxColumn3.MinimumWidth = 6;
             dataGridViewTextBoxColumn3.Name = "TargetServer";
@@ -181,6 +184,7 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             // 
             dgvRunningBackups.AllowUserToAddRows = false;
             dgvRunningBackups.AllowUserToDeleteRows = false;
+            dgvRunningBackups.AutoGenerateColumns = false;
             dgvRunningBackups.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             dgvRunningBackups.Columns.AddRange(new DataGridViewColumn[] { dataGridViewTextBoxColumn4, dataGridViewTextBoxColumn5, dataGridViewTextBoxColumn6, dataGridViewTextBoxColumn7, dataGridViewTextBoxColumn8 });
             dgvRunningBackups.Dock = DockStyle.Fill;
@@ -286,6 +290,7 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             // 
             // dataGridViewTextBoxColumn4
             // 
+            dataGridViewTextBoxColumn4.DataPropertyName = "ConfigName";
             dataGridViewTextBoxColumn4.HeaderText = "配置名称";
             dataGridViewTextBoxColumn4.MinimumWidth = 6;
             dataGridViewTextBoxColumn4.Name = "ConfigName";
@@ -312,6 +317,7 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             // 
             // dataGridViewTextBoxColumn7
             // 
+            dataGridViewTextBoxColumn7.DataPropertyName = "Duration";
             dataGridViewTextBoxColumn7.HeaderText = "持续时间";
             dataGridViewTextBoxColumn7.MinimumWidth = 6;
             dataGridViewTextBoxColumn7.Name = "Duration";
@@ -320,6 +326,7 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             // 
             // dataGridViewTextBoxColumn8
             // 
+            dataGridViewTextBoxColumn8.DataPropertyName = "Progress";
             dataGridViewTextBoxColumn8.HeaderText = "进度";
             dataGridViewTextBoxColumn8.MinimumWidth = 6;
             dataGridViewTextBoxColumn8.Name = "Progress";

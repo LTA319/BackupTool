@@ -100,6 +100,7 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             // 
             dgvLogs.AllowUserToAddRows = false;
             dgvLogs.AllowUserToDeleteRows = false;
+            dgvLogs.AutoGenerateColumns = false;
             dgvLogs.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             dgvLogs.Columns.AddRange(new DataGridViewColumn[] { dataGridViewTextBoxColumn1, dataGridViewTextBoxColumn2, dataGridViewTextBoxColumn3, dataGridViewTextBoxColumn4, dataGridViewTextBoxColumn5, dataGridViewTextBoxColumn6, dataGridViewTextBoxColumn7 });
             dgvLogs.Dock = DockStyle.Fill;
@@ -128,6 +129,7 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             // 
             // dataGridViewTextBoxColumn2
             // 
+            dataGridViewTextBoxColumn2.DataPropertyName = "ConfigName";
             dataGridViewTextBoxColumn2.HeaderText = "配置名称";
             dataGridViewTextBoxColumn2.MinimumWidth = 6;
             dataGridViewTextBoxColumn2.Name = "ConfigName";
@@ -154,6 +156,7 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             // 
             // dataGridViewTextBoxColumn5
             // 
+            dataGridViewTextBoxColumn5.DataPropertyName = "Duration";
             dataGridViewTextBoxColumn5.HeaderText = "持续时间";
             dataGridViewTextBoxColumn5.MinimumWidth = 6;
             dataGridViewTextBoxColumn5.Name = "Duration";
@@ -162,6 +165,7 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             // 
             // dataGridViewTextBoxColumn6
             // 
+            dataGridViewTextBoxColumn6.DataPropertyName = "FileSize";
             dataGridViewTextBoxColumn6.HeaderText = "文件大小";
             dataGridViewTextBoxColumn6.MinimumWidth = 6;
             dataGridViewTextBoxColumn6.Name = "FileSize";

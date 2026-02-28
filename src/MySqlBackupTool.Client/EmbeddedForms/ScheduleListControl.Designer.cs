@@ -29,6 +29,13 @@ namespace MySqlBackupTool.Client.EmbeddedForms
         private void InitializeComponent()
         {
             dgvSchedules = new DataGridView();
+            colId = new DataGridViewTextBoxColumn();
+            colBackupConfigName = new DataGridViewTextBoxColumn();
+            colScheduleType = new DataGridViewTextBoxColumn();
+            colScheduleTime = new DataGridViewTextBoxColumn();
+            colIsEnabled = new DataGridViewCheckBoxColumn();
+            colLastExecuted = new DataGridViewTextBoxColumn();
+            colNextExecution = new DataGridViewTextBoxColumn();
             btnNew = new Button();
             btnEdit = new Button();
             btnDelete = new Button();
@@ -47,7 +54,17 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             dgvSchedules.AllowUserToAddRows = false;
             dgvSchedules.AllowUserToDeleteRows = false;
             dgvSchedules.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            dgvSchedules.AutoGenerateColumns = false;
             dgvSchedules.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dgvSchedules.Columns.AddRange(new DataGridViewColumn[] { 
+                colId, 
+                colBackupConfigName, 
+                colScheduleType, 
+                colScheduleTime, 
+                colIsEnabled, 
+                colLastExecuted, 
+                colNextExecution 
+            });
             dgvSchedules.Location = new Point(16, 16);
             dgvSchedules.Margin = new Padding(4, 4, 4, 4);
             dgvSchedules.MultiSelect = false;
@@ -60,6 +77,69 @@ namespace MySqlBackupTool.Client.EmbeddedForms
             dgvSchedules.TabIndex = 0;
             dgvSchedules.CellFormatting += DgvSchedules_CellFormatting;
             dgvSchedules.SelectionChanged += DgvSchedules_SelectionChanged;
+            // 
+            // colId
+            // 
+            colId.DataPropertyName = "Id";
+            colId.HeaderText = "ID";
+            colId.MinimumWidth = 6;
+            colId.Name = "Id";
+            colId.ReadOnly = true;
+            colId.Width = 60;
+            // 
+            // colBackupConfigName
+            // 
+            colBackupConfigName.DataPropertyName = "BackupConfigName";
+            colBackupConfigName.HeaderText = "备份配置";
+            colBackupConfigName.MinimumWidth = 6;
+            colBackupConfigName.Name = "BackupConfigName";
+            colBackupConfigName.ReadOnly = true;
+            colBackupConfigName.Width = 200;
+            // 
+            // colScheduleType
+            // 
+            colScheduleType.DataPropertyName = "ScheduleType";
+            colScheduleType.HeaderText = "调度类型";
+            colScheduleType.MinimumWidth = 6;
+            colScheduleType.Name = "ScheduleType";
+            colScheduleType.ReadOnly = true;
+            colScheduleType.Width = 100;
+            // 
+            // colScheduleTime
+            // 
+            colScheduleTime.DataPropertyName = "ScheduleTime";
+            colScheduleTime.HeaderText = "调度时间";
+            colScheduleTime.MinimumWidth = 6;
+            colScheduleTime.Name = "ScheduleTime";
+            colScheduleTime.ReadOnly = true;
+            colScheduleTime.Width = 100;
+            // 
+            // colIsEnabled
+            // 
+            colIsEnabled.DataPropertyName = "IsEnabled";
+            colIsEnabled.HeaderText = "启用";
+            colIsEnabled.MinimumWidth = 6;
+            colIsEnabled.Name = "IsEnabled";
+            colIsEnabled.ReadOnly = true;
+            colIsEnabled.Width = 60;
+            // 
+            // colLastExecuted
+            // 
+            colLastExecuted.DataPropertyName = "LastExecuted";
+            colLastExecuted.HeaderText = "上次执行";
+            colLastExecuted.MinimumWidth = 6;
+            colLastExecuted.Name = "LastExecuted";
+            colLastExecuted.ReadOnly = true;
+            colLastExecuted.Width = 150;
+            // 
+            // colNextExecution
+            // 
+            colNextExecution.DataPropertyName = "NextExecution";
+            colNextExecution.HeaderText = "下次执行";
+            colNextExecution.MinimumWidth = 6;
+            colNextExecution.Name = "NextExecution";
+            colNextExecution.ReadOnly = true;
+            colNextExecution.Width = 150;
             // 
             // btnNew
             // 
@@ -200,5 +280,12 @@ namespace MySqlBackupTool.Client.EmbeddedForms
         private Button btnClose;
         private Label lblStatus;
         private Panel panelButtons;
+        private DataGridViewTextBoxColumn colId;
+        private DataGridViewTextBoxColumn colBackupConfigName;
+        private DataGridViewTextBoxColumn colScheduleType;
+        private DataGridViewTextBoxColumn colScheduleTime;
+        private DataGridViewCheckBoxColumn colIsEnabled;
+        private DataGridViewTextBoxColumn colLastExecuted;
+        private DataGridViewTextBoxColumn colNextExecution;
     }
 }

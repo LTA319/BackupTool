@@ -32,17 +32,17 @@ public partial class FormMain : Form
     /// <summary>
     /// 嵌入式窗体主机，用于管理嵌入式窗体的生命周期
     /// </summary>
-    private EmbeddedForms.EmbeddedFormHost? _embeddedFormHost;
+    private EmbeddedFormHost? _embeddedFormHost;
 
     /// <summary>
     /// 导航面板控件，用于显示面包屑导航
     /// </summary>
-    private EmbeddedForms.NavigationPanel? _navigationPanelControl;
+    private NavigationPanel? _navigationPanelControl;
 
     /// <summary>
     /// 保存的导航状态，用于从系统托盘恢复时使用
     /// </summary>
-    private EmbeddedForms.NavigationState? _savedNavigationState;
+    private NavigationState? _savedNavigationState;
 
     #endregion
 
@@ -142,7 +142,7 @@ public partial class FormMain : Form
             _logger.LogInformation("正在初始化嵌入式窗体主机");
 
             // Initialize NavigationPanel control
-            _navigationPanelControl = new EmbeddedForms.NavigationPanel();
+            _navigationPanelControl = new NavigationPanel();
             
             // Clear existing controls in navigationPanel and add the NavigationPanel control
             navigationPanel.Controls.Clear();
@@ -150,8 +150,8 @@ public partial class FormMain : Form
             navigationPanel.Controls.Add(_navigationPanelControl);
 
             // 创建EmbeddedFormHost实例
-            var embeddedFormLogger = _serviceProvider.GetRequiredService<ILogger<EmbeddedForms.EmbeddedFormHost>>();
-            _embeddedFormHost = new EmbeddedForms.EmbeddedFormHost(
+            var embeddedFormLogger = _serviceProvider.GetRequiredService<ILogger<EmbeddedFormHost>>();
+            _embeddedFormHost = new EmbeddedFormHost(
                 contentPanel,
                 _serviceProvider,
                 embeddedFormLogger);
@@ -180,7 +180,7 @@ public partial class FormMain : Form
     {
         try
         {
-            _embeddedFormHost?.ShowForm<EmbeddedForms.WelcomeControl>();
+            _embeddedFormHost?.ShowForm<WelcomeControl>();
         }
         catch (Exception ex)
         {
@@ -192,7 +192,7 @@ public partial class FormMain : Form
     /// 处理活动窗体更改事件
     /// 更新标题栏和导航面板
     /// </summary>
-    private void OnActiveFormChanged(object? sender, EmbeddedForms.IEmbeddedForm? form)
+    private void OnActiveFormChanged(object? sender, IEmbeddedForm? form)
     {
         try
         {

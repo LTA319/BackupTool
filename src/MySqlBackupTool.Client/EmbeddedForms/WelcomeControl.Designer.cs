@@ -28,95 +28,102 @@ namespace MySqlBackupTool.Client.EmbeddedForms
         /// </summary>
         private void InitializeComponent()
         {
-            this.panelMain = new System.Windows.Forms.Panel();
-            this.panelCenter = new System.Windows.Forms.Panel();
-            this.labelRecentActivity = new System.Windows.Forms.Label();
-            this.labelQuickActions = new System.Windows.Forms.Label();
-            this.labelWelcomeMessage = new System.Windows.Forms.Label();
-            this.labelTitle = new System.Windows.Forms.Label();
-            this.panelMain.SuspendLayout();
-            this.panelCenter.SuspendLayout();
-            this.SuspendLayout();
+            panelMain = new Panel();
+            panelCenter = new Panel();
+            labelRecentActivity = new Label();
+            labelQuickActions = new Label();
+            labelWelcomeMessage = new Label();
+            labelTitle = new Label();
+            panelMain.SuspendLayout();
+            panelCenter.SuspendLayout();
+            SuspendLayout();
             // 
             // panelMain
             // 
-            this.panelMain.BackColor = System.Drawing.SystemColors.Control;
-            this.panelMain.Controls.Add(this.panelCenter);
-            this.panelMain.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.panelMain.Location = new System.Drawing.Point(0, 0);
-            this.panelMain.Name = "panelMain";
-            this.panelMain.Padding = new System.Windows.Forms.Padding(20);
-            this.panelMain.Size = new System.Drawing.Size(800, 600);
-            this.panelMain.TabIndex = 0;
+            panelMain.BackColor = SystemColors.Control;
+            panelMain.Controls.Add(panelCenter);
+            panelMain.Dock = DockStyle.Fill;
+            panelMain.Location = new Point(0, 0);
+            panelMain.Margin = new Padding(4);
+            panelMain.Name = "panelMain";
+            panelMain.Padding = new Padding(26, 27, 26, 27);
+            panelMain.Size = new Size(1029, 800);
+            panelMain.TabIndex = 0;
             // 
             // panelCenter
             // 
-            this.panelCenter.Anchor = System.Windows.Forms.AnchorStyles.None;
-            this.panelCenter.Controls.Add(this.labelRecentActivity);
-            this.panelCenter.Controls.Add(this.labelQuickActions);
-            this.panelCenter.Controls.Add(this.labelWelcomeMessage);
-            this.panelCenter.Controls.Add(this.labelTitle);
-            this.panelCenter.Location = new System.Drawing.Point(150, 100);
-            this.panelCenter.Name = "panelCenter";
-            this.panelCenter.Size = new System.Drawing.Size(500, 400);
-            this.panelCenter.TabIndex = 0;
+            panelCenter.Anchor = AnchorStyles.None;
+            panelCenter.Controls.Add(labelRecentActivity);
+            panelCenter.Controls.Add(labelQuickActions);
+            panelCenter.Controls.Add(labelWelcomeMessage);
+            panelCenter.Controls.Add(labelTitle);
+            panelCenter.Location = new Point(193, 211);
+            panelCenter.Margin = new Padding(4);
+            panelCenter.Name = "panelCenter";
+            panelCenter.Size = new Size(643, 455);
+            panelCenter.TabIndex = 0;
             // 
             // labelRecentActivity
             // 
-            this.labelRecentActivity.AutoSize = true;
-            this.labelRecentActivity.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.labelRecentActivity.ForeColor = System.Drawing.SystemColors.ControlDarkDark;
-            this.labelRecentActivity.Location = new System.Drawing.Point(20, 250);
-            this.labelRecentActivity.MaximumSize = new System.Drawing.Size(460, 0);
-            this.labelRecentActivity.Name = "labelRecentActivity";
-            this.labelRecentActivity.TabIndex = 3;
-            this.labelRecentActivity.Text = "Recent Activity:\r\n• No recent backups\r\n• Use the Tools menu to get started";
+            labelRecentActivity.AutoSize = true;
+            labelRecentActivity.Font = new Font("Segoe UI", 9F);
+            labelRecentActivity.ForeColor = SystemColors.ControlDarkDark;
+            labelRecentActivity.Location = new Point(26, 333);
+            labelRecentActivity.Margin = new Padding(4, 0, 4, 0);
+            labelRecentActivity.MaximumSize = new Size(591, 0);
+            labelRecentActivity.Name = "labelRecentActivity";
+            labelRecentActivity.Size = new Size(242, 60);
+            labelRecentActivity.TabIndex = 3;
+            labelRecentActivity.Text = "Recent Activity:\r\n• No recent backups\r\n• Use the Tools menu to get started";
             // 
             // labelQuickActions
             // 
-            this.labelQuickActions.AutoSize = true;
-            this.labelQuickActions.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.labelQuickActions.Location = new System.Drawing.Point(20, 150);
-            this.labelQuickActions.MaximumSize = new System.Drawing.Size(460, 0);
-            this.labelQuickActions.Name = "labelQuickActions";
-            this.labelQuickActions.TabIndex = 2;
-            this.labelQuickActions.Text = "Quick Actions:\r\n• Tools → Configuration Management - Manage backup configurations\r\n• Tools → Schedule Management - Set up automated backups\r\n• Tools → Backup Monitor - Monitor backup progress";
+            labelQuickActions.AutoSize = true;
+            labelQuickActions.Font = new Font("Segoe UI", 9F);
+            labelQuickActions.Location = new Point(26, 200);
+            labelQuickActions.Margin = new Padding(4, 0, 4, 0);
+            labelQuickActions.MaximumSize = new Size(591, 0);
+            labelQuickActions.Name = "labelQuickActions";
+            labelQuickActions.Size = new Size(477, 80);
+            labelQuickActions.TabIndex = 2;
+            labelQuickActions.Text = "Quick Actions:\r\n• Tools → Configuration Management - Manage backup configurations\r\n• Tools → Schedule Management - Set up automated backups\r\n• Tools → Backup Monitor - Monitor backup progress";
             // 
             // labelWelcomeMessage
             // 
-            this.labelWelcomeMessage.AutoSize = true;
-            this.labelWelcomeMessage.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.labelWelcomeMessage.Location = new System.Drawing.Point(20, 80);
-            this.labelWelcomeMessage.MaximumSize = new System.Drawing.Size(460, 0);
-            this.labelWelcomeMessage.Name = "labelWelcomeMessage";
-            this.labelWelcomeMessage.TabIndex = 1;
-            this.labelWelcomeMessage.Text = "Welcome to MySQL Backup Tool!\r\nSelect a tool from the menu to get started.";
+            labelWelcomeMessage.AutoSize = true;
+            labelWelcomeMessage.Font = new Font("Segoe UI", 10F);
+            labelWelcomeMessage.Location = new Point(26, 107);
+            labelWelcomeMessage.Margin = new Padding(4, 0, 4, 0);
+            labelWelcomeMessage.MaximumSize = new Size(591, 0);
+            labelWelcomeMessage.Name = "labelWelcomeMessage";
+            labelWelcomeMessage.Size = new Size(337, 46);
+            labelWelcomeMessage.TabIndex = 1;
+            labelWelcomeMessage.Text = "Welcome to MySQL Backup Tool!\r\nSelect a tool from the menu to get started.";
             // 
             // labelTitle
             // 
-            this.labelTitle.AutoSize = true;
-            this.labelTitle.Font = new System.Drawing.Font("Segoe UI", 18F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.labelTitle.Location = new System.Drawing.Point(20, 20);
-            this.labelTitle.MaximumSize = new System.Drawing.Size(460, 0);
-            this.labelTitle.Name = "labelTitle";
-            this.labelTitle.TabIndex = 0;
-            this.labelTitle.Text = "MySQL Backup Tool";
+            labelTitle.AutoSize = true;
+            labelTitle.Font = new Font("Segoe UI", 18F, FontStyle.Bold);
+            labelTitle.Location = new Point(26, 27);
+            labelTitle.Margin = new Padding(4, 0, 4, 0);
+            labelTitle.MaximumSize = new Size(591, 0);
+            labelTitle.Name = "labelTitle";
+            labelTitle.Size = new Size(297, 41);
+            labelTitle.TabIndex = 0;
+            labelTitle.Text = "MySQL Backup Tool";
             // 
             // WelcomeControl
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.Controls.Add(this.panelMain);
-            this.Name = "WelcomeControl";
-            this.Size = new System.Drawing.Size(800, 600);
-            this.panelMain.ResumeLayout(false);
-            this.panelCenter.ResumeLayout(false);
-            this.panelCenter.PerformLayout();
-            this.ResumeLayout(false);
-
-            // Apply standard styling and optimize layout performance
-            EmbeddedFormStyleManager.ApplyStandardStyling(this);
-            EmbeddedFormStyleManager.OptimizeLayoutPerformance(this);
+            AutoScaleDimensions = new SizeF(9F, 20F);
+            AutoScaleMode = AutoScaleMode.Font;
+            Controls.Add(panelMain);
+            Margin = new Padding(4);
+            Name = "WelcomeControl";
+            Size = new Size(1029, 800);
+            panelMain.ResumeLayout(false);
+            panelCenter.ResumeLayout(false);
+            panelCenter.PerformLayout();
+            ResumeLayout(false);
         }
 
         #endregion
