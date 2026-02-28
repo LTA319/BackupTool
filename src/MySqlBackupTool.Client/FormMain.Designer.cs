@@ -67,7 +67,7 @@ namespace MySqlBackupTool.Client
             menuStrip.Location = new Point(0, 0);
             menuStrip.Name = "menuStrip";
             menuStrip.Padding = new Padding(7, 2, 0, 2);
-            menuStrip.Size = new Size(1096, 28);
+            menuStrip.Size = new Size(1498, 28);
             menuStrip.TabIndex = 0;
             menuStrip.Text = "menuStrip";
             // 
@@ -169,10 +169,10 @@ namespace MySqlBackupTool.Client
             // 
             statusStrip.ImageScalingSize = new Size(24, 24);
             statusStrip.Items.AddRange(new ToolStripItem[] { toolStripStatusLabel });
-            statusStrip.Location = new Point(0, 587);
+            statusStrip.Location = new Point(0, 643);
             statusStrip.Name = "statusStrip";
             statusStrip.Padding = new Padding(2, 0, 18, 0);
-            statusStrip.Size = new Size(1096, 26);
+            statusStrip.Size = new Size(1498, 26);
             statusStrip.TabIndex = 1;
             statusStrip.Text = "statusStrip";
             // 
@@ -231,29 +231,28 @@ namespace MySqlBackupTool.Client
             // 
             contentPanel.BackColor = SystemColors.Window;
             contentPanel.Dock = DockStyle.Fill;
-            contentPanel.Location = new Point(0, 73);
+            contentPanel.Location = new Point(0, 74);
             contentPanel.Margin = new Padding(2);
             contentPanel.Name = "contentPanel";
-            contentPanel.Size = new Size(1096, 514);
+            contentPanel.Size = new Size(1498, 569);
             contentPanel.TabIndex = 4;
             // 
             // navigationPanel
             // 
             navigationPanel.BackColor = Color.FromArgb(240, 240, 240);
-            navigationPanel.BorderStyle = BorderStyle.None;
             navigationPanel.Dock = DockStyle.Top;
             navigationPanel.Location = new Point(0, 28);
             navigationPanel.Margin = new Padding(2);
             navigationPanel.Name = "navigationPanel";
             navigationPanel.Padding = new Padding(10, 8, 10, 8);
-            navigationPanel.Size = new Size(1096, 45);
+            navigationPanel.Size = new Size(1498, 46);
             navigationPanel.TabIndex = 3;
             // 
             // FormMain
             // 
             AutoScaleDimensions = new SizeF(9F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1096, 613);
+            ClientSize = new Size(1498, 669);
             Controls.Add(contentPanel);
             Controls.Add(navigationPanel);
             Controls.Add(statusStrip);
